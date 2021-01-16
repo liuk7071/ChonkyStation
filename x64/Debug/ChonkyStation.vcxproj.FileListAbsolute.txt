@@ -1,0 +1,2 @@
+C:\Users\zacse\source\repos\ChonkyStation\x64\Debug\ChonkyStation.exe
+C:\Users\zacse\source\repos\ChonkyStation\x64\Debug\ChonkyStation.pdb

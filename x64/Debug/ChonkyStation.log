@@ -1,0 +1,3 @@
+﻿  ChonkyStation.cpp
+C:\Users\zacse\source\repos\ChonkyStation\ChonkyStation.cpp(99,17): warning C4060: switch statement contains no 'case' or 'default' labels
+  ChonkyStation.vcxproj -> C:\Users\zacse\source\repos\ChonkyStation\x64\Debug\ChonkyStation.exe
