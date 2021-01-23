@@ -51,6 +51,9 @@
     <ClCompile Include="imgui\backends\imgui_impl_sdl.cpp">
       <Filter>File di origine</Filter>
     </ClCompile>
+    <ClCompile Include="cop0.cpp">
+      <Filter>File di origine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h">
@@ -85,6 +88,9 @@
     </ClInclude>
     <ClInclude Include="imgui\backends\imgui_impl_sdl.h">
       <Filter>File di origine</Filter>
+    </ClInclude>
+    <ClInclude Include="cop0.h">
+      <Filter>File di intestazione</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

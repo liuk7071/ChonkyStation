@@ -12,10 +12,12 @@ int Main() {
     
     cpu Cpu = cpu();
     Cpu.bus.mem.loadBios();
+    printf("\n Executing \n \n");
     for (;;) {
         uint32_t instr = Cpu.fetch(Cpu.pc);
-        printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
+        if(Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
         Cpu.execute(instr);
+        
     }
     SDL_Quit();
 
@@ -27,7 +29,7 @@ int main()
     int screen_width = 640, screen_height = 480;
     SDL_Window* main_window = nullptr;
     SDL_GLContext gl_context = nullptr;
-    // opengl
+   
     if (SDL_Init(SDL_INIT_EVENTS) < 0) {
         throw(std::string("Failed to initialize SDL: ") + SDL_GetError());
     }
@@ -55,7 +57,7 @@ int main()
     }
     else SDL_GL_MakeCurrent(main_window, gl_context);
 
-    // glad
+    
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
         throw(std::string("Failed to initialize GLAD"));
     }
@@ -81,15 +83,15 @@ int main()
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
-            // without it you won't have keyboard input and other things
+            
             ImGui_ImplSDL2_ProcessEvent(&event);
-            // you might also want to check io.WantCaptureMouse and io.WantCaptureKeyboard
-            // before processing events
+            
 
             switch (event.type)
             {
             case SDL_QUIT:
                 loop = false;
+                exit(0);
                 break;
 
             case SDL_WINDOWEVENT:

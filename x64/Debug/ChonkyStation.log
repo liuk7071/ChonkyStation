@@ -1,3 +1,4 @@
-﻿  ChonkyStation.cpp
-C:\Users\zacse\source\repos\ChonkyStation\ChonkyStation.cpp(99,17): warning C4060: switch statement contains no 'case' or 'default' labels
+﻿  cpu.cpp
+C:\Users\zacse\source\repos\ChonkyStation\cpu.cpp(55,5): warning C4065: switch statement contains 'default' but no 'case' labels
+C:\Users\zacse\source\repos\ChonkyStation\cpu.cpp(97,5): warning C4065: switch statement contains 'default' but no 'case' labels
   ChonkyStation.vcxproj -> C:\Users\zacse\source\repos\ChonkyStation\x64\Debug\ChonkyStation.exe
