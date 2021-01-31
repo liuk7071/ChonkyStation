@@ -9,15 +9,14 @@
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 int Main() {
-    
+
     cpu Cpu = cpu();
     Cpu.bus.mem.loadBios();
     printf("\n Executing \n \n");
     for (;;) {
         uint32_t instr = Cpu.fetch(Cpu.pc);
-        if(Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
+        if (Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
         Cpu.execute(instr);
-        
     }
     SDL_Quit();
 
@@ -25,11 +24,11 @@ int Main() {
 }
 int main()
 {
-    
+
     int screen_width = 640, screen_height = 480;
     SDL_Window* main_window = nullptr;
     SDL_GLContext gl_context = nullptr;
-   
+
     if (SDL_Init(SDL_INIT_EVENTS) < 0) {
         throw(std::string("Failed to initialize SDL: ") + SDL_GetError());
     }
@@ -57,7 +56,7 @@ int main()
     }
     else SDL_GL_MakeCurrent(main_window, gl_context);
 
-    
+
     if (!gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress)) {
         throw(std::string("Failed to initialize GLAD"));
     }
@@ -67,7 +66,7 @@ int main()
     std::cout << std::setw(34) << std::left << "OpenGL Shading Language Version: " << (char*)glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
     std::cout << std::setw(34) << std::left << "OpenGL Vendor:" << (char*)glGetString(GL_VENDOR) << std::endl;
     std::cout << std::setw(34) << std::left << "OpenGL Renderer:" << (char*)glGetString(GL_RENDERER) << std::endl;
-    
+
     // imgui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -83,9 +82,9 @@ int main()
         SDL_Event event;
         while (SDL_PollEvent(&event))
         {
-            
+
             ImGui_ImplSDL2_ProcessEvent(&event);
-            
+
 
             switch (event.type)
             {
@@ -123,8 +122,8 @@ int main()
                     }
                     ImGui::EndMenu();
                 }
-            
-                
+
+
                 if (ImGui::BeginMenu("Settings")) {
                     if (ImGui::BeginMenu("Video")) {
                         if (ImGui::MenuItem("Display")) {}
@@ -147,9 +146,7 @@ int main()
 
         SDL_GL_SwapWindow(main_window);
     }
-    
+
     Main();
     return 0;
 }
-
-

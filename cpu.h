@@ -1,4 +1,3 @@
-#pragma once
 #include <stdint.h>
 #include "Bus.h"
 #include "cop0.h"
@@ -8,8 +7,8 @@ public:
 	cpu();
 	~cpu();
 public:
-	Bus bus = Bus();
 	cop0 COP0 = cop0();
+	Bus bus = Bus();
 public:
 	uint32_t fetch(uint32_t addr);
 	void execute(uint32_t instr);
