@@ -154,7 +154,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 void memory::loadBios() {
 	
 	FILE* BIOS_FILE;
-	BIOS_FILE = fopen("C:\\Users\\zacse\\Downloads\\SCPH7003\\SCPH1001.bin", "rb");	// need to implement in frontend
+	BIOS_FILE = fopen("path_to_bios", "rb");	// need to implement in frontend
 	fread(bios + 0xfc00000, 1, 0x7D000, BIOS_FILE);
 }
 
