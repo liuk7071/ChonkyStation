@@ -14,10 +14,13 @@ cpu::~cpu() {
 
 }
 
+
 uint32_t cpu::fetch(uint32_t addr) {
 	return bus.mem.read32(addr);
 }
 void cpu::execute(uint32_t instr) {
+	regs[0] = 0; // $zero
+
 	uint8_t primary = instr >> 26;
 	uint8_t secondary = instr & 0x3f;
 	if (jump != 0) {	// check for jump branch delay slot
@@ -41,6 +44,26 @@ void cpu::execute(uint32_t instr) {
 					pc += 4;
 					break;
 				}
+				case(0x02): { // srl
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					uint8_t shift_imm = (instr >> 6) & 0x1f;
+					regs[rd] = regs[rt] >> shift_imm;
+					pc += 4;
+					if (debug) printf("srl 0x%.2X, 0x%.2x, 0x%.8x\n", rt, rd, shift_imm);
+					break;
+				}
+				case(0x03): { // sra
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					uint8_t shift_imm = (instr >> 6) & 0x1f;
+					regs[rd] = int32_t(regs[rt]) >> shift_imm;
+					pc += 4;
+					if (debug) printf("sra 0x%.2X, 0x%.2x, 0x%.8x\n", rt, rd, shift_imm);
+					break;
+				}
 				case(0x08): {	// jr
 					uint8_t rs = (instr >> 21) & 0x1f;
 					uint8_t rd = (instr >> 11) & 0x1f;
@@ -48,6 +71,17 @@ void cpu::execute(uint32_t instr) {
 					uint16_t imm = instr & 0xffff;
 					jump = regs[rs];
 					if (debug) printf("jr 0x%.8x\n", regs[rs]);
+					pc += 4;
+					break;
+				}
+				case(0x09): { // jalr
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					uint16_t imm = instr & 0xffff;
+					jump = regs[rs];
+					regs[rd] = pc + 8;
+					if (debug) printf("jalr 0x%.8x\n", regs[rs]);
 					pc += 4;
 					break;
 				}
@@ -61,6 +95,45 @@ void cpu::execute(uint32_t instr) {
 				}
 			case(0x10): {	
 				switch (secondary & 0x0f) {
+				case(0x00): { // mfhi
+					uint8_t rd = (instr >> 11) & 0x1f;
+					regs[rd] = hi;
+					if (debug) printf("mfhi 0x%.2X", rd);
+					pc += 4;
+					break;
+				}
+				case(0x02): { // mflo
+					uint8_t rd = (instr >> 11) & 0x1f;
+					regs[rd] = lo;
+					if(debug) printf("mflo 0x%.2X", rd);
+					pc += 4;
+					break;
+				}
+				case(0x0A): { // div
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					
+					int32_t n = int32_t(regs[rs]);
+					int32_t d = int32_t(regs[rt]);
+					
+					hi = uint32_t(n % d);
+					lo = uint32_t(n / d);
+					if(debug) printf("div 0x%.2X, 0x%.2X\n", rs, rt);
+					pc += 4;
+					break;
+				}
+				case(0x0B): { // divu
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+
+					hi = regs[rs] % regs[rt];
+					lo = regs[rs] / regs[rt];
+					if (debug) printf("divu 0x%.2X, 0x%.2X\n", rs, rt);
+					pc += 4;
+					break;
+				}
 				default: {
 					if(debug) printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
@@ -71,6 +144,34 @@ void cpu::execute(uint32_t instr) {
 			}
 			case(0x20): {
 				switch (secondary & 0x0f) {
+				case(0x00): {	// add
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					uint16_t imm = instr & 0xffff;
+					uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+					if (debug) printf("addi 0x%.2x, 0x%.2x, 0x%.4x", rt, rs, imm);
+					uint32_t result = regs[rs] + regs[rt];
+					if (((regs[rs] >> 31) == (regs[rt] >> 31)) && ((regs[rs] >> 31) != (result >> 31))) {
+						if (debug) printf(" add exception");
+						pc += 4;
+						break;
+					}
+					if (debug) printf("\n");
+					regs[rd] = result;
+					pc += 4;
+					break;
+				}
+				case(0x03): { // subu
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					uint16_t imm = instr & 0xffff;
+					regs[rd] = regs[rs] - regs[rt];
+					if (debug) printf("subu 0x%.2x, 0x%.2x, 0x%.2x\n", rs, rd, rt);
+					pc += 4;
+					break;
+				}
 				case(0x04): {	// and
 					uint8_t rs = (instr >> 21) & 0x1f;
 					uint8_t rd = (instr >> 11) & 0x1f;
@@ -89,7 +190,7 @@ void cpu::execute(uint32_t instr) {
 					pc += 4;
 					break;
 				}
-				case(0x01): {
+				case(0x01): { // addu
 					uint8_t rs = (instr >> 21) & 0x1f;
 					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
@@ -97,6 +198,19 @@ void cpu::execute(uint32_t instr) {
 					regs[rd] = regs[rs] + regs[rt];
 					pc += 4;
 					if(debug) printf("addu 0x%.8x, 0x%.8x, 0x%.8x\n", rd, rs, rt);
+					break;
+				}
+				case(0x0A): { // slt
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					uint16_t imm = instr & 0xffff;
+					if (debug) printf("slt 0x%.2x, 0x%.8x, 0x%.8x\n", rd, rs, rt);
+					regs[rd] = 0;
+					if (int32_t(regs[rs]) < int32_t(regs[rt])) {
+						regs[rd] = 1;
+					}
+					pc += 4;
 					break;
 				}
 				case(0x0B): {	// sltu
@@ -140,8 +254,38 @@ void cpu::execute(uint32_t instr) {
 
 			break;
 		}
-		case(0x01): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x01): {	// BxxZ
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rd = (instr >> 11) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+			uint32_t signed_rs = int32_t(regs[rs]);
+			auto bit16 = (instr >> 16) & 1;
+			auto bit20 = (instr >> 20) & 1;
+			if (bit16 == 0 ) {		// bltz
+				if (debug) printf("BxxZ 0x%.2x, 0x%.4x", rs, sign_extended_imm);
+				if (signed_rs < 0) {
+					jump = (pc + 4) + (sign_extended_imm << 2);
+					if (bit20 == 1) regs[31] = pc; // check if link (bltzal)
+					if (debug) printf(" branched\n");
+				}
+				else { if (debug) printf("\n"); }
+				pc += 4;
+				break;
+			}
+
+			if (bit16 == 1) {		// bgez
+				if (debug) printf("BxxZ 0x%.2x, 0x%.4x", rs, sign_extended_imm);
+				if (signed_rs >= 0) {
+					jump = (pc + 4) + (sign_extended_imm << 2);
+					if (bit20 == 1) regs[31] = pc; // check if link (bgezal)
+					if (debug) printf(" branched\n");
+				}
+				else { if (debug) printf("\n"); }
+				pc += 4;
+				break;
+			}
 		}
 		case(0x02): { // j
 			uint32_t jump_imm = instr & 0x3ffffff;
@@ -188,11 +332,37 @@ void cpu::execute(uint32_t instr) {
 			pc += 4;
 			break;
 		}
-		case(0x06): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x06): {	// blez
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rd = (instr >> 11) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+			uint32_t signed_rs = int32_t(regs[rs]);
+			if (debug) printf("blez 0x%.2x, 0x%.4x", rs, sign_extended_imm);
+			if (signed_rs <= 0) {
+				jump = (pc + 4) + (sign_extended_imm << 2);
+				if (debug) printf(" branched\n");
+			}
+			else { if (debug) printf("\n"); }
+			pc += 4;
+			break;
 		}
-		case(0x07): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x07): {	// bgtz
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rd = (instr >> 11) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+			uint32_t signed_rs = int32_t(regs[rs]);
+			if (debug) printf("bgtz 0x%.2x, 0x%.4x", rs, sign_extended_imm);
+			if (signed_rs > 0) {
+				jump = (pc + 4) + (sign_extended_imm << 2);
+				if (debug) printf(" branched\n");
+			}
+			else { if (debug) printf("\n"); }
+			pc += 4;
+			break;
 		}
 		case(0x08): { // addi
 			uint8_t rs = (instr >> 21) & 0x1f;
@@ -223,11 +393,35 @@ void cpu::execute(uint32_t instr) {
 			pc += 4;
 			break;
 		}
-		case(0x0A): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x0A): {	// slti
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rd = (instr >> 11) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));
+
+			int32_t signed_rs = int32_t(regs[rs]);
+			regs[rt] = 0;
+			if (signed_rs < signed_sign_extended_imm)
+				regs[rt] = 1;
+			pc += 4;
+			printf("slti 0x%.2X, 0x%.2X, 0x%.4X\n", rt, rs, imm);
+			break;
 		}
-		case(0x0B): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x0B): { // sltiu
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rd = (instr >> 11) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));
+
+			
+			regs[rt] = 0;
+			if (regs[rs] < signed_sign_extended_imm)
+				regs[rt] = 1;
+			pc += 4;
+			printf("sltiu 0x%.2X, 0x%.2X, 0x%.4X\n", rt, rs, imm);
+			break;
 		}
 		case(0x0C): {	// andi
 			uint8_t rs = (instr >> 21) & 0x1f;
@@ -392,8 +586,23 @@ void cpu::execute(uint32_t instr) {
 			pc += 4;
 			break;
 		}
-		case(0x04): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x04): {	// lbu
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+			uint32_t addr = regs[rs] + sign_extended_imm;
+			if (debug) printf("lbu 0x%.2X, 0x%.4x(0x%.8x)", rt, imm, regs[rs]);
+			if ((COP0.regs[12] & 0x10000) == 0) {
+				uint8_t byte = bus.mem.read(addr);
+				regs[rt] = byte;
+				if (debug) printf("\n");
+			}
+			else {
+				if (debug) printf(" cache isolated, ignoring load\n");
+			}
+			pc += 4;
+			break;
 		}
 		case(0x05): {
 			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;

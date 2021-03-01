@@ -34,6 +34,8 @@ uint8_t memory::read(uint32_t addr) {
 		memcpy(&bytes, &mem[addr], sizeof(uint8_t));
 		return bytes;
 	}
+	if (addr >= 0x80200000 && addr <= 0x80300000)
+		return 0;
 
 	printf("\nUnhandled read 0x%.8x", addr);
 	exit(0);

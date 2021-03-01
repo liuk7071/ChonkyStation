@@ -8,15 +8,61 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
+int screen_width = 640, screen_height = 480;
+SDL_Window* main_window = nullptr;
+SDL_GLContext gl_context = nullptr;
 int Main() {
+    SDL_Event event;
 
+    int frame_cycles = 0;
     cpu Cpu = cpu();
     Cpu.bus.mem.loadBios();
     printf("\n Executing \n \n");
     for (;;) {
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        //glBegin(GL_POLYGON);
+        //glColor3f(1, 0, 0); glVertex3f(-0.6, -0.75, 0.5);
+        //glColor3f(0, 1, 0); glVertex3f(0.6, -0.75, 0);
+        //glColor3f(0, 0, 1); glVertex3f(0, 0.75, 0);
+        //glEnd();
+        //glFlush();
+
+        
+        //while (SDL_PollEvent(&event))
+        //{
+        //
+        //    ImGui_ImplSDL2_ProcessEvent(&event);
+        //
+        //
+        //    switch (event.type)
+        //    {
+        //    case SDL_QUIT:
+        //        exit(0);
+        //        break;
+        //
+        //    case SDL_WINDOWEVENT:
+        //        switch (event.window.event)
+        //        {
+        //
+        //        }
+        //        break;
+        //
+        //    case SDL_KEYDOWN:
+        //        switch (event.key.keysym.sym)
+        //        {
+        //        case SDLK_ESCAPE:
+        //            break;
+        //        }
+        //        break;
+        //    }
+        //}
+        //SDL_GL_SwapWindow(main_window);
+
         uint32_t instr = Cpu.fetch(Cpu.pc);
         if (Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
         Cpu.execute(instr);
+
+        
     }
     SDL_Quit();
 
@@ -25,9 +71,7 @@ int Main() {
 int main()
 {
 
-    int screen_width = 640, screen_height = 480;
-    SDL_Window* main_window = nullptr;
-    SDL_GLContext gl_context = nullptr;
+    
 
     if (SDL_Init(SDL_INIT_EVENTS) < 0) {
         throw(std::string("Failed to initialize SDL: ") + SDL_GetError());

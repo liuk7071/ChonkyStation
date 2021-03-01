@@ -13,7 +13,7 @@ public:
 	uint8_t* exp1 = new uint8_t[0xffffff];
 	uint8_t* exp2 = new uint8_t[0xffffff];
 	uint8_t* regs = new uint8_t[0xffffff];
-	uint8_t* mem = new uint8_t[0xffffffff];					// need to handle mirroring
+	uint8_t* mem = new uint8_t[0xffffffff];
 	
 	
 public:
