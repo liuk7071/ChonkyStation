@@ -7,7 +7,7 @@ cpu::cpu() {
 		regs[i] = 0;
 	}
 
-	debug = true;
+	debug = false;
 }
 
 cpu::~cpu() {
@@ -87,7 +87,7 @@ void cpu::execute(uint32_t instr) {
 					break;
 				}
 				default: {
-					if(debug) printf("Unknown subinstruction: 0x%.2X\n", secondary);
+					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
 				}
 				break;
@@ -136,7 +136,7 @@ void cpu::execute(uint32_t instr) {
 					break;
 				}
 				default: {
-					if(debug) printf("Unknown subinstruction: 0x%.2X\n", secondary);
+					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
 				}
 				break;
@@ -228,7 +228,7 @@ void cpu::execute(uint32_t instr) {
 					break;
 				}
 				default: {
-					if(debug) printf("Unknown subinstruction: 0x%.2X\n", secondary);
+					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
 				}
 				break;
@@ -238,7 +238,7 @@ void cpu::execute(uint32_t instr) {
 			case(0x30): {
 				switch (secondary & 0x0f) {
 				default: {
-					if(debug) printf("Unknown subinstruction: 0x%.2X\n", secondary);
+					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
 				}
 				break;
@@ -247,7 +247,7 @@ void cpu::execute(uint32_t instr) {
 			}
 
 			default: {
-				if(debug) printf("Unknown subinstruction: 0x%.2X\n", secondary);
+				printf("Unknown subinstruction: 0x%.2X\n", secondary);
 				exit(0);
 			}
 			break;
@@ -265,10 +265,11 @@ void cpu::execute(uint32_t instr) {
 			auto bit16 = (instr >> 16) & 1;
 			auto bit20 = (instr >> 20) & 1;
 			if (bit16 == 0 ) {		// bltz
+				if (bit20 == 1) regs[0x1f] = pc + 4; // check if link (bltzal)
 				if (debug) printf("BxxZ 0x%.2x, 0x%.4x", rs, sign_extended_imm);
 				if (signed_rs < 0) {
 					jump = (pc + 4) + (sign_extended_imm << 2);
-					if (bit20 == 1) regs[0x1f] = pc + 4; // check if link (bltzal)
+					
 					if (debug) printf(" branched\n");
 				}
 				else { if (debug) printf("\n"); }
@@ -278,9 +279,10 @@ void cpu::execute(uint32_t instr) {
 
 			if (bit16 == 1) {		// bgez
 				if (debug) printf("BxxZ 0x%.2x, 0x%.4x", rs, sign_extended_imm);
+				if (bit20 == 1) regs[0x1f] = pc + 4; // check if link (bgezal)
 				if (signed_rs >= 0) {
 					jump = (pc + 4) + (sign_extended_imm << 2);
-					if (bit20 == 1) regs[0x1f] = pc + 4; // check if link (bgezal)
+					
 					if (debug) printf(" branched\n");
 				}
 				else { if (debug) printf("\n"); }
@@ -339,7 +341,7 @@ void cpu::execute(uint32_t instr) {
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
-			uint32_t signed_rs = int32_t(regs[rs]);
+			int32_t signed_rs = int32_t(regs[rs]);
 			if (debug) printf("blez 0x%.2x, 0x%.4x", rs, sign_extended_imm);
 			if (signed_rs <= 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
@@ -355,7 +357,7 @@ void cpu::execute(uint32_t instr) {
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
-			uint32_t signed_rs = int32_t(regs[rs]);
+			int32_t signed_rs = int32_t(regs[rs]);
 			if (debug) printf("bgtz 0x%.2x, 0x%.4x", rs, sign_extended_imm);
 			if (signed_rs > 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
@@ -443,7 +445,7 @@ void cpu::execute(uint32_t instr) {
 			break;
 		}
 		case(0x0E): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0F): {	// lui
 			uint8_t rt = (instr >> 16) & 0x1f;
@@ -456,7 +458,7 @@ void cpu::execute(uint32_t instr) {
 		}
 				  
 		default:
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary);
+			printf("Unknown instruction: 0x%.2X\n", primary);
 			exit(0);
 		}
 		break;
@@ -493,52 +495,52 @@ void cpu::execute(uint32_t instr) {
 			break;
 		}
 		case(0x01): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x02): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x03): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x04): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x05): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x06): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x07): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x08): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x09): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0A): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0B): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0C): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0D): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0E): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0f): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		default:
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary);
+			printf("Unknown instruction: 0x%.2X\n", primary);
 			exit(0);
 		}
 		break;
@@ -568,7 +570,7 @@ void cpu::execute(uint32_t instr) {
 			if (debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x02): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x03): {	// lw  
 			uint8_t rs = (instr >> 21) & 0x1f;
@@ -606,13 +608,13 @@ void cpu::execute(uint32_t instr) {
 			break;
 		}
 		case(0x05): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x06): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x07): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x08): {	// sb
 			uint8_t rs = (instr >> 21) & 0x1f;
@@ -650,7 +652,7 @@ void cpu::execute(uint32_t instr) {
 			
 		}
 		case(0x0A): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0B): { // sw
 			uint8_t rs = (instr >> 21) & 0x1f;
@@ -669,19 +671,19 @@ void cpu::execute(uint32_t instr) {
 			break;
 		}
 		case(0x0C): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0D): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0E): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0f): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		default:
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary);
+			printf("Unknown instruction: 0x%.2X\n", primary);
 			exit(0);
 		}
 		break;
@@ -690,65 +692,65 @@ void cpu::execute(uint32_t instr) {
 	case(0x30): {
 		switch (primary & 0x0f) {
 		case(0x00): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x01): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x02): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x03): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x04): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x05): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x06): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x07): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x08): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x09): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0A): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0B): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0C): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0D): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0E): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x0f): {
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		default:
-			if(debug) printf("Unknown instruction: 0x%.2X\n", primary);
+			printf("Unknown instruction: 0x%.2X\n", primary);
 			exit(0);
 		}
-		if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 	
 
 	
 
 	default: {
-		if(debug) printf("Unknown instruction: 0x%.2X\n", primary);
+		printf("Unknown instruction: 0x%.2X\n", primary);
 		exit(0);
 	}
 	}

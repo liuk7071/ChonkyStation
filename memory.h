@@ -9,7 +9,7 @@ public:
 	~memory();
 public:
 	uint8_t* ram = new uint8_t[0x200000];
-	uint8_t* bios = new uint8_t[0x7D000];
+	uint8_t* bios = new uint8_t[524288];
 	uint8_t* exp1 = new uint8_t[0xffffff];
 	uint8_t* exp2 = new uint8_t[0xffffff];
 	uint8_t* regs = new uint8_t[0xffffff];

@@ -2,7 +2,7 @@
 #include <fstream>
 #pragma warning(disable : 4996)
 memory::memory() {
-	debug = true;
+	debug = false;
 }
 
 memory::~memory() {
@@ -32,7 +32,7 @@ uint8_t memory::read(uint32_t addr) {
 
 	if (addr == 0x1F801074) exit(0);
 
-	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 0x7D000) {
+	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0xfffff], sizeof(uint8_t));
 		return bytes;
 	}
@@ -58,7 +58,7 @@ uint16_t memory::read16(uint32_t addr) {
 
 	if (addr == 0x1F801074) exit(0);
 
-	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 0x7D000) {
+	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0xfffff], sizeof(uint16_t));
 		return bytes;
 	}
@@ -79,11 +79,11 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 	
-	if (masked_addr >= 0x1f801074 && masked_addr < 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
+	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
 		return 0;
 	}
 
-	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 0x7D000) {
+	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0xfffff], sizeof(uint32_t));
 		return bytes;
 	}
@@ -107,6 +107,9 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
+		return;
+	}
 	if (masked_addr == 0x1f802041)
 		return;
 
@@ -134,6 +137,10 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+
+	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
+		return;
+	}
 	if (masked_addr >= 0x1f800000 && masked_addr <= 0x1f801020) {
 		return;
 	}
@@ -166,7 +173,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
-	if (masked_addr >= 0x1f801100 && masked_addr <= 0x1F80110B) {	// timer register
+	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
 		return;
 	}
 	if (masked_addr >= 0x1f801d80 && masked_addr <= 0x1F801D87) {	// SPU regs
@@ -184,7 +191,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 void memory::loadBios() {
 	
 	FILE* BIOS_FILE;
-	BIOS_FILE = fopen("C:\\Users\\zacse\\Downloads\\SCPH7003\\SCPH1001.bin", "rb");
-	fread(bios, 1, 0x7D000, BIOS_FILE);
+	BIOS_FILE = fopen("path\\to\\bios", "rb");
+	fread(bios, 1, 524288, BIOS_FILE);
 }
 
