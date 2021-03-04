@@ -8,12 +8,16 @@ public:
 	memory();
 	~memory();
 public:
-	uint8_t* ram = new uint8_t[0xffffff];
-	uint8_t* bios = new uint8_t[0xffffff];
+	uint8_t* ram = new uint8_t[0x200000];
+	uint8_t* bios = new uint8_t[0x7D000];
 	uint8_t* exp1 = new uint8_t[0xffffff];
 	uint8_t* exp2 = new uint8_t[0xffffff];
 	uint8_t* regs = new uint8_t[0xffffff];
-	uint8_t* mem = new uint8_t[0xffffffff];
+	//uint8_t* mem = new uint8_t[0xffffffff];
+	uint32_t RAM_SIZE;
+	uint32_t IRQ_MASK;
+	uint32_t IRQ_STATUS;
+	uint32_t CACHE_CONTROL;
 	
 	
 public:
@@ -29,4 +33,6 @@ public:
 	uint8_t read(uint32_t addr);
 	uint16_t read16(uint32_t addr);
 	uint32_t read32(uint32_t addr);
+	
+	uint32_t mask_address(const uint32_t addr);
 };

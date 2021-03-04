@@ -19,7 +19,7 @@ public:
 	uint32_t pc;
 	uint32_t sp;
 	uint32_t zero;
-	uint32_t* regs = new uint32_t[27];
+	uint32_t regs[31];
 	uint32_t hi;
 	uint32_t lo;
 public:

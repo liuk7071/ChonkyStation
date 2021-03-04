@@ -3,7 +3,7 @@
 cpu::cpu() {
 	bus.mem.loadBios();
 	pc = 0xbfc00000;
-	for (int i = 0x0; i < 0x1f; i++) {
+	for (int i = 0x0; i < 31; i++) {
 		regs[i] = 0;
 	}
 
@@ -27,6 +27,7 @@ void cpu::execute(uint32_t instr) {
 		pc = jump - 4;
 		jump = 0;
 	}
+	
 	switch (primary & 0xf0) {
 	case(0x00): {
 		switch (primary & 0x0f) {
@@ -205,7 +206,7 @@ void cpu::execute(uint32_t instr) {
 					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
 					uint16_t imm = instr & 0xffff;
-					if (debug) printf("slt 0x%.2x, 0x%.8x, 0x%.8x\n", rd, rs, rt);
+					printf("slt 0x%.2x, 0x%.8x, 0x%.8x\n", rd, rs, rt);
 					regs[rd] = 0;
 					if (int32_t(regs[rs]) < int32_t(regs[rt])) {
 						regs[rd] = 1;
@@ -260,14 +261,14 @@ void cpu::execute(uint32_t instr) {
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
-			uint32_t signed_rs = int32_t(regs[rs]);
+			int32_t signed_rs = int32_t(regs[rs]);
 			auto bit16 = (instr >> 16) & 1;
 			auto bit20 = (instr >> 20) & 1;
 			if (bit16 == 0 ) {		// bltz
 				if (debug) printf("BxxZ 0x%.2x, 0x%.4x", rs, sign_extended_imm);
 				if (signed_rs < 0) {
 					jump = (pc + 4) + (sign_extended_imm << 2);
-					if (bit20 == 1) regs[31] = pc; // check if link (bltzal)
+					if (bit20 == 1) regs[0x1f] = pc + 4; // check if link (bltzal)
 					if (debug) printf(" branched\n");
 				}
 				else { if (debug) printf("\n"); }
@@ -279,7 +280,7 @@ void cpu::execute(uint32_t instr) {
 				if (debug) printf("BxxZ 0x%.2x, 0x%.4x", rs, sign_extended_imm);
 				if (signed_rs >= 0) {
 					jump = (pc + 4) + (sign_extended_imm << 2);
-					if (bit20 == 1) regs[31] = pc; // check if link (bgezal)
+					if (bit20 == 1) regs[0x1f] = pc + 4; // check if link (bgezal)
 					if (debug) printf(" branched\n");
 				}
 				else { if (debug) printf("\n"); }
@@ -398,7 +399,7 @@ void cpu::execute(uint32_t instr) {
 			uint8_t rd = (instr >> 11) & 0x1f;
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
-			uint32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));
+			int32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));
 
 			int32_t signed_rs = int32_t(regs[rs]);
 			regs[rt] = 0;
@@ -413,7 +414,7 @@ void cpu::execute(uint32_t instr) {
 			uint8_t rd = (instr >> 11) & 0x1f;
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
-			uint32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));
+			int32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));
 
 			
 			regs[rt] = 0;
@@ -551,7 +552,7 @@ void cpu::execute(uint32_t instr) {
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			uint32_t addr = regs[rs] + sign_extended_imm;
-			if (debug) printf("lb 0x%.2X, 0x%.4x(0x%.8x)", rt, imm, regs[rs]);
+			if (debug) printf("lb 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, rs);
 			if ((COP0.regs[12] & 0x10000) == 0) {
 				uint8_t byte = bus.mem.read(addr);
 				regs[rt] = uint32_t(int32_t(int8_t(byte)));
@@ -569,13 +570,13 @@ void cpu::execute(uint32_t instr) {
 		case(0x02): {
 			if(debug) printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
-		case(0x03): {	// lw  need to do load delay slot
+		case(0x03): {	// lw  
 			uint8_t rs = (instr >> 21) & 0x1f;
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			uint32_t addr = regs[rs] + sign_extended_imm;
-			if(debug) printf("lw 0x%.2X, 0x%.4x(0x%.8x)", rt, imm, regs[rs]);
+			if(debug) printf("lw 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, regs[rs]);
 			if ((COP0.regs[12] & 0x10000) == 0) {
 				regs[rt] = bus.mem.read32(addr);
 				if(debug) printf("\n");
@@ -592,7 +593,7 @@ void cpu::execute(uint32_t instr) {
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			uint32_t addr = regs[rs] + sign_extended_imm;
-			if (debug) printf("lbu 0x%.2X, 0x%.4x(0x%.8x)", rt, imm, regs[rs]);
+			if (debug) printf("lbu 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, regs[rs]);
 			if ((COP0.regs[12] & 0x10000) == 0) {
 				uint8_t byte = bus.mem.read(addr);
 				regs[rt] = byte;
@@ -619,9 +620,9 @@ void cpu::execute(uint32_t instr) {
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			uint32_t addr = regs[rs] + sign_extended_imm;
-			if (debug) printf("sb 0x%.2X, 0x%.4x(0x%.8x)", rt, imm, regs[rs]);
+			if (debug) printf("sb 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, rs);
 			if ((COP0.regs[12] & 0x10000) == 0) {
-				bus.mem.write(addr, (regs[rt] & 0xff), true);
+				bus.mem.write(addr, uint8_t(regs[rt]), true);
 				if (debug) printf("\n");
 			}
 			else {
@@ -636,9 +637,9 @@ void cpu::execute(uint32_t instr) {
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			uint32_t addr = regs[rs] + sign_extended_imm;
-			if (debug) printf("sh 0x%.2X, 0x%.4x(0x%.8x)", rt, imm, rs);
+			if (debug) printf("sh 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, rs);
 			if ((COP0.regs[12] & 0x10000) == 0) {
-				bus.mem.write16(addr, (regs[rt] & 0xffff));
+				bus.mem.write16(addr, uint16_t(regs[rt]));
 				if (debug) printf("\n");
 			}
 			else {
@@ -657,7 +658,7 @@ void cpu::execute(uint32_t instr) {
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			uint32_t addr = regs[rs] + sign_extended_imm;
-			if(debug) printf("sw 0x%.2X, 0x%.4x(0x%.8x)", rt, imm, rs);
+			if(debug) printf("sw 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, rs);
 			if ((COP0.regs[12] & 0x10000) == 0) {
 				bus.mem.write32(addr, regs[rt]);
 				if(debug) printf("\n");

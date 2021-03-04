@@ -58,6 +58,10 @@ int Main() {
         //}
         //SDL_GL_SwapWindow(main_window);
 
+        //uint32_t something = Cpu.bus.mem.mask_address(0xBFCF0100);
+        //printf("0x%x", something);
+        //exit(0);
+        
         uint32_t instr = Cpu.fetch(Cpu.pc);
         if (Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
         Cpu.execute(instr);
