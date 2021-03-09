@@ -215,7 +215,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 void memory::loadBios() {
 	
 	FILE* BIOS_FILE;
-	BIOS_FILE = fopen("C:\\Users\\zacse\\Downloads\\SCPH7003\\SCPH1001.bin", "rb");
+	BIOS_FILE = fopen("./SCPH1001.bin", "rb");
 	fread(bios, 1, 524288, BIOS_FILE);
 }
 

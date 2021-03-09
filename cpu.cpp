@@ -8,7 +8,7 @@ cpu::cpu() {
 	}
 
 	debug = false;
-	exe = true;
+	exe = false;
 }
 
 cpu::~cpu() {
@@ -16,11 +16,15 @@ cpu::~cpu() {
 }
 
 void cpu::exception(exceptions exc) {
-	uint32_t handler = 0x80000080;
-	//
-	//if (COP0.regs[12] & (1 << 22) == 0) {
-	//	handler = 0x80000080;
-	//}
+	uint32_t handler = 0;
+	
+	if (COP0.regs[12] & (1 << 22) == 1) {
+		handler = 0x80000080;
+	} else {
+		handler = 0xbfc00180;
+	}
+	handler = 0x80000080;
+	
 
 	auto mode = COP0.regs[12] & 0x3f;
 	COP0.regs[12] &= 0x3f;
