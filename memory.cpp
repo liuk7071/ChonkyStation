@@ -1,5 +1,6 @@
 #include "memory.h"
 #include <fstream>
+#include <vector>
 #pragma warning(disable : 4996)
 memory::memory() {
 	debug = false;
@@ -56,7 +57,9 @@ uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
-	if (addr == 0x1F801074) exit(0);
+	if (masked_addr >= 0x1F801D80 && masked_addr <= 0x1F801DBC) {	// SPUSTAT
+		return 0;
+	}
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0xfffff], sizeof(uint16_t));
@@ -79,6 +82,10 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 	
+	if (masked_addr == 0x1f8010f0) {	// DCPR
+		return DCPR;
+	}
+
 	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
 		return 0;
 	}
@@ -138,6 +145,22 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	if (masked_addr == 0x1f8010f0) { // DCPR
+		DCPR = data;
+		if(debug) printf(" Write 0x%.8x to dcpr", data);
+		return;
+	}	
+
+	if (masked_addr == 0x1f801810) {	// gp0
+		gp0 = data;
+		if(debug) printf(" Write 0x%.8x to gp0", data);
+		return;
+	}
+	if (masked_addr == 0x1f801814) {	// gp1
+		gp1 = data;
+		if(debug) printf(" Write 0x%.8x to gp1", data);
+		return;
+	}
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
 		return;
 	}
@@ -176,7 +199,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
 		return;
 	}
-	if (masked_addr >= 0x1f801d80 && masked_addr <= 0x1F801D87) {	// SPU regs
+	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801E80) {	// SPU regs
 		if (debug) printf(" SPU register write, ignored", data);
 		return;
 	}
@@ -188,10 +211,34 @@ void memory::write16(uint32_t addr, uint16_t data) {
 
 
 
+
 void memory::loadBios() {
 	
 	FILE* BIOS_FILE;
-	BIOS_FILE = fopen("path\\to\\bios", "rb");
+	BIOS_FILE = fopen("C:\\Users\\zacse\\Downloads\\SCPH7003\\SCPH1001.bin", "rb");
 	fread(bios, 1, 524288, BIOS_FILE);
 }
 
+template <typename C>
+std::vector<C> readExec() {
+	std::basic_ifstream<C> file{ "C:\\Users\\zacse\\Downloads\\CPUSW.exe" };
+	return { std::istreambuf_iterator<C>{file}, {} };
+}
+
+uint32_t memory::loadExec() {
+	std::vector<uint8_t> file = readExec<uint8_t>();
+
+	uint32_t start_pc;
+	uint32_t entry_addr;
+
+	memcpy(&start_pc, &file[0x10], sizeof(uint32_t));
+	memcpy(&entry_addr, &file[0x18], sizeof(uint32_t));
+	
+	uint8_t* data = file.data();
+	
+	for (int i = 0; i < file.size(); i++) {
+		write(entry_addr + i, data[0x800 + i], false);
+	}
+	
+	return start_pc;
+}

@@ -12,12 +12,21 @@ public:
 	uint8_t* bios = new uint8_t[524288];
 	uint8_t* exp1 = new uint8_t[0xffffff];
 	uint8_t* exp2 = new uint8_t[0xffffff];
-	uint8_t* regs = new uint8_t[0xffffff];
+	//uint8_t* regs = new uint8_t[0xffffff];
 	//uint8_t* mem = new uint8_t[0xffffffff];
 	uint32_t RAM_SIZE;
 	uint32_t IRQ_MASK;
 	uint32_t IRQ_STATUS;
 	uint32_t CACHE_CONTROL;
+
+	uint32_t SPUSTAT;
+
+	uint32_t DCPR;
+
+	uint32_t gp0;
+	uint32_t gp1;
+	uint32_t gpuread;
+	uint32_t gpustat;
 	
 	
 public:
@@ -27,6 +36,7 @@ public:
 		return (low <= x && x <= high);
 	}
 	void loadBios();
+	uint32_t loadExec();
 	void write(uint32_t addr, uint8_t data, bool log);
 	void write16(uint32_t addr, uint16_t data);
 	void write32(uint32_t addr, uint32_t data);

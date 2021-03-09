@@ -8,18 +8,45 @@ cpu::cpu() {
 	}
 
 	debug = false;
+	exe = true;
 }
 
 cpu::~cpu() {
 
 }
 
+void cpu::exception(exceptions exc) {
+	uint32_t handler = 0x80000080;
+	//
+	//if (COP0.regs[12] & (1 << 22) == 0) {
+	//	handler = 0x80000080;
+	//}
+
+	auto mode = COP0.regs[12] & 0x3f;
+	COP0.regs[12] &= 0x3f;
+	COP0.regs[12] |= (mode << 2) & 0x3f;
+
+	COP0.regs[13] = uint32_t(exc) << 2;
+	COP0.regs[14] = pc;
+	pc = handler;
+
+}
 
 uint32_t cpu::fetch(uint32_t addr) {
 	return bus.mem.read32(addr);
 }
 void cpu::execute(uint32_t instr) {
+	
+
 	regs[0] = 0; // $zero
+
+	if (pc == 0x80030000 && exe) {
+		debug = true;
+		bus.mem.debug = true;
+		printf("kernel setup done, sideloading exe\n");
+		pc = bus.mem.loadExec();
+		return;
+	}
 
 	uint8_t primary = instr >> 26;
 	uint8_t secondary = instr & 0x3f;
@@ -86,6 +113,12 @@ void cpu::execute(uint32_t instr) {
 					pc += 4;
 					break;
 				}
+				case(0x0C): { // syscall
+					if(debug) printf("0x%.8X | 0x%.8X: syscall\n", pc, instr);
+					exception(exceptions::SysCall);
+					//debug = true;
+					break;
+				}
 				default: {
 					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
@@ -99,14 +132,28 @@ void cpu::execute(uint32_t instr) {
 				case(0x00): { // mfhi
 					uint8_t rd = (instr >> 11) & 0x1f;
 					regs[rd] = hi;
-					if (debug) printf("mfhi 0x%.2X", rd);
+					if (debug) printf("mfhi 0x%.2X\n", rd);
+					pc += 4;
+					break;
+				}
+				case(0x01): { // mthi
+					uint8_t rs = (instr >> 21) & 0x1f;
+					hi = regs[rs];
+					if (debug) printf("mthi 0x%.2X\n", rs);
 					pc += 4;
 					break;
 				}
 				case(0x02): { // mflo
 					uint8_t rd = (instr >> 11) & 0x1f;
 					regs[rd] = lo;
-					if(debug) printf("mflo 0x%.2X", rd);
+					if(debug) printf("mflo 0x%.2X\n", rd);
+					pc += 4;
+					break;
+				}
+				case(0x03): { // mtlo
+					uint8_t rs = (instr >> 21) & 0x1f;
+					lo = regs[rs];
+					if (debug) printf("mtlo 0x%.2X\n", rs);
 					pc += 4;
 					break;
 				}
@@ -206,7 +253,7 @@ void cpu::execute(uint32_t instr) {
 					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
 					uint16_t imm = instr & 0xffff;
-					printf("slt 0x%.2x, 0x%.8x, 0x%.8x\n", rd, rs, rt);
+					if (debug) printf("slt 0x%.2x, 0x%.8x, 0x%.8x\n", rd, rs, rt);
 					regs[rd] = 0;
 					if (int32_t(regs[rs]) < int32_t(regs[rt])) {
 						regs[rd] = 1;
@@ -408,7 +455,7 @@ void cpu::execute(uint32_t instr) {
 			if (signed_rs < signed_sign_extended_imm)
 				regs[rt] = 1;
 			pc += 4;
-			printf("slti 0x%.2X, 0x%.2X, 0x%.4X\n", rt, rs, imm);
+			if (debug) printf("slti 0x%.2X, 0x%.2X, 0x%.4X\n", rt, rs, imm);
 			break;
 		}
 		case(0x0B): { // sltiu
@@ -423,7 +470,7 @@ void cpu::execute(uint32_t instr) {
 			if (regs[rs] < signed_sign_extended_imm)
 				regs[rt] = 1;
 			pc += 4;
-			printf("sltiu 0x%.2X, 0x%.2X, 0x%.4X\n", rt, rs, imm);
+			if (debug) printf("sltiu 0x%.2X, 0x%.2X, 0x%.4X\n", rt, rs, imm);
 			break;
 		}
 		case(0x0C): {	// andi
@@ -475,7 +522,7 @@ void cpu::execute(uint32_t instr) {
 				uint8_t rt = (instr >> 16) & 0x1f;
 				uint16_t imm = instr & 0xffff;
 				regs[rt] = COP0.regs[rd];
-				printf("mfc0 0x%.2x, 0x%.2x\n", rt, rd);
+				if(debug) printf("mfc0 0x%.2x, 0x%.2x\n", rt, rd);
 				break;
 			}
 			case(0b00100): { // mtc0
@@ -484,7 +531,18 @@ void cpu::execute(uint32_t instr) {
 				uint8_t rt = (instr >> 16) & 0x1f;
 				uint16_t imm = instr & 0xffff;
 				COP0.regs[rd] = regs[rt];
-				printf("mtc0 0x%.2x, 0x%.2x\n", rt, rd);
+				if (debug) printf("mtc0 0x%.2x, 0x%.2x\n", rt, rd);
+				break;
+			}
+			case(0b10000): { // rfe
+				if (instr & 0x3f != 0b010000) {
+					printf("Invalid RFE");
+					exit(0);
+				}
+				if(debug) printf("rfe");
+				auto mode = COP0.regs[12] & 0x3f;
+				COP0.regs[12] &= ~0x3f;
+				COP0.regs[12] |= mode >> 2;
 				break;
 			}
 			default:
@@ -598,7 +656,7 @@ void cpu::execute(uint32_t instr) {
 			if (debug) printf("lbu 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, regs[rs]);
 			if ((COP0.regs[12] & 0x10000) == 0) {
 				uint8_t byte = bus.mem.read(addr);
-				regs[rt] = byte;
+				regs[rt] = uint32_t(byte);
 				if (debug) printf("\n");
 			}
 			else {
@@ -607,8 +665,23 @@ void cpu::execute(uint32_t instr) {
 			pc += 4;
 			break;
 		}
-		case(0x05): {
-			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x05): {	// lhu
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+			uint32_t addr = regs[rs] + sign_extended_imm;
+			if (debug) printf("lhu 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, regs[rs]);
+			if ((COP0.regs[12] & 0x10000) == 0) {
+				uint16_t data = bus.mem.read16(addr);
+				regs[rt] = uint32_t(data);
+				if (debug) printf("\n");
+			}
+			else {
+				if (debug) printf(" cache isolated, ignoring load\n");
+			}
+			pc += 4;
+			break;
 		}
 		case(0x06): {
 			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
@@ -661,6 +734,13 @@ void cpu::execute(uint32_t instr) {
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			uint32_t addr = regs[rs] + sign_extended_imm;
 			if(debug) printf("sw 0x%.2X, 0x%.4x(0x%.2x)", rt, imm, rs);
+
+			if (addr == 0x1f801810) {
+				bus.Gpu.execute(regs[rt]);
+				pc += 4;
+				break;
+			}
+
 			if ((COP0.regs[12] & 0x10000) == 0) {
 				bus.mem.write32(addr, regs[rt]);
 				if(debug) printf("\n");

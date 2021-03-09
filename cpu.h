@@ -6,13 +6,19 @@ class cpu
 public:
 	cpu();
 	~cpu();
+	
 public:
+	enum exceptions {
+		SysCall = 0x8
+	};
 	cop0 COP0 = cop0();
 	Bus bus = Bus();
+	
 public:
 	uint32_t fetch(uint32_t addr);
 	void execute(uint32_t instr);
 public:
+	void exception(exceptions);
 	uint32_t jump; // jump branch delay slot
 public:
 	// registers
@@ -24,5 +30,6 @@ public:
 	uint32_t lo;
 public:
 	bool debug;
+	bool exe;
 };
 

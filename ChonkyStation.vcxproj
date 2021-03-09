@@ -151,6 +151,7 @@
     <ClCompile Include="cop0.cpp" />
     <ClCompile Include="cpu.cpp" />
     <ClCompile Include="glad\src\glad.c" />
+    <ClCompile Include="gpu.cpp" />
     <ClCompile Include="imgui\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui\backends\imgui_impl_sdl.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
@@ -164,6 +165,7 @@
     <ClInclude Include="Bus.h" />
     <ClInclude Include="cop0.h" />
     <ClInclude Include="cpu.h" />
+    <ClInclude Include="gpu.h" />
     <ClInclude Include="imgui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="imgui\backends\imgui_impl_sdl.h" />
     <ClInclude Include="imgui\imconfig.h" />
