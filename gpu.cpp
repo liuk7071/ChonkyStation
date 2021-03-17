@@ -8,16 +8,26 @@ void gpu::connectMem(memory* memory) {
 	mem = *memory;
 }
 
-void gpu::execute(uint32_t command) {
-	
+void gpu::execute_gp0(uint32_t command) {
 	uint8_t instr = (command >> 24) & 0xff;
+
 	if (instr == 0) {
 		return;
 	}
 	
 	switch (instr) {
 	default:
-		printf("\nUnknown GPU command: 0x%x\n", instr);
-		exit(0);
+		printf("\nUnknown GP0 command: 0x%x", instr);
+		//exit(0);
+	}
+}
+
+void gpu::execute_gp1(uint32_t command) {
+	uint8_t instr = (command >> 24) & 0xff;
+
+	switch (instr) {
+	default:
+		printf("\nUnknown GP1 command: 0x%x", instr);
+		//exit(0);
 	}
 }

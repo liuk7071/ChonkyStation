@@ -22,6 +22,7 @@ public:
 	uint32_t SPUSTAT;
 
 	uint32_t DCPR;
+	uint32_t DICR;
 
 	uint32_t gp0;
 	uint32_t gp1;

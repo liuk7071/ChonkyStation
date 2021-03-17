@@ -61,6 +61,13 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0;
 	}
 
+	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
+		return 0;
+	}
+
+	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801CfE || masked_addr == 0x1f801d0c && masked_addr <= 0x1f801dfc || masked_addr >= 0x1f801d1c && masked_addr <= 0x1f801dfc)	// more spu registers
+		return 0;
+
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0xfffff], sizeof(uint16_t));
 		return bytes;
@@ -81,10 +88,21 @@ uint16_t memory::read16(uint32_t addr) {
 uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-	
-	if (masked_addr == 0x1f8010f0) {	// DCPR
-		return DCPR;
+
+	if (masked_addr >= 0x1F801080 && masked_addr <= 0x1F8010FC) // dma registers
+		return 0;
+
+	if (masked_addr == 0x1f801814) {	// GPUSTAT
+		printf("\n GPUSTAT read");
+		return 0x10000000;		// stubbing it
 	}
+	if (masked_addr == 0x1f801810) // GPUREAD
+		return gpuread;
+
+	if (masked_addr == 0x1f8010f0) 	// DCPR
+		return DCPR;
+	if (masked_addr == 0x1f8010f4) // DICR
+		return DICR;
 
 	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
 		return 0;
@@ -113,6 +131,9 @@ uint32_t memory::read32(uint32_t addr) {
 void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+
+	if (masked_addr >= 0x1F801080 && masked_addr <= 0x1F8010FC) // dma registers
+		return;
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
 		return;
@@ -150,17 +171,12 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		if(debug) printf(" Write 0x%.8x to dcpr", data);
 		return;
 	}	
+	if (masked_addr == 0x1f8010f4) { // DICR
+		DICR = data;
+		if (debug) printf(" Write 0x%.8x to dicr", data);
+		return;
+	}
 
-	if (masked_addr == 0x1f801810) {	// gp0
-		gp0 = data;
-		if(debug) printf(" Write 0x%.8x to gp0", data);
-		return;
-	}
-	if (masked_addr == 0x1f801814) {	// gp1
-		gp1 = data;
-		if(debug) printf(" Write 0x%.8x to gp1", data);
-		return;
-	}
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
 		return;
 	}
@@ -196,6 +212,13 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
+
+	if (masked_addr >= 0x1f801074 && masked_addr < 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
+		IRQ_STATUS &= uint32_t(data);
+		if (debug) printf(" Write 0x%.8x to IRQ_STATUS", data);
+		return;
+	}
+
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
 		return;
 	}
@@ -221,7 +244,7 @@ void memory::loadBios() {
 
 template <typename C>
 std::vector<C> readExec() {
-	std::basic_ifstream<C> file{ "C:\\Users\\zacse\\Downloads\\CPUSW.exe" };
+	std::basic_ifstream<C> file{ "C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe" };
 	return { std::istreambuf_iterator<C>{file}, {} };
 }
 
