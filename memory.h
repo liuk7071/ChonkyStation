@@ -1,12 +1,16 @@
 #pragma once
 #include <stdint.h>
 #include <array>
+#include <vector>
 
 class memory
 {
 public:
 	memory();
 	~memory();
+
+	std::vector<uint8_t> file;
+
 public:
 	uint8_t* ram = new uint8_t[0x200000];
 	uint8_t* bios = new uint8_t[524288];
@@ -21,6 +25,7 @@ public:
 
 	uint32_t SPUSTAT;
 
+	// dma
 	uint32_t DCPR;
 	uint32_t DICR;
 
@@ -29,6 +34,8 @@ public:
 	uint32_t gpuread;
 	uint32_t gpustat;
 	
+	// channel 2
+
 	
 public:
 	bool debug;

@@ -8,8 +8,9 @@ cpu::cpu() {
 		regs[i] = 0;
 	}
 
-	debug = false;
+	debug = true;
 	exe = false;
+	log_kernel = false;
 }
 
 cpu::~cpu() {
@@ -57,16 +58,28 @@ void cpu::execute(uint32_t instr) {
 
 	regs[0] = 0; // $zero
 
-	if (pc == 0x800000A0) {
-		printf("\n0xA0 kernel call 0x%x\n", regs[9]);
+	if (pc == 0xA0 ||pc == 0x800000A0 || pc == 0xA00000A0) {
+		if(log_kernel) printf("\nkernel call A(0x%x)", regs[9]);
+	}
+	if (pc == 0xB0 || pc == 0x800000B0 || pc == 0xA00000B0) {
+		if (log_kernel) printf("\nkernel call B(0x%x)", regs[9]);
+		if (regs[9] == 0x3d)
+			printf("%c", regs[4]);
+	}
+	if (pc == 0xC0 || pc == 0x800000C0 || pc == 0xA00000C0) {
+		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
 	}
 
 	if (pc == 0x80030000 && exe) {
-		debug = true;
+		debug = false;
 		bus.mem.debug = false;
 		printf("kernel setup done, sideloading exe\n");
 		pc = bus.mem.loadExec();
 		exe = false;
+
+		memcpy(&regs[28], &bus.mem.file[0x14], sizeof(uint32_t));
+		memcpy(&regs[29], &bus.mem.file[0x30], sizeof(uint32_t));
+
 		return;
 	}
 
@@ -196,6 +209,21 @@ void cpu::execute(uint32_t instr) {
 					uint8_t rs = (instr >> 21) & 0x1f;
 					lo = regs[rs];
 					debug_printf("mtlo 0x%.2X\n", rs);
+					pc += 4;
+					break;
+				}
+				case(0x08): {	// mult
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rd = (instr >> 11) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					
+					int64_t x = int64_t(int32_t(regs[rs]));
+					int64_t y = int64_t(int32_t(regs[rt]));
+					uint64_t result = uint64_t(x * y);
+					
+					hi = uint32_t((result >> 32) & 0xffffffff);
+					lo = uint32_t(result & 0xffffffff);
+					debug_printf("mult 0x%.2x, 0x%.2x", rs, rt);
 					pc += 4;
 					break;
 				}

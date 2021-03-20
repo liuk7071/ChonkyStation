@@ -9,6 +9,7 @@ public:
 	void execute_gp1(uint32_t command);
 	void connectMem(memory* memory);
 public:
+	bool debug;
 	memory mem;
 	
 };

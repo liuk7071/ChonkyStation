@@ -32,6 +32,7 @@ public:
 	uint32_t lo;
 public:
 	bool debug;
+	bool log_kernel;
 	bool exe;
 };
 

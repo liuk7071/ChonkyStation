@@ -1,6 +1,6 @@
 #include "memory.h"
 #include <fstream>
-#include <vector>
+
 #pragma warning(disable : 4996)
 memory::memory() {
 	debug = false;
@@ -93,7 +93,7 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0;
 
 	if (masked_addr == 0x1f801814) {	// GPUSTAT
-		printf("\n GPUSTAT read");
+		if(debug) printf("\n GPUSTAT read");
 		return 0x10000000;		// stubbing it
 	}
 	if (masked_addr == 0x1f801810) // GPUREAD
@@ -131,6 +131,11 @@ uint32_t memory::read32(uint32_t addr) {
 void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+
+	if (masked_addr == 0x1f802080) {
+		printf("%c", data);
+		return;
+	}
 
 	if (masked_addr >= 0x1F801080 && masked_addr <= 0x1F8010FC) // dma registers
 		return;
@@ -238,30 +243,54 @@ void memory::write16(uint32_t addr, uint16_t data) {
 void memory::loadBios() {
 	
 	FILE* BIOS_FILE;
-	BIOS_FILE = fopen("./SCPH1001.bin", "rb");
+	BIOS_FILE = fopen("./openbios.bin", "rb");
 	fread(bios, 1, 524288, BIOS_FILE);
 }
 
-template <typename C>
-std::vector<C> readExec() {
-	std::basic_ifstream<C> file{ "C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe" };
-	return { std::istreambuf_iterator<C>{file}, {} };
+//template <typename C>
+//std::vector<C> readExec() {
+//	std::basic_ifstream<C> file{ "C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe" };
+//	return { std::istreambuf_iterator<C>{file}, {} };
+//}
+
+static auto readExec(std::string directory) -> std::vector<uint8_t> {
+	std::ifstream file(directory, std::ios::binary);
+	std::vector<uint8_t> exe;
+	file.unsetf(std::ios::skipws);
+	std::streampos fileSize;
+	file.seekg(0, std::ios::end);
+	fileSize = file.tellg();
+	file.seekg(0, std::ios::beg);
+	
+	exe.insert(exe.begin(),
+		std::istream_iterator<uint8_t>(file),
+		std::istream_iterator<uint8_t>());
+	file.close();
+	return exe;
 }
 
 uint32_t memory::loadExec() {
-	std::vector<uint8_t> file = readExec<uint8_t>();
+	file = readExec("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
 
 	uint32_t start_pc;
 	uint32_t entry_addr;
+	uint32_t file_size;
 
 	memcpy(&start_pc, &file[0x10], sizeof(uint32_t));
 	memcpy(&entry_addr, &file[0x18], sizeof(uint32_t));
+	memcpy(&file_size, &file[0x1c], sizeof(uint32_t));
+
+	printf("\nStart pc: 0x%x", start_pc);
+	printf("\nEntry address: 0x%x", entry_addr);
+	printf("\nFile size: 0x%x\n", file_size);
 	
 	uint8_t* data = file.data();
 	
-	for (int i = 0; i < file.size(); i++) {
+	for (int i = 0; i < file_size; i++) {
 		write(entry_addr + i, data[0x800 + i], false);
 	}
+
+	printf("0x%x", read32(0x000000A4));
 	
 	return start_pc;
 }

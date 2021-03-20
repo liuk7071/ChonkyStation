@@ -17,7 +17,7 @@ void gpu::execute_gp0(uint32_t command) {
 	
 	switch (instr) {
 	default:
-		printf("\nUnknown GP0 command: 0x%x", instr);
+		if(debug) printf("\nUnknown GP0 command: 0x%x", instr);
 		//exit(0);
 	}
 }
@@ -27,7 +27,7 @@ void gpu::execute_gp1(uint32_t command) {
 
 	switch (instr) {
 	default:
-		printf("\nUnknown GP1 command: 0x%x", instr);
+		if(debug) printf("\nUnknown GP1 command: 0x%x", instr);
 		//exit(0);
 	}
 }
