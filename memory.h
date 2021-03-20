@@ -23,6 +23,8 @@ public:
 	uint32_t IRQ_STATUS;
 	uint32_t CACHE_CONTROL;
 
+	uint32_t exp2_delay_size;
+
 	uint32_t SPUSTAT;
 
 	// dma
@@ -35,6 +37,12 @@ public:
 	uint32_t gpustat;
 	
 	// channel 2
+	uint32_t channel2_control;
+	
+	// channel 6
+	uint32_t channel6_base_address;
+	uint32_t channel6_block_control;
+	uint32_t channel6_control;
 
 	
 public:

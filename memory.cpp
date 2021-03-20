@@ -89,6 +89,10 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	if (masked_addr == 0x1f80101c) {
+		return exp2_delay_size;
+	}
+
 	if (masked_addr >= 0x1F801080 && masked_addr <= 0x1F8010FC) // dma registers
 		return 0;
 
@@ -98,11 +102,27 @@ uint32_t memory::read32(uint32_t addr) {
 	}
 	if (masked_addr == 0x1f801810) // GPUREAD
 		return gpuread;
+	
+
+	// dma
 
 	if (masked_addr == 0x1f8010f0) 	// DCPR
 		return DCPR;
 	if (masked_addr == 0x1f8010f4) // DICR
 		return DICR;
+
+	// channel 2
+	if (masked_addr == 0x1f8010a8) 	// control
+		return channel2_control;
+
+	// channel 6
+	if (masked_addr == 0x1f8010e0) 	// base address
+		return channel6_base_address;
+	if (masked_addr == 0x1f8010e4) // block control
+		return channel6_block_control;
+	if (masked_addr == 0x1f8010e8)
+		return channel6_control;	
+	
 
 	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
 		return 0;
@@ -137,8 +157,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		return;
 	}
 
-	if (masked_addr >= 0x1F801080 && masked_addr <= 0x1F8010FC) // dma registers
-		return;
+	
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
 		return;
@@ -171,14 +190,39 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	if (masked_addr == 0x1f80101c) {
+		exp2_delay_size = data;
+		return;
+	}
+
 	if (masked_addr == 0x1f8010f0) { // DCPR
 		DCPR = data;
-		if(debug) printf(" Write 0x%.8x to dcpr", data);
+		if (debug) printf(" Write 0x%.8x to dcpr", data);
 		return;
-	}	
+	}
 	if (masked_addr == 0x1f8010f4) { // DICR
 		DICR = data;
 		if (debug) printf(" Write 0x%.8x to dicr", data);
+		return;
+	}
+
+	// channel 2
+	if (masked_addr == 0x1f8010a8) {	// control
+		channel2_control = data;
+		return;
+	}
+
+	// channel 6
+	if (masked_addr == 0x1f8010e0) {	// base address
+		channel6_base_address = data;
+		return;
+	}
+	if (masked_addr == 0x1f8010e4) { // block control
+		channel6_block_control = data;
+		return;
+	}
+	if (masked_addr == 0x1f8010e8) {	// control
+		channel6_control = data;
 		return;
 	}
 
@@ -243,7 +287,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 void memory::loadBios() {
 	
 	FILE* BIOS_FILE;
-	BIOS_FILE = fopen("./openbios.bin", "rb");
+	BIOS_FILE = fopen("./SCPH1001.bin", "rb");
 	fread(bios, 1, 524288, BIOS_FILE);
 }
 
@@ -270,7 +314,7 @@ static auto readExec(std::string directory) -> std::vector<uint8_t> {
 }
 
 uint32_t memory::loadExec() {
-	file = readExec("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
+	file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");
 
 	uint32_t start_pc;
 	uint32_t entry_addr;
@@ -282,7 +326,7 @@ uint32_t memory::loadExec() {
 
 	printf("\nStart pc: 0x%x", start_pc);
 	printf("\nEntry address: 0x%x", entry_addr);
-	printf("\nFile size: 0x%x\n", file_size);
+	printf("\nFile size: 0x%x\n\n\n", file_size);
 	
 	uint8_t* data = file.data();
 	
@@ -290,7 +334,6 @@ uint32_t memory::loadExec() {
 		write(entry_addr + i, data[0x800 + i], false);
 	}
 
-	printf("0x%x", read32(0x000000A4));
 	
 	return start_pc;
 }

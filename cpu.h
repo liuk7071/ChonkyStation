@@ -30,9 +30,14 @@ public:
 	uint32_t regs[32];
 	uint32_t hi;
 	uint32_t lo;
+
+public:
+	void do_dma(int channel);
+
 public:
 	bool debug;
 	bool log_kernel;
 	bool exe;
+	bool tty;
 };
 

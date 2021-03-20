@@ -8,16 +8,15 @@ cpu::cpu() {
 		regs[i] = 0;
 	}
 
-	debug = true;
+	debug = false;
 	exe = false;
 	log_kernel = false;
+	tty = true;
 }
 
 cpu::~cpu() {
 
 }
-
-
 
 
 void cpu::debug_printf(const char* fmt, ...) {
@@ -53,8 +52,25 @@ void cpu::exception(exceptions exc) {
 uint32_t cpu::fetch(uint32_t addr) {
 	return bus.mem.read32(addr);
 }
+
+void cpu::do_dma(int channel) {
+	switch (channel) {
+	case(6): {
+		auto sync_mode = (bus.mem.channel6_control >> 9) & 0b111;
+		printf("\n[DMA] Started channel 6 dma with sync mode %d", sync_mode);
+		exit(0);
+		break;
+	}
+	default:
+		printf("Unhandled DMA channel transfer");
+		exit(0);
+	}
+}
+
 void cpu::execute(uint32_t instr) {
 	
+	if (pc == 0xBFC05BD4)
+		printf("0x%x\n", regs[20]);
 
 	regs[0] = 0; // $zero
 
@@ -64,7 +80,7 @@ void cpu::execute(uint32_t instr) {
 	if (pc == 0xB0 || pc == 0x800000B0 || pc == 0xA00000B0) {
 		if (log_kernel) printf("\nkernel call B(0x%x)", regs[9]);
 		if (regs[9] == 0x3d)
-			printf("%c", regs[4]);
+			if(tty) printf("%c", regs[4]);
 	}
 	if (pc == 0xC0 || pc == 0x800000C0 || pc == 0xA00000C0) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
@@ -858,6 +874,10 @@ void cpu::execute(uint32_t instr) {
 				debug_printf("\n");
 			} else {
 				debug_printf(" cache isolated, ignoring write\n");
+			}
+
+			if ((bus.mem.channel6_control >> 28) & 1 == 1) {	// handle dma transfer enable
+				do_dma(6);
 			}
 			pc += 4;
 			break;
