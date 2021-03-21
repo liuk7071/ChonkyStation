@@ -34,11 +34,16 @@ uint8_t memory::read(uint32_t addr) {
 	if (addr == 0x1F801074) exit(0);
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
-		memcpy(&bytes, &bios[masked_addr & 0xfffff], sizeof(uint8_t));
+		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint8_t));
+		return bytes;
+	}
+
+	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
+		memcpy(&bytes, &scratchpad[masked_addr & 0x400], sizeof(uint8_t));
 		return bytes;
 	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
-		memcpy(&bytes, &ram[masked_addr & 0xfffff], sizeof(uint8_t));
+		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint8_t));
 		return bytes;
 	}
 	//if (addr >= 0x00200000 && addr < 0x00200000 + 0x200000 || addr >= 0x80200000 && addr < 0x80200000 + 0x200000 || addr >= 0xA0200000 && addr < 0xA0200000 + 0x200000) {
@@ -69,11 +74,16 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0;
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
-		memcpy(&bytes, &bios[masked_addr & 0xfffff], sizeof(uint16_t));
+		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint16_t));
+		return bytes;
+	}
+
+	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
+		memcpy(&bytes, &scratchpad[masked_addr & 0x400], sizeof(uint16_t));
 		return bytes;
 	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
-		memcpy(&bytes, &ram[masked_addr & 0xfffff], sizeof(uint16_t));
+		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint16_t));
 		return bytes;
 	}
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
@@ -98,7 +108,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f801814) {	// GPUSTAT
 		if(debug) printf("\n GPUSTAT read");
-		return 0x10000000;		// stubbing it
+		return gpustat;		// stubbing it
 	}
 	if (masked_addr == 0x1f801810) // GPUREAD
 		return gpuread;
@@ -120,7 +130,7 @@ uint32_t memory::read32(uint32_t addr) {
 		return channel6_base_address;
 	if (masked_addr == 0x1f8010e4) // block control
 		return channel6_block_control;
-	if (masked_addr == 0x1f8010e8)
+	if (masked_addr == 0x1f8010e8)	// control
 		return channel6_control;	
 	
 
@@ -129,11 +139,16 @@ uint32_t memory::read32(uint32_t addr) {
 	}
 
 	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 524288) {
-		memcpy(&bytes, &bios[masked_addr & 0xfffff], sizeof(uint32_t));
+		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint32_t));
+		return bytes;
+	}
+
+	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
+		memcpy(&bytes, &scratchpad[masked_addr & 0x400], sizeof(uint32_t));
 		return bytes;
 	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
-		memcpy(&bytes, &ram[masked_addr & 0xfffff], sizeof(uint32_t));
+		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint32_t));
 		return bytes;
 	}
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
@@ -157,8 +172,6 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		return;
 	}
 
-	
-
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
 		return;
 	}
@@ -170,8 +183,12 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		exit(0);
 		return;
 	}
+
+	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
+		scratchpad[masked_addr & 0x400] = data;
+	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
-		ram[masked_addr & 0xfffff] = data;
+		ram[masked_addr & 0x1fffff] = data;
 		return;
 	}
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {	
@@ -314,7 +331,7 @@ static auto readExec(std::string directory) -> std::vector<uint8_t> {
 }
 
 uint32_t memory::loadExec() {
-	file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");
+	file = readExec("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
 
 	uint32_t start_pc;
 	uint32_t entry_addr;
@@ -325,7 +342,7 @@ uint32_t memory::loadExec() {
 	memcpy(&file_size, &file[0x1c], sizeof(uint32_t));
 
 	printf("\nStart pc: 0x%x", start_pc);
-	printf("\nEntry address: 0x%x", entry_addr);
+	printf("\nDestination: 0x%x", entry_addr);
 	printf("\nFile size: 0x%x\n\n\n", file_size);
 	
 	uint8_t* data = file.data();
