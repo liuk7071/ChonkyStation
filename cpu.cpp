@@ -255,9 +255,10 @@ void cpu::execute(uint32_t instr) {
 					uint8_t rs = (instr >> 21) & 0x1f;
 					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
-					
+
 					int32_t n = int32_t(regs[rs]);
 					int32_t d = int32_t(regs[rt]);
+					debug_printf("div %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
 					
 					if (d == 0) {
 						hi = uint32_t(n);
@@ -267,12 +268,13 @@ void cpu::execute(uint32_t instr) {
 						else {
 							lo = 1;
 						}
+						pc += 4;
 						break;
 					}
 
 					hi = uint32_t(n % d);
 					lo = uint32_t(n / d);
-					debug_printf("div %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
+					
 					pc += 4;
 					break;
 				}
@@ -280,16 +282,17 @@ void cpu::execute(uint32_t instr) {
 					uint8_t rs = (instr >> 21) & 0x1f;
 					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
-
+					debug_printf("divu %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
 					if (regs[rt] == 0) {
 						hi = regs[rs];
 						lo = 0xffffffff;
+						pc += 4;
 						break;
 					}
 
 					hi = regs[rs] % regs[rt];
 					lo = regs[rs] / regs[rt];
-					debug_printf("divu %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
+					
 					pc += 4;
 					break;
 				}
