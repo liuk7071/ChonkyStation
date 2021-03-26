@@ -1,7 +1,7 @@
 #include "gpu.h"
 #include <stdio.h>
 gpu::gpu() {
-	debug = false;
+	debug = true;
 }
 
 void gpu::connectMem(memory* memory) {
@@ -10,14 +10,13 @@ void gpu::connectMem(memory* memory) {
 
 void gpu::execute_gp0(uint32_t command) {
 	uint8_t instr = (command >> 24) & 0xff;
-
-	if (instr == 0) {
-		return;
-	}
 	
 	switch (instr) {
+	case(0):
+		if(debug) printf("[GPU] NOP (0x%x)\n", command);
+		break;
 	default:
-		if(debug) printf("[GPU] Unknown GP0 command: 0x%x\n", instr);
+		if(debug) printf("[GPU] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
 		//exit(0);
 	}
 }

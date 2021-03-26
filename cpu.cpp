@@ -9,7 +9,7 @@ cpu::cpu() {
 	}
 
 	debug = false;
-	exe = true;
+	exe = false;
 	log_kernel = false;
 	tty = true;
 }
@@ -54,15 +54,115 @@ uint32_t cpu::fetch(uint32_t addr) {
 }
 
 void cpu::do_dma(int channel) {
-	switch (channel) {
-	case(6): {
+	debug = true;
+	switch (channel) {		// switch on the channels
+	case(2): {	// GPU
+		auto sync_mode = (bus.mem.channel2_control >> 9) & 0b111;
+		bool incrementing = ((bus.mem.channel2_control >> 1) & 1) == 0;
+		auto direction = (bus.mem.channel2_control) & 1;
+		uint16_t words = (bus.mem.channel2_block_control) & 0xffff;
+		uint32_t addr = bus.mem.channel2_base_address & 0x1ffffc;
+		
+		switch (sync_mode) {
+		case(1): {
+			debug_printf("[DMA] Start GPU Block Copy\n");
+			switch (direction) {
+			case(1):
+				debug_printf("[DMA] Transfer direction: ram to device\n");
+				debug_printf("[DMA] Transfer size: %d words\n", words);
+				while (words > 0) {
+					uint32_t current_addr = addr & 0x1ffffc;
+					uint32_t data = bus.mem.read32(current_addr);
+					bus.Gpu.execute_gp0(data);
+					if (incrementing) addr += 4; else addr -= 4;
+					words--;
+				}
+				bus.mem.channel2_control ^= 1UL << 28;
+				debug = false;
+				return;
+			default:
+				debug_printf("[DMA] Unhandled Direction");
+				exit(0);
+			}
+		}
+
+		case(2):	// Linked List
+			debug_printf("[DMA] Start GPU Linked List\n");
+			switch (direction) {
+			case(1):
+				debug_printf("[DMA] Transfer direction: ram to device\n");
+				while (1) {
+					uint32_t header = bus.mem.read32(addr);
+					auto words = header >> 24;
+					while (words > 0) {
+						addr += 4;
+						addr &= 0x1ffffc;
+						uint32_t command = bus.mem.read32(addr);
+						bus.Gpu.execute_gp0(command);
+						words--;
+					}
+					if (header & 0x800000 != 0)
+						break;
+					addr = header & 0x1ffffc;
+				}
+				bus.mem.channel2_control ^= 1UL << 24;
+				debug_printf("[DMA] GPU Linked List transfer complete\n");
+				debug = false;
+				return;
+			default:
+				debug_printf("[DMA] Unhandled Direction\n");
+				exit(0);
+			}
+		default:
+			debug_printf("[DMA] Unhandled sync mode (GPU)");
+			exit(0);
+		}
+	}
+	
+	case(6): {			// OTC
 		auto sync_mode = (bus.mem.channel6_control >> 9) & 0b111;
-		printf("\n[DMA] Started channel 6 dma with sync mode %d", sync_mode);
+		bool incrementing = ((bus.mem.channel6_control >> 1) & 1) == 0;
+		uint16_t words = (bus.mem.channel6_block_control) & 0xffff;
+		auto direction = (bus.mem.channel6_control) & 1;
+		uint32_t addr = bus.mem.channel6_base_address;
+
+		switch (sync_mode) {	// switch on the sync mode
+		case(0): {			// block dma
+			debug_printf("[DMA] Start OTC Block Copy\n");
+			uint32_t current_addr = addr & 0x1ffffc;
+			switch (direction) {
+			case(0):
+				debug_printf("[DMA] Transfer direction: device to ram\n");
+				debug_printf("[DMA] Transfer size: %d words\n", words);
+				while (words > 0) {
+					if (words == 1) {
+						bus.mem.write32(current_addr, 0xffffffff);
+						debug_printf("[DMA] OTC Block Copy completed\n");
+						bus.mem.channel6_control ^= 1UL << 28;
+						debug = false;
+						return;
+					}
+					bus.mem.write32(current_addr, (addr - 4) & 0x1fffff);
+					if (incrementing) addr +=4; else addr -=4;
+					words--;
+				}
+				
+			default:
+				debug_printf("[DMA] Unhandled Direction\n");
+				exit(0);
+			}
+		
+			exit(0);
+		}
+		default:
+			debug_printf("[DMA] Unhandled sync mode (OTC)");
+			exit(0);
+		}
 		exit(0);
 		break;
 	}
 	default:
-		printf("Unhandled DMA channel transfer");
+		printf("[DMA] Unhandled DMA channel");
 		exit(0);
 	}
 }
@@ -103,7 +203,7 @@ void cpu::execute(uint32_t instr) {
 		pc = jump - 4;
 		jump = 0;
 	}
-	
+
 	switch (primary & 0xf0) {
 	case(0x00): {
 		switch (primary & 0x0f) {
@@ -238,7 +338,6 @@ void cpu::execute(uint32_t instr) {
 				}
 				case(0x08): {	// mult
 					uint8_t rs = (instr >> 21) & 0x1f;
-					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
 					
 					int64_t x = int64_t(int32_t(regs[rs]));
@@ -248,6 +347,20 @@ void cpu::execute(uint32_t instr) {
 					hi = uint32_t((result >> 32) & 0xffffffff);
 					lo = uint32_t(result & 0xffffffff);
 					debug_printf("mult %s, %s", reg[rs].c_str(), reg[rt].c_str());
+					pc += 4;
+					break;
+				}
+				case(0x09): {	// multu
+					uint8_t rs = (instr >> 21) & 0x1f;
+					uint8_t rt = (instr >> 16) & 0x1f;
+					
+					uint64_t x = uint64_t(regs[rs]);
+					uint64_t y = uint64_t(regs[rt]);
+					uint64_t result = x * y;
+
+					hi = uint32_t(result >> 32);
+					lo = uint32_t(result);
+					debug_printf("multu %s, %s", reg[rs].c_str(), reg[rt].c_str());
 					pc += 4;
 					break;
 				}
@@ -271,7 +384,12 @@ void cpu::execute(uint32_t instr) {
 						pc += 4;
 						break;
 					}
-
+					if (uint32_t(n) == 0x80000000 && d == -1) {
+						hi = 0;
+						lo = 0x80000000;
+						pc += 4;
+						break;
+					}
 					hi = uint32_t(n % d);
 					lo = uint32_t(n / d);
 					
@@ -605,12 +723,12 @@ void cpu::execute(uint32_t instr) {
 			uint8_t rd = (instr >> 11) & 0x1f;
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
-			int32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 
-			
-			regs[rt] = 0;
-			if (regs[rs] < signed_sign_extended_imm)
-				regs[rt] = 1;
+			regs[rt] = regs[rs] < sign_extended_imm;
+			//regs[rt] = 0;
+			//if (regs[rs] < sign_extended_imm)
+			//	regs[rt] = 1;
 			pc += 4;
 			debug_printf("sltiu %s, %s, 0x%.4X\n", reg[rs].c_str(), reg[rt].c_str(), imm);
 			break;
@@ -781,7 +899,7 @@ void cpu::execute(uint32_t instr) {
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			uint32_t addr = regs[rs] + sign_extended_imm;
-			debug_printf("lh %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+			debug_printf("lh %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
 			if ((COP0.regs[12] & 0x10000) == 0) {
 				int16_t data = int16_t(bus.mem.read16(addr));
 				regs[rt] = uint32_t(int32_t(data));
@@ -793,8 +911,36 @@ void cpu::execute(uint32_t instr) {
 			pc += 4;
 			break;
 		}
-		case(0x02): {
-			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x02): {	// lwl
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+
+			uint32_t addr = regs[rs] + sign_extended_imm;
+			uint32_t aligned_addr = addr & ~3;
+			uint32_t aligned_word = bus.mem.read32(aligned_addr);
+			debug_printf("lwl %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+			pc += 4;
+			break;
+			switch (addr & 3) {
+			case 0:
+				regs[rt] = aligned_word << 24;
+				break;
+			case 1:
+				regs[rt] = aligned_word << 16;
+				break;
+			case 2:
+				regs[rt] = aligned_word << 8;
+				break;
+			case 3:
+				regs[rt] = aligned_word << 0;
+				break;
+			}
+
+			lwl = true;
+			pc += 4;
+			break;
 		}
 		case(0x03): {	// lw  
 			uint8_t rs = (instr >> 21) & 0x1f;
@@ -849,8 +995,54 @@ void cpu::execute(uint32_t instr) {
 			pc += 4;
 			break;
 		}
-		case(0x06): {
-			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x06): {	// lwr
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+
+			uint32_t addr = regs[rs] + sign_extended_imm;
+			uint32_t aligned_addr = addr & ~3;
+			uint32_t aligned_word = bus.mem.read32(aligned_addr);
+			debug_printf("lwr %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+			pc += 4;
+			break;
+			if (lwl) {
+				switch (addr & 3) {
+				case 0:
+					regs[rt] = (regs[rt] & 0x00000000) | (aligned_word >> 0);
+					break;
+				case 1:
+					regs[rt] = (regs[rt] & 0xff000000) | (aligned_word >> 8);
+					break;								 
+				case 2:									 
+					regs[rt] = (regs[rt] & 0xffff0000) | (aligned_word >> 16);
+					break;								 
+				case 3:									 
+					regs[rt] = (regs[rt] & 0xffffff00) | (aligned_word >> 24);
+					break;
+				}
+			}
+			else {
+				switch (addr & 3) {
+				case 0:
+					regs[rt] = aligned_word >> 0;
+					break;
+				case 1:
+					regs[rt] = aligned_word >> 8;
+					break;
+				case 2:
+					regs[rt] = aligned_word >> 16;
+					break;
+				case 3:
+					regs[rt] = aligned_word >> 24;
+					break;
+				}
+			}
+
+			lwr = true;
+			pc += 4;
+			break;
 		}
 		case(0x07): {
 			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
@@ -890,8 +1082,37 @@ void cpu::execute(uint32_t instr) {
 			break;
 			
 		}
-		case(0x0A): {
-			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x0A): {	// swl
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+
+			uint32_t addr = regs[rs] + sign_extended_imm;
+			uint32_t aligned_addr = addr & ~3;
+
+			uint32_t mem = bus.mem.read32(aligned_addr);
+			uint32_t val = 0;
+
+			switch (addr & 3) {
+			case 0:
+				val = (mem & 0xffffff00) | (regs[rt] >> 24);
+				break;
+			case 1:
+				val = (mem & 0xffff0000) | (regs[rt] >> 16);
+				break;
+			case 2:
+				val = (mem & 0xff000000) | (regs[rt] >> 8);
+				break;
+			case 3:
+				val = (mem & 0x00000000) | (regs[rt] >> 0);
+				break;
+			}
+
+			bus.mem.write32(addr, val);
+			debug_printf("swl %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+			pc += 4;
+			break;
 		}
 		case(0x0B): { // sw
 			uint8_t rs = (instr >> 21) & 0x1f;
@@ -920,9 +1141,13 @@ void cpu::execute(uint32_t instr) {
 				debug_printf(" cache isolated, ignoring write\n");
 			}
 
-			if ((bus.mem.channel6_control >> 28) & 1 == 1) {	// handle dma transfer enable
+			if (((bus.mem.channel2_control >> 24) & 1) == 1) {	// handle dma transfers
+				do_dma(2);
+			}
+			if ((bus.mem.channel6_control >> 28) & 1 == 1 && (bus.mem.channel6_control >> 24) & 1 == 1) {	// handle dma transfers
 				do_dma(6);
 			}
+			
 			pc += 4;
 			break;
 		}
@@ -932,8 +1157,37 @@ void cpu::execute(uint32_t instr) {
 		case(0x0D): {
 			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
-		case(0x0E): {
-			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+		case(0x0E): {	// swr
+			uint8_t rs = (instr >> 21) & 0x1f;
+			uint8_t rt = (instr >> 16) & 0x1f;
+			uint16_t imm = instr & 0xffff;
+			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+
+			uint32_t addr = regs[rs] + sign_extended_imm;
+			uint32_t aligned_addr = addr & ~3;
+
+			uint32_t mem = bus.mem.read32(aligned_addr);
+			uint32_t val = 0;
+
+			switch (addr & 3) {
+			case 0:
+				val = (mem & 0x00000000) | (regs[rt] << 0);
+				break;
+			case 1:
+				val = (mem & 0x000000ff) | (regs[rt] >> 8);
+				break;
+			case 2:
+				val = (mem & 0x0000ffff) | (regs[rt] >> 16);
+				break;
+			case 3:
+				val = (mem & 0x00ffffff) | (regs[rt] >> 24);
+				break;
+			}
+
+			bus.mem.write32(addr, val);
+			debug_printf("swr %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+			pc += 4;
+			break;
 		}
 		case(0x0f): {
 			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
@@ -1011,5 +1265,6 @@ void cpu::execute(uint32_t instr) {
 	}
 	}
 	
-
+	if (lwl) lwl = false;
+	if (lwr) lwr = false;
 }

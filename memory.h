@@ -32,18 +32,22 @@ public:
 	uint32_t DCPR;
 	uint32_t DICR;
 
-	uint32_t gp0;
-	uint32_t gp1;
-	uint32_t gpuread;
-	uint32_t gpustat;
+	
 	
 	// channel 2
+	uint32_t channel2_base_address;
+	uint32_t channel2_block_control;
 	uint32_t channel2_control;
 	
 	// channel 6
 	uint32_t channel6_base_address;
 	uint32_t channel6_block_control;
 	uint32_t channel6_control;
+
+	uint32_t gp0;
+	uint32_t gp1;
+	uint32_t gpuread;
+	uint32_t gpustat;
 
 	
 public:

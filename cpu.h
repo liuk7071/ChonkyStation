@@ -25,6 +25,8 @@ public:
 public:
 	void exception(exceptions);
 	uint32_t jump; // jump branch delay slot
+	bool lwl; // set if the last instruction was a lwl
+	bool lwr; // set if the last instruction was a lwr
 public:
 	// registers
 	uint32_t pc;

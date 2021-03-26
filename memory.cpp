@@ -99,6 +99,9 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	if (masked_addr == 0x1f801110)
+		return 0;
+
 	if (masked_addr == 0x1f80101c) {
 		return exp2_delay_size;
 	}
@@ -108,7 +111,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f801814) {	// GPUSTAT
 		if(debug) printf("\n GPUSTAT read");
-		return gpustat;		// stubbing it
+		return 0x1c000000;		// stubbing it
 	}
 	if (masked_addr == 0x1f801810) // GPUREAD
 		return gpuread;
@@ -122,6 +125,10 @@ uint32_t memory::read32(uint32_t addr) {
 		return DICR;
 
 	// channel 2
+	if (masked_addr == 0x1f8010a0) 	// base address
+		return channel2_base_address;
+	if (masked_addr == 0x1f8010a4) // block control
+		return channel2_block_control;
 	if (masked_addr == 0x1f8010a8) 	// control
 		return channel2_control;
 
@@ -224,6 +231,14 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	}
 
 	// channel 2
+	if (masked_addr == 0x1f8010a0) {	// base address
+		channel2_base_address = data;
+		return;
+	}
+	if (masked_addr == 0x1f8010a4) { // block control
+		channel2_block_control = data;
+		return;
+	}
 	if (masked_addr == 0x1f8010a8) {	// control
 		channel2_control = data;
 		return;
@@ -307,12 +322,6 @@ void memory::loadBios() {
 	BIOS_FILE = fopen("./SCPH1001.bin", "rb");
 	fread(bios, 1, 524288, BIOS_FILE);
 }
-
-//template <typename C>
-//std::vector<C> readExec() {
-//	std::basic_ifstream<C> file{ "C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe" };
-//	return { std::istreambuf_iterator<C>{file}, {} };
-//}
 
 static auto readExec(std::string directory) -> std::vector<uint8_t> {
 	std::ifstream file(directory, std::ios::binary);
