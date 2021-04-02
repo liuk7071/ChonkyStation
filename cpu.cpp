@@ -56,7 +56,7 @@ uint32_t cpu::fetch(uint32_t addr) {
 }
 
 void cpu::do_dma(int channel) {
-	//debug = true;
+	debug = false;
 	switch (channel) {		// switch on the channels
 	case(2): {	// GPU
 		auto sync_mode = (bus.mem.channel2_control >> 9) & 0b111;

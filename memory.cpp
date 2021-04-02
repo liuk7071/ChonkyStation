@@ -42,7 +42,7 @@ uint8_t memory::read(uint32_t addr) {
 	}
 
 	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
-		memcpy(&bytes, &scratchpad[masked_addr & 0x400], sizeof(uint8_t));
+		memcpy(&bytes, &scratchpad[masked_addr & 0x3ff], sizeof(uint8_t));
 		return bytes;
 	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
@@ -86,7 +86,7 @@ uint16_t memory::read16(uint32_t addr) {
 	}
 
 	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
-		memcpy(&bytes, &scratchpad[masked_addr & 0x400], sizeof(uint16_t));
+		memcpy(&bytes, &scratchpad[masked_addr & 0x3ff], sizeof(uint16_t));
 		return bytes;
 	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
@@ -161,7 +161,7 @@ uint32_t memory::read32(uint32_t addr) {
 	}
 
 	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
-		memcpy(&bytes, &scratchpad[masked_addr & 0x400], sizeof(uint32_t));
+		memcpy(&bytes, &scratchpad[masked_addr & 0x3ff], sizeof(uint32_t));
 		return bytes;
 	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
@@ -203,7 +203,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	}
 
 	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
-		scratchpad[masked_addr & 0x400] = data;
+		scratchpad[masked_addr & 0x3ff] = data;
 		return;
 	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
