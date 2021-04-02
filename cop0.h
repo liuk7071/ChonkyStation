@@ -14,6 +14,6 @@ public:
 	void execute(uint32_t instr, uint32_t regs[]);
 
 public:
-	uint32_t* regs = new uint32_t[15];
+	uint32_t regs[32];
 };
 

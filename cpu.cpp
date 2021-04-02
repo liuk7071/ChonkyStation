@@ -4,14 +4,17 @@
 cpu::cpu() {
 	bus.mem.loadBios();
 	pc = 0xbfc00000;
-	for (int i = 0x0; i < 31; i++) {
+	next_instr = pc + 4;
+	for (int i = 0x0; i < 32; i++) {
 		regs[i] = 0;
 	}
 
 	debug = false;
-	exe = false;
+	exe = true;
 	log_kernel = false;
 	tty = true;
+
+	delay = false;
 }
 
 cpu::~cpu() {
@@ -46,7 +49,6 @@ void cpu::exception(exceptions exc) {
 	COP0.regs[13] = uint32_t(exc) << 2;
 	COP0.regs[14] = pc;
 	pc = handler;
-
 }
 
 uint32_t cpu::fetch(uint32_t addr) {
@@ -54,7 +56,7 @@ uint32_t cpu::fetch(uint32_t addr) {
 }
 
 void cpu::do_dma(int channel) {
-	debug = true;
+	//debug = true;
 	switch (channel) {		// switch on the channels
 	case(2): {	// GPU
 		auto sync_mode = (bus.mem.channel2_control >> 9) & 0b111;
@@ -65,6 +67,7 @@ void cpu::do_dma(int channel) {
 		
 		switch (sync_mode) {
 		case(1): {
+			words *= bus.mem.channel2_block_control >> 16;
 			debug_printf("[DMA] Start GPU Block Copy\n");
 			switch (direction) {
 			case(1):
@@ -172,13 +175,13 @@ void cpu::execute(uint32_t instr) {
 
 	bus.mem.gpustat = regs[3];
 
-	if (pc == 0xA0 ||pc == 0x800000A0 || pc == 0xA00000A0) {
-		if(log_kernel) printf("\nkernel call A(0x%x)", regs[9]);
+	if (pc == 0xA0 || pc == 0x800000A0 || pc == 0xA00000A0) {
+		if (log_kernel) printf("\nkernel call A(0x%x)", regs[9]);
 	}
 	if (pc == 0xB0 || pc == 0x800000B0 || pc == 0xA00000B0) {
 		if (log_kernel) printf("\nkernel call B(0x%x)", regs[9]);
 		if (regs[9] == 0x3d)
-			if(tty) printf("%c", regs[4]);
+			if (tty) printf("%c", regs[4]);
 	}
 	if (pc == 0xC0 || pc == 0x800000C0 || pc == 0xA00000C0) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
@@ -197,11 +200,12 @@ void cpu::execute(uint32_t instr) {
 		return;
 	}
 
+
 	uint8_t primary = instr >> 26;
 	uint8_t secondary = instr & 0x3f;
-	if (jump != 0) {	// branch delay slot
+	if (delay != 0) {	// branch delay slot
 		pc = jump - 4;
-		jump = 0;
+		delay = false;
 	}
 
 	switch (primary & 0xf0) {
@@ -245,7 +249,7 @@ void cpu::execute(uint32_t instr) {
 					uint8_t rs = (instr >> 21) & 0x1f;
 					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
-					
+
 					regs[rd] = regs[rt] << (regs[rs] & 0x1f);
 					pc += 4;
 					debug_printf("sllv %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
@@ -276,9 +280,16 @@ void cpu::execute(uint32_t instr) {
 					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
 					uint16_t imm = instr & 0xffff;
+
+					uint32_t addr = regs[rs];
+					if (addr & 3) {
+						exception(exceptions::BadAddr);
+						return;
+					}
 					jump = regs[rs];
 					debug_printf("jr %s\n", reg[rs].c_str());
 					pc += 4;
+					delay = true;
 					break;
 				}
 				case(0x09): { // jalr
@@ -286,10 +297,16 @@ void cpu::execute(uint32_t instr) {
 					uint8_t rd = (instr >> 11) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
 					uint16_t imm = instr & 0xffff;
+					uint32_t addr = regs[rs];
+					if (addr & 3) {
+						exception(exceptions::BadAddr);
+						return;
+					}
 					jump = regs[rs];
 					regs[rd] = pc + 8;
 					debug_printf("jalr %s\n", reg[rs].c_str());
 					pc += 4;
+					delay = true;
 					break;
 				}
 				case(0x0C): { // syscall
@@ -298,15 +315,20 @@ void cpu::execute(uint32_t instr) {
 					//debug = true;
 					break;
 				}
+				case(0x0D): {	// break
+					debug_printf("break\n");
+					exception(exceptions::Break);
+					break;
+				}
 				default: {
 					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
 				}
-				break;
+					   break;
 				}
 				break;
-				}
-			case(0x10): {	
+			}
+			case(0x10): {
 				switch (secondary & 0x0f) {
 				case(0x00): { // mfhi
 					uint8_t rd = (instr >> 11) & 0x1f;
@@ -339,11 +361,11 @@ void cpu::execute(uint32_t instr) {
 				case(0x08): {	// mult
 					uint8_t rs = (instr >> 21) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
-					
+
 					int64_t x = int64_t(int32_t(regs[rs]));
 					int64_t y = int64_t(int32_t(regs[rt]));
 					uint64_t result = uint64_t(x * y);
-					
+
 					hi = uint32_t((result >> 32) & 0xffffffff);
 					lo = uint32_t(result & 0xffffffff);
 					debug_printf("mult %s, %s", reg[rs].c_str(), reg[rt].c_str());
@@ -353,7 +375,7 @@ void cpu::execute(uint32_t instr) {
 				case(0x09): {	// multu
 					uint8_t rs = (instr >> 21) & 0x1f;
 					uint8_t rt = (instr >> 16) & 0x1f;
-					
+
 					uint64_t x = uint64_t(regs[rs]);
 					uint64_t y = uint64_t(regs[rt]);
 					uint64_t result = x * y;
@@ -372,7 +394,7 @@ void cpu::execute(uint32_t instr) {
 					int32_t n = int32_t(regs[rs]);
 					int32_t d = int32_t(regs[rt]);
 					debug_printf("div %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
-					
+
 					if (d == 0) {
 						hi = uint32_t(n);
 						if (n >= 0) {
@@ -392,7 +414,7 @@ void cpu::execute(uint32_t instr) {
 					}
 					hi = uint32_t(n % d);
 					lo = uint32_t(n / d);
-					
+
 					pc += 4;
 					break;
 				}
@@ -410,7 +432,7 @@ void cpu::execute(uint32_t instr) {
 
 					hi = regs[rs] % regs[rt];
 					lo = regs[rs] / regs[rt];
-					
+
 					pc += 4;
 					break;
 				}
@@ -418,7 +440,7 @@ void cpu::execute(uint32_t instr) {
 					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
 				}
-				break;
+					   break;
 				}
 				break;
 			}
@@ -538,7 +560,7 @@ void cpu::execute(uint32_t instr) {
 					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
 				}
-				break;
+					   break;
 				}
 				break;
 			}
@@ -548,7 +570,7 @@ void cpu::execute(uint32_t instr) {
 					printf("Unknown subinstruction: 0x%.2X\n", secondary);
 					exit(0);
 				}
-				break;
+					   break;
 				}
 				break;
 			}
@@ -557,7 +579,7 @@ void cpu::execute(uint32_t instr) {
 				printf("Unknown subinstruction: 0x%.2X\n", secondary);
 				exit(0);
 			}
-			break;
+				   break;
 			}
 
 			break;
@@ -571,12 +593,12 @@ void cpu::execute(uint32_t instr) {
 			int32_t signed_rs = int32_t(regs[rs]);
 			auto bit16 = (instr >> 16) & 1;
 			auto bit20 = (instr >> 20) & 1;
-			if (bit16 == 0 ) {		// bltz
+			if (bit16 == 0) {		// bltz
 				if (bit20 == 1) regs[0x1f] = pc + 4; // check if link (bltzal)
 				debug_printf("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 				if (signed_rs < 0) {
 					jump = (pc + 4) + (sign_extended_imm << 2);
-					
+					delay = true;
 					debug_printf(" branched\n");
 				}
 				else { debug_printf("\n"); }
@@ -589,7 +611,7 @@ void cpu::execute(uint32_t instr) {
 				if (bit20 == 1) regs[0x1f] = pc + 4; // check if link (bgezal)
 				if (signed_rs >= 0) {
 					jump = (pc + 4) + (sign_extended_imm << 2);
-					
+					delay = true;
 					debug_printf(" branched\n");
 				}
 				else { debug_printf("\n"); }
@@ -601,6 +623,7 @@ void cpu::execute(uint32_t instr) {
 			uint32_t jump_imm = instr & 0x3ffffff;
 			jump = (pc & 0xf0000000) | (jump_imm << 2);
 			debug_printf("j 0x%.8x\n", jump_imm);
+			delay = true;
 			pc += 4;
 			break;
 		}
@@ -610,6 +633,7 @@ void cpu::execute(uint32_t instr) {
 			debug_printf("jal 0x%.8x\n", jump_imm);
 			regs[0x1f] = pc + 8;
 			pc += 4;
+			delay = true;
 			break;
 		}
 		case(0x04): {	// beq
@@ -621,6 +645,7 @@ void cpu::execute(uint32_t instr) {
 			debug_printf("beq %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), sign_extended_imm);
 			if (regs[rs] == regs[rt]) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
+				delay = true;
 				debug_printf(" branched\n");
 			}
 			else { debug_printf("\n"); }
@@ -635,7 +660,8 @@ void cpu::execute(uint32_t instr) {
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
 			debug_printf("bne %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), sign_extended_imm);
 			if (regs[rs] != regs[rt]) {
-				jump = (pc + 4) + (sign_extended_imm << 2); 
+				jump = (pc + 4) + (sign_extended_imm << 2);
+				delay = true;
 				debug_printf(" branched\n");
 			}
 			else { debug_printf("\n"); }
@@ -652,6 +678,7 @@ void cpu::execute(uint32_t instr) {
 			debug_printf("blez %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 			if (signed_rs <= 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
+				delay = true;
 				debug_printf(" branched\n");
 			}
 			else { debug_printf("\n"); }
@@ -668,6 +695,7 @@ void cpu::execute(uint32_t instr) {
 			debug_printf("bgtz %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 			if (signed_rs > 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
+				delay = true;
 				debug_printf(" branched\n");
 			}
 			else { debug_printf("\n"); }
@@ -676,7 +704,7 @@ void cpu::execute(uint32_t instr) {
 		}
 		case(0x08): { // addi
 			uint8_t rs = (instr >> 21) & 0x1f;
-			uint8_t rd = (instr >> 11) & 0x1f;	
+			uint8_t rd = (instr >> 11) & 0x1f;
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
 			uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
@@ -769,14 +797,14 @@ void cpu::execute(uint32_t instr) {
 			pc += 4;
 			break;
 		}
-				  
+
 		default:
 			printf("Unknown instruction: 0x%.2X\n", primary);
 			exit(0);
 		}
 		break;
-		}
-	
+	}
+
 	case(0x10): {
 		switch (primary & 0x0f) {
 		case(0x00): {	// COP 0
@@ -868,8 +896,8 @@ void cpu::execute(uint32_t instr) {
 			exit(0);
 		}
 		break;
-		}
-	
+	}
+
 	case(0x20): {
 		switch (primary & 0x0f) {
 		case(0x00): {	// lb
@@ -885,10 +913,10 @@ void cpu::execute(uint32_t instr) {
 				pc += 4;
 				return;
 			}
-			
+
 			uint8_t byte = bus.mem.read(addr);
 			regs[rt] = uint32_t(int32_t(int8_t(byte)));
-			
+
 			debug_printf("lb %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
 			pc += 4;
 			break;
@@ -1014,11 +1042,11 @@ void cpu::execute(uint32_t instr) {
 					break;
 				case 1:
 					regs[rt] = (regs[rt] & 0xff000000) | (aligned_word >> 8);
-					break;								 
-				case 2:									 
+					break;
+				case 2:
 					regs[rt] = (regs[rt] & 0xffff0000) | (aligned_word >> 16);
-					break;								 
-				case 3:									 
+					break;
+				case 3:
 					regs[rt] = (regs[rt] & 0xffffff00) | (aligned_word >> 24);
 					break;
 				}
@@ -1080,7 +1108,7 @@ void cpu::execute(uint32_t instr) {
 			}
 			pc += 4;
 			break;
-			
+
 		}
 		case(0x0A): {	// swl
 			uint8_t rs = (instr >> 21) & 0x1f;
@@ -1137,7 +1165,8 @@ void cpu::execute(uint32_t instr) {
 			if ((COP0.regs[12] & 0x10000) == 0) {
 				bus.mem.write32(addr, regs[rt]);
 				debug_printf("\n");
-			} else {
+			}
+			else {
 				debug_printf(" cache isolated, ignoring write\n");
 			}
 
@@ -1147,7 +1176,7 @@ void cpu::execute(uint32_t instr) {
 			if ((bus.mem.channel6_control >> 28) & 1 == 1 && (bus.mem.channel6_control >> 24) & 1 == 1) {	// handle dma transfers
 				do_dma(6);
 			}
-			
+
 			pc += 4;
 			break;
 		}
@@ -1197,8 +1226,8 @@ void cpu::execute(uint32_t instr) {
 			exit(0);
 		}
 		break;
-		}
-	
+	}
+
 	case(0x30): {
 		switch (primary & 0x0f) {
 		case(0x00): {
@@ -1254,17 +1283,17 @@ void cpu::execute(uint32_t instr) {
 			exit(0);
 		}
 		printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
-		}
-	
+	}
 
-	
+
+
 
 	default: {
 		printf("Unknown instruction: 0x%.2X\n", primary);
 		exit(0);
 	}
 	}
-	
+
 	if (lwl) lwl = false;
 	if (lwr) lwr = false;
 }

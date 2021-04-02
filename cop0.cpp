@@ -2,7 +2,7 @@
 
 
 cop0::cop0() {
-
+	regs[15] = 0x42069420;	// funni number
 }
 cop0::~cop0() {
 

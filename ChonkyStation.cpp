@@ -11,27 +11,67 @@
 int screen_width = 640, screen_height = 480;
 SDL_Window* main_window = nullptr;
 SDL_GLContext gl_context = nullptr;
-int Main() {
-    SDL_Event event;
 
-    int frame_cycles = 0;
-    cpu Cpu = cpu();
-    Cpu.bus.mem.loadBios();
+uint32_t instr;
+cpu Cpu = cpu();
+
+int elapsed = 0;
+void cycle() {
+    
+}
+
+int main(int argc, char** argv) {
+    
     printf("\n Executing \n \n");
-    for (;;) {
-        uint32_t instr = Cpu.fetch(Cpu.pc);
+
+
+    SDL_Event event;
+    
+
+    SDL_Init(SDL_INIT_EVERYTHING);
+    SDL_Window* window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screen_width, screen_height, SDL_WINDOW_SHOWN);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+    
+    SDL_RenderClear(renderer);
+    SDL_Texture* frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STATIC, screen_width, screen_height);
+
+
+    bool quit = false;
+
+    while (!quit) {
+        if (elapsed >= 540672) {
+            while (SDL_PollEvent(&event)) {
+                switch (event.type) {
+                case SDL_QUIT:
+                    quit = true;
+                    break;
+                }
+            }
+            SDL_UpdateTexture(frame, NULL, Cpu.bus.Gpu.pixels, 640 * sizeof(uint32_t));
+            SDL_RenderClear(renderer);
+            SDL_RenderCopy(renderer, frame, NULL, NULL);
+            SDL_RenderPresent(renderer);
+            elapsed = 0;
+        }
+
+        instr = Cpu.fetch(Cpu.pc);
         if (Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
         Cpu.execute(instr);
+        elapsed++;
+        
+        
     }
+    SDL_DestroyWindow(window);
+    SDL_DestroyTexture(frame);
+    SDL_DestroyRenderer(renderer);
     SDL_Quit();
 
     return 0;
 }
-int main()
+
+
+int Main()
 {
-
-    
-
     if (SDL_Init(SDL_INIT_EVENTS) < 0) {
         throw(std::string("Failed to initialize SDL: ") + SDL_GetError());
     }
@@ -149,7 +189,7 @@ int main()
 
         SDL_GL_SwapWindow(main_window);
     }
-
+    
     Main();
     return 0;
 }

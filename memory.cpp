@@ -30,7 +30,10 @@ uint8_t memory::read(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 	
-
+	if (masked_addr == 0x1f801040)
+		return 0;
+	if (masked_addr == 0x1f80104a)
+		return 0;
 	if (addr == 0x1F801074) exit(0);
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
@@ -61,6 +64,10 @@ uint8_t memory::read(uint32_t addr) {
 uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+	if (masked_addr == 0x1f80104a)
+		return 0;
+	if (masked_addr == 0x1f801040)
+		return 0;
 
 	if (masked_addr >= 0x1F801D80 && masked_addr <= 0x1F801DBC) {	// SPUSTAT
 		return 0;
@@ -98,7 +105,10 @@ uint16_t memory::read16(uint32_t addr) {
 uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-
+	if (masked_addr == 0x1f80104a)
+		return 0;
+	if (masked_addr == 0x1f801040)
+		return 0;
 	if (masked_addr == 0x1f801110)
 		return 0;
 
@@ -173,7 +183,8 @@ uint32_t memory::read32(uint32_t addr) {
 void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-
+	if (masked_addr >= 0x1f80104a && masked_addr < 0x1f80104a + sizeof(uint32_t))	// joy_ctrl
+		return;
 	if (masked_addr == 0x1f802080) {
 		printf("%c", data);
 		return;
@@ -193,6 +204,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 
 	if (masked_addr >= 0x1f800000 && masked_addr < 0x1f800000 + 1024) {
 		scratchpad[masked_addr & 0x400] = data;
+		return;
 	}
 	if (masked_addr >= 0x00000000 && masked_addr < 0x00000000 + 0x200000) {
 		ram[masked_addr & 0x1fffff] = data;

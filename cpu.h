@@ -13,12 +13,16 @@ public:
 	
 public:
 	enum exceptions {
+		BadAddr = 0x4,
 		SysCall = 0x8,
+		Break = 0x9,
+		Reserved_Instruction = 0xA,
 		Overflow = 0xC
 	};
 	cop0 COP0 = cop0();
 	Bus bus = Bus();
 	
+	uint32_t next_instr = 0;
 public:
 	uint32_t fetch(uint32_t addr);
 	void execute(uint32_t instr);
@@ -44,5 +48,7 @@ public:
 	bool log_kernel;
 	bool exe;
 	bool tty;
+
+	bool delay;
 };
 
