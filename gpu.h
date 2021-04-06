@@ -9,11 +9,17 @@ class gpu
 {
 
 public:		// rasterization stuff
-	typedef struct {		// vertex struct
+	struct point {		// vertex struct
 		uint16_t x, y;	// coordinates
 		uint32_t c;		// BGR colour
-	} point;
+		uint8_t r = c & 0xff;
+		uint8_t g = (c >> 8) & 0xff;
+		uint8_t b = (c >> 16) & 0xff;
+	};
 	uint16_t sort_vertices(point v1, point v2, point v3);
+	struct EdgeEquation;
+	struct ParameterEquation;
+	void putpixel(point v1, uint32_t colour);
 	void horizontal_line(point v1, point v2, uint32_t colour);
 	void bottom_flat_triangle(point v1, point v2, point v3, uint32_t colour);
 	void top_flat_triangle(point v1, point v2, point v3, uint32_t colour);
