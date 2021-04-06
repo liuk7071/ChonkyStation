@@ -352,7 +352,7 @@ static auto readExec(std::string directory) -> std::vector<uint8_t> {
 }
 
 uint32_t memory::loadExec() {
-	file = readExec("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
+	file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");
 
 	uint32_t start_pc;
 	uint32_t entry_addr;

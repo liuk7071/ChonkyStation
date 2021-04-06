@@ -35,6 +35,7 @@ int main(int argc, char** argv) {
     SDL_RenderClear(renderer);
     SDL_Texture* frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STATIC, screen_width, screen_height);
 
+    
 
     bool quit = false;
 

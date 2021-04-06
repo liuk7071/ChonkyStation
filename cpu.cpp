@@ -10,7 +10,7 @@ cpu::cpu() {
 	}
 
 	debug = false;
-	exe = true;
+	exe = false;
 	log_kernel = false;
 	tty = true;
 
@@ -56,7 +56,7 @@ uint32_t cpu::fetch(uint32_t addr) {
 }
 
 void cpu::do_dma(int channel) {
-	debug = false;
+	//debug = true;
 	switch (channel) {		// switch on the channels
 	case(2): {	// GPU
 		auto sync_mode = (bus.mem.channel2_control >> 9) & 0b111;
@@ -73,13 +73,14 @@ void cpu::do_dma(int channel) {
 			case(1):
 				debug_printf("[DMA] Transfer direction: ram to device\n");
 				debug_printf("[DMA] Transfer size: %d words\n", words);
-				while (words > 0) {
+				while (words > 0) {	
 					uint32_t current_addr = addr & 0x1ffffc;
 					uint32_t data = bus.mem.read32(current_addr);
 					bus.Gpu.execute_gp0(data);
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
 				}
+				bus.mem.channel2_control ^= 1UL << 24;
 				bus.mem.channel2_control ^= 1UL << 28;
 				debug = false;
 				return;
@@ -99,8 +100,8 @@ void cpu::do_dma(int channel) {
 					auto words = header >> 24;
 					while (words > 0) {
 						addr += 4;
-						addr &= 0x1ffffc;
 						uint32_t command = bus.mem.read32(addr);
+						addr &= 0x1ffffc;
 						bus.Gpu.execute_gp0(command);
 						words--;
 					}
@@ -109,6 +110,7 @@ void cpu::do_dma(int channel) {
 					addr = header & 0x1ffffc;
 				}
 				bus.mem.channel2_control ^= 1UL << 24;
+				bus.mem.channel2_control ^= 1UL << 28;
 				debug_printf("[DMA] GPU Linked List transfer complete\n");
 				debug = false;
 				return;
@@ -139,7 +141,7 @@ void cpu::do_dma(int channel) {
 				debug_printf("[DMA] Transfer size: %d words\n", words);
 				while (words > 0) {
 					if (words == 1) {
-						bus.mem.write32(current_addr, 0xffffffff);
+						bus.mem.write32(current_addr, 0xffffff);
 						debug_printf("[DMA] OTC Block Copy completed\n");
 						bus.mem.channel6_control ^= 1UL << 28;
 						debug = false;

@@ -1,9 +1,25 @@
 #pragma once
 #include <stdint.h>
+#include <stdio.h>
+#include <iostream>
+#include <algorithm>
 #include <cstdarg>
 #include "memory.h"
 class gpu
 {
+
+public:		// rasterization stuff
+	typedef struct {		// vertex struct
+		uint16_t x, y;	// coordinates
+		uint32_t c;		// BGR colour
+	} point;
+	uint16_t sort_vertices(point v1, point v2, point v3);
+	void horizontal_line(point v1, point v2, uint32_t colour);
+	void bottom_flat_triangle(point v1, point v2, point v3, uint32_t colour);
+	void top_flat_triangle(point v1, point v2, point v3, uint32_t colour);
+	void triangle(point v1, point v2, point v3, uint32_t colour);
+	void quad(point v1, point v2, point v3, point v4, uint32_t colour);
+	
 public:
 	gpu();
 	uint32_t pixels[480][640];
@@ -34,7 +50,12 @@ public:
 	uint32_t get_status();
 
 public:	// commands
+	void monochrome_four_point_opaque_polygon();
+	void monochrome_three_point_opaque_polygon();
+	void shaded_three_point_opaque_polygon();
+	void shaded_four_point_opaque_polygon();
 	void monochrome_rectangle_dot_opaque();
+	void fill_rectangle();
 	void cpu_to_vram();
 	void vram_to_cpu();
 
