@@ -85,9 +85,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)glad\include;$(ProjectDir)SDL2\include;$(ProjectDir)imgui;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)renderer\*.h;$(ProjectDir)glad\include;$(ProjectDir)SDL2\include;$(ProjectDir)imgui;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)SDL2\lib\x64;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(ProjectDir)imgui;$(ProjectDir)glad\src;$(SourcePath)</SourcePath>
+    <SourcePath>$(ProjectDir)renderer\*.cpp;$(ProjectDir)imgui;$(ProjectDir)glad\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

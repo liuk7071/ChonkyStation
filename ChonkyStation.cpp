@@ -1,8 +1,8 @@
 #include <iostream>
 #include <iomanip>
 #include "cpu.h"
-#include "glad/glad.h"
 #include "SDL.h"
+#include "glad/glad.h"
 #undef main
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
@@ -34,11 +34,9 @@ int main(int argc, char** argv) {
     
     SDL_RenderClear(renderer);
     SDL_Texture* frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STATIC, screen_width, screen_height);
-
-    
+  
 
     bool quit = false;
-
     while (!quit) {
         if (elapsed >= 540672) {
             while (SDL_PollEvent(&event)) {
@@ -59,12 +57,13 @@ int main(int argc, char** argv) {
         if (Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
         Cpu.execute(instr);
         elapsed++;
+        Cpu.check_dma();
         
         
     }
     SDL_DestroyWindow(window);
-    SDL_DestroyTexture(frame);
-    SDL_DestroyRenderer(renderer);
+    //SDL_DestroyTexture(frame);
+    //SDL_DestroyRenderer(renderer);
     SDL_Quit();
 
     return 0;

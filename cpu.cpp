@@ -55,69 +55,109 @@ uint32_t cpu::fetch(uint32_t addr) {
 	return bus.mem.read32(addr);
 }
 
-void cpu::do_dma(int channel) {
-	//debug = true;
-	switch (channel) {		// switch on the channels
-	case(2): {	// GPU
-		auto sync_mode = (bus.mem.channel2_control >> 9) & 0b111;
-		bool incrementing = ((bus.mem.channel2_control >> 1) & 1) == 0;
-		auto direction = (bus.mem.channel2_control) & 1;
-		uint16_t words = (bus.mem.channel2_block_control) & 0xffff;
-		uint32_t addr = bus.mem.channel2_base_address & 0x1ffffc;
-		
-		switch (sync_mode) {
-		case(1): {
-			words *= bus.mem.channel2_block_control >> 16;
-			debug_printf("[DMA] Start GPU Block Copy\n");
-			switch (direction) {
-			case(1):
-				debug_printf("[DMA] Transfer direction: ram to device\n");
-				debug_printf("[DMA] Transfer size: %d words\n", words);
-				while (words > 0) {	
-					uint32_t current_addr = addr & 0x1ffffc;
-					uint32_t data = bus.mem.read32(current_addr);
-					bus.Gpu.execute_gp0(data);
-					if (incrementing) addr += 4; else addr -= 4;
-					words--;
-				}
-				bus.mem.channel2_control ^= 1UL << 24;
-				bus.mem.channel2_control ^= 1UL << 28;
+void cpu::channel2_block_dma() {
+	bool incrementing = ((bus.mem.channel2_control >> 1) & 1) == 0;
+	auto direction = (bus.mem.channel2_control) & 1;
+	uint16_t words = (bus.mem.channel2_block_control) & 0xffff;
+	uint32_t addr = bus.mem.channel2_base_address & 0x1ffffc;
+	words *= bus.mem.channel2_block_control >> 16;
+
+	debug_printf("[DMA] Start GPU Block Copy\n");
+	switch (direction) {
+	case(1):
+		debug_printf("[DMA] Transfer direction: ram to device\n");
+		debug_printf("[DMA] Transfer size: %d words\n", words);
+		while (words > 0) {
+			uint32_t current_addr = addr & 0x1ffffc;
+			uint32_t data = bus.mem.read32(current_addr);
+			bus.Gpu.execute_gp0(data);
+			if (incrementing) addr += 4; else addr -= 4;
+			words--;
+		}
+		bus.mem.channel2_control ^= 1UL << 24;
+		bus.mem.channel2_control ^= 1UL << 28;
+		debug = false;
+		return;
+	default:
+		debug_printf("[DMA] Unhandled Direction");
+		exit(0);
+	}
+}
+void cpu::channel2_linked_list() {
+	bool incrementing = ((bus.mem.channel2_control >> 1) & 1) == 0;
+	auto direction = (bus.mem.channel2_control) & 1;
+	uint32_t addr = bus.mem.channel2_base_address & 0x1ffffc;
+
+	debug_printf("[DMA] Start GPU Linked List\n");
+	switch (direction) {
+	case(1):
+		debug_printf("[DMA] Transfer direction: ram to device\n");
+		while (1) {
+			uint32_t header = bus.mem.read32(addr);
+			auto words = header >> 24;
+			while (words > 0) {
+				addr += 4;
+				uint32_t command = bus.mem.read32(addr);
+				addr &= 0x1ffffc;
+				bus.Gpu.execute_gp0(command);
+				words--;
+			}
+			if ((header & 0x800000) != 0)
+				break;
+			addr = header & 0x1ffffc;
+		}
+		bus.mem.channel2_control ^= 1UL << 24;
+		debug_printf("[DMA] GPU Linked List transfer complete\n");
+		debug = false;
+		return;
+	default:
+		debug_printf("[DMA] Unhandled Direction\n");
+		exit(0);
+	}
+}
+void cpu::channel6_block_dma() {
+	bool incrementing = ((bus.mem.channel6_control >> 1) & 1) == 0;
+	uint16_t words = (bus.mem.channel6_block_control) & 0xffff;
+	auto direction = (bus.mem.channel6_control) & 1;
+	uint32_t addr = bus.mem.channel6_base_address;
+
+	debug_printf("[DMA] Start OTC Block Copy\n");
+	uint32_t current_addr = addr & 0x1ffffc;
+	switch (direction) {
+	case(0):
+		debug_printf("[DMA] Transfer direction: device to ram\n");
+		debug_printf("[DMA] Transfer size: %d words\n", words);
+		while (words > 0) {
+			if (words == 1) {
+				bus.mem.write32(current_addr, 0xffffff);
+				debug_printf("[DMA] OTC Block Copy completed\n");
+				bus.mem.channel6_control ^= 1UL << 24;
+				bus.mem.channel6_control ^= 1UL << 28;
 				debug = false;
 				return;
-			default:
-				debug_printf("[DMA] Unhandled Direction");
-				exit(0);
 			}
+			bus.mem.write32(current_addr, (addr - 4) & 0x1fffff);
+			if (incrementing) addr += 4; else addr -= 4;
+			words--;
 		}
 
-		case(2):	// Linked List
-			debug_printf("[DMA] Start GPU Linked List\n");
-			switch (direction) {
-			case(1):
-				debug_printf("[DMA] Transfer direction: ram to device\n");
-				while (1) {
-					uint32_t header = bus.mem.read32(addr);
-					auto words = header >> 24;
-					while (words > 0) {
-						addr += 4;
-						uint32_t command = bus.mem.read32(addr);
-						addr &= 0x1ffffc;
-						bus.Gpu.execute_gp0(command);
-						words--;
-					}
-					if (header & 0x800000 != 0)
-						break;
-					addr = header & 0x1ffffc;
-				}
-				bus.mem.channel2_control ^= 1UL << 24;
-				bus.mem.channel2_control ^= 1UL << 28;
-				debug_printf("[DMA] GPU Linked List transfer complete\n");
-				debug = false;
-				return;
-			default:
-				debug_printf("[DMA] Unhandled Direction\n");
-				exit(0);
-			}
+	default:
+		debug_printf("[DMA] Unhandled Direction\n");
+		exit(0);
+	}
+}
+
+void cpu::do_dma(int channel) {
+	debug = true;
+	switch (channel) {		// switch on the channels
+	case(2): {	// GPU
+
+		auto sync_mode = (bus.mem.channel2_control >> 9) & 0b11;
+		
+		switch (sync_mode) {
+		case(0): channel2_block_dma(); break;
+		case(1): channel2_block_dma(); break;
+		case(2): channel2_linked_list(); break;
 		default:
 			debug_printf("[DMA] Unhandled sync mode (GPU)");
 			exit(0);
@@ -125,45 +165,15 @@ void cpu::do_dma(int channel) {
 	}
 	
 	case(6): {			// OTC
-		auto sync_mode = (bus.mem.channel6_control >> 9) & 0b111;
-		bool incrementing = ((bus.mem.channel6_control >> 1) & 1) == 0;
-		uint16_t words = (bus.mem.channel6_block_control) & 0xffff;
-		auto direction = (bus.mem.channel6_control) & 1;
-		uint32_t addr = bus.mem.channel6_base_address;
+
+		auto sync_mode = (bus.mem.channel6_control >> 9) & 0b11;
 
 		switch (sync_mode) {	// switch on the sync mode
-		case(0): {			// block dma
-			debug_printf("[DMA] Start OTC Block Copy\n");
-			uint32_t current_addr = addr & 0x1ffffc;
-			switch (direction) {
-			case(0):
-				debug_printf("[DMA] Transfer direction: device to ram\n");
-				debug_printf("[DMA] Transfer size: %d words\n", words);
-				while (words > 0) {
-					if (words == 1) {
-						bus.mem.write32(current_addr, 0xffffff);
-						debug_printf("[DMA] OTC Block Copy completed\n");
-						bus.mem.channel6_control ^= 1UL << 28;
-						debug = false;
-						return;
-					}
-					bus.mem.write32(current_addr, (addr - 4) & 0x1fffff);
-					if (incrementing) addr +=4; else addr -=4;
-					words--;
-				}
-				
-			default:
-				debug_printf("[DMA] Unhandled Direction\n");
-				exit(0);
-			}
-		
-			exit(0);
-		}
+		case(0): channel6_block_dma(); break; 			// block dma
 		default:
 			debug_printf("[DMA] Unhandled sync mode (OTC)");
 			exit(0);
 		}
-		exit(0);
 		break;
 	}
 	default:
@@ -172,9 +182,25 @@ void cpu::do_dma(int channel) {
 	}
 }
 
+void cpu::check_dma() {
+	bool enabled = ((bus.mem.channel2_control >> 24) & 1) == 1;
+	bool trigger = ((bus.mem.channel2_control >> 28) & 1) == 1;
+	auto sync_mode = (bus.mem.channel2_control >> 9) & 0b11;
+
+	auto triggered = !(sync_mode == 0 && !trigger);
+	if (enabled && triggered) do_dma(2); return;
+
+	enabled = ((bus.mem.channel6_control >> 24) & 1) == 1;
+	trigger = ((bus.mem.channel6_control >> 28) & 1) == 1;
+	sync_mode = (bus.mem.channel6_control >> 9) & 0b11;
+
+	triggered = !(sync_mode == 0 && !trigger);
+	if (enabled && triggered) do_dma(6); return;
+}
+
 void cpu::execute(uint32_t instr) {
 	regs[0] = 0; // $zero
-
+	
 	bus.mem.gpustat = regs[3];
 
 	if (pc == 0xA0 || pc == 0x800000A0 || pc == 0xA00000A0) {
@@ -831,7 +857,7 @@ void cpu::execute(uint32_t instr) {
 				break;
 			}
 			case(0b10000): { // rfe
-				if (instr & 0x3f != 0b010000) {
+				if ((instr & 0x3f) != 0b010000) {
 					printf("Invalid RFE");
 					exit(0);
 				}
@@ -1171,14 +1197,8 @@ void cpu::execute(uint32_t instr) {
 			else {
 				debug_printf(" cache isolated, ignoring write\n");
 			}
-
-			if (((bus.mem.channel2_control >> 24) & 1) == 1) {	// handle dma transfers
-				do_dma(2);
-			}
-			if ((bus.mem.channel6_control >> 28) & 1 == 1 && (bus.mem.channel6_control >> 24) & 1 == 1) {	// handle dma transfers
-				do_dma(6);
-			}
-
+			
+			
 			pc += 4;
 			break;
 		}
