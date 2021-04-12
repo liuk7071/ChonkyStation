@@ -164,24 +164,48 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 3;
 			break;
 		}
+		case(0x22): { // Monochrome three-point polygon, semi-transparent
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 3;
+			break;
+		}
 		case(0x28): { // Monochrome four-point polygon, opaque
 			fifo[0] = command;
 			cmd_length++;
 			cmd_left = 4;
 			break;
 		}
-		//case(0x30): {	// Shaded three-point polygon, opaque
-		//	fifo[0] = command;
-		//	cmd_length++;
-		//	cmd_left = 5;
-		//	break;
-		//}
-		//case(0x38): { // Shaded four-point polygon, opaque
-		//	fifo[0] = command;
-		//	cmd_length++;
-		//	cmd_left = 7;
-		//	break;
-		//}
+		case(0x2A): { // Monochrome four-point polygon, semi-transparent
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 4;
+			break;
+		}
+		case(0x30): {	// Shaded three-point polygon, opaque
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 5;
+			break;
+		}
+		case(0x32): { // Shaded three-point polygon, semi-transparent
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 5;
+			break;
+		}
+		case(0x38): { // Shaded four-point polygon, opaque
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 7;
+			break;
+		}
+		case(0x3A): { // Shaded four-point polygon, semi-transparent
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 7;
+			break;
+		}
 		case(0x68): {	// 1x1 Opaque Monochrome Rectangle
 			fifo[0] = command;
 			cmd_length++;
@@ -255,9 +279,13 @@ void gpu::execute_gp0(uint32_t command) {
 
 				case(0x02): gpu::fill_rectangle(); break;
 				case(0x20): gpu::monochrome_three_point_opaque_polygon(); break;
+				case(0x22): gpu::monochrome_three_point_semi_transparent_polygon(); break;
 				case(0x28): gpu::monochrome_four_point_opaque_polygon(); break;
+				case(0x2A): gpu::monochrome_four_point_semi_transparent_polygon(); break;
 				case(0x30): gpu::shaded_three_point_opaque_polygon(); break;
+				case(0x32): gpu::shaded_three_point_semi_transparent_polygon(); break;
 				case(0x38): gpu::shaded_four_point_opaque_polygon(); break;
+				case(0x3A): gpu::shaded_four_point_semi_transparent_polygon(); break;
 				case(0x68): gpu::monochrome_rectangle_dot_opaque(); break;
 				case(0xA0): gpu::cpu_to_vram(); break;
 				
@@ -267,10 +295,28 @@ void gpu::execute_gp0(uint32_t command) {
 		}
 		case 1: {	// load mode
 			debug_printf("[CPU to VRAM transfer] Data: 0x%x\n", command);
+			uint32_t resolution = fifo[2];
+			auto width = resolution & 0xffff;
+			auto height = resolution >> 16;
+
+			int x = 0;
+			int y = 0;
 			if (cmd_left == 0) {	// load done
 				gp0_mode = 0;
 				break;
 			}
+
+			for (; y < height; y++) {
+				for (; x < width; x++) {
+					write32(x, y, command);
+					return;
+				}
+				x = 0;
+				y++;
+				return;
+			}
+
+			
 		}
 		}
 	}
@@ -308,10 +354,40 @@ void gpu::monochrome_four_point_opaque_polygon() {
 	quad(v1, v2, v3, v4, colour);
 	return;
 }
+void gpu::monochrome_four_point_semi_transparent_polygon() {
+	uint32_t colour = fifo[0] & 0xffffff;
+	colour |= 0x7f000000;
+	debug_printf("[GP0] Monochrome four-point polygon, semi-transparent (colour: 0x%x)\n", colour);
+	point v1, v2, v3, v4;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = fifo[2] & 0xffff;
+	v2.y = fifo[2] >> 16;
+	v3.x = fifo[3] & 0xffff;
+	v3.y = fifo[3] >> 16;
+	v4.x = fifo[4] & 0xffff;
+	v4.y = fifo[4] >> 16;
+	quad(v1, v2, v3, v4, colour);
+	return;
+}
 void gpu::monochrome_three_point_opaque_polygon() {
-	debug_printf("[GP0] monochrome three-point polygon, opaque\n");
+	debug_printf("[GP0] Monochrome three-point polygon, opaque\n");
 	point v1, v2, v3;
 	uint32_t colour = fifo[0] & 0xffffff;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = fifo[2] & 0xffff;
+	v2.y = fifo[2] >> 16;
+	v3.x = fifo[3] & 0xffff;
+	v3.y = fifo[3] >> 16;
+	triangle(v1, v2, v3, colour);
+	return;
+}
+void gpu::monochrome_three_point_semi_transparent_polygon() {
+	debug_printf("[GP0] Monochrome three-point polygon, semi-transparent\n");
+	point v1, v2, v3;
+	uint32_t colour = fifo[0] & 0xffffff;
+	colour |= 0x7f000000;
 	v1.x = fifo[1] & 0xffff;
 	v1.y = fifo[1] >> 16;
 	v2.x = fifo[2] & 0xffff;
@@ -333,7 +409,24 @@ void gpu::shaded_three_point_opaque_polygon() {
 	v2.y = fifo[3] >> 16;
 	v3.x = fifo[5] & 0xffff;
 	v3.y = fifo[5] >> 16;
-	triangle(v1, v2, v3, 0xff);
+	v1.c |= 0x7f000000;
+	triangle(v1, v2, v3, v1.c);
+	return;
+}
+void gpu::shaded_three_point_semi_transparent_polygon() {
+	debug_printf("[GP0] Shaded three-point polygon, semi-transparent\n");
+	point v1, v2, v3;
+	v1.c = fifo[0] & 0xffffff;
+	v2.c = fifo[2] & 0xffffff;
+	v3.c = fifo[4] & 0xffffff;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = fifo[3] & 0xffff;
+	v2.y = fifo[3] >> 16;
+	v3.x = fifo[5] & 0xffff;
+	v3.y = fifo[5] >> 16;
+	v1.c |= 0x7f000000;
+	triangle(v1, v2, v3, v1.c);
 	return;
 }
 void gpu::shaded_four_point_opaque_polygon() {
@@ -351,6 +444,25 @@ void gpu::shaded_four_point_opaque_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 	debug_printf("[GP0] Shaded four-point polygon, opaque (rendered as mono, colour: 0x%x)\n", v1.c);
+	quad(v1, v2, v3, v4, v1.c);
+	return;
+}
+void gpu::shaded_four_point_semi_transparent_polygon() {
+	point v1, v2, v3, v4;
+	v1.c = fifo[0] & 0xffffff;
+	v2.c = fifo[2] & 0xffffff;
+	v3.c = fifo[4] & 0xffffff;
+	v4.c = fifo[6] & 0xffffff;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = fifo[3] & 0xffff;
+	v2.y = fifo[3] >> 16;
+	v3.x = fifo[5] & 0xffff;
+	v3.y = fifo[5] >> 16;
+	v4.x = fifo[7] & 0xffff;
+	v4.y = fifo[7] >> 16;
+	v1.c |= 0x7f000000;
+	debug_printf("[GP0] Shaded four-point polygon, semi-transparent (rendered as mono, colour: 0x%x)\n", v1.c);
 	quad(v1, v2, v3, v4, v1.c);
 	return;
 }
@@ -386,4 +498,12 @@ void gpu::vram_to_cpu() {
 	auto width = resolution & 0xffff;
 	auto height = resolution >> 16;
 	return;
+}
+
+
+void gpu::write32(uint32_t addrX, uint32_t addrY, uint32_t data) {
+	vram[addrY][addrX] = data & 0x000000ff;
+	vram[addrY][addrX] = data & 0xff000000 >> 24;
+	vram[addrY][addrX] = data & 0x00ff0000 >> 16;
+	vram[addrY][addrX] = data & 0x0000ff00 >> 8;
 }

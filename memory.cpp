@@ -30,8 +30,8 @@ uint8_t memory::read(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 	
-	if (masked_addr == 0x1f801040)
-		return 0;
+	//if (masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
+	//	return 0;
 	if (masked_addr == 0x1f80104a)
 		return 0;
 	if (addr == 0x1F801074) exit(0);
@@ -111,6 +111,9 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0;
 	if (masked_addr == 0x1f801110)
 		return 0;
+	if (masked_addr == 0x1F801070) {
+		return 0;
+	}
 
 	if (masked_addr == 0x1f80101c) {
 		return exp2_delay_size;
@@ -183,6 +186,8 @@ uint32_t memory::read32(uint32_t addr) {
 void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+	//if(masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
+	//	return;
 	if (masked_addr >= 0x1f80104a && masked_addr < 0x1f80104a + sizeof(uint32_t))	// joy_ctrl
 		return;
 	if (masked_addr == 0x1f802080) {
@@ -230,7 +235,8 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		exp2_delay_size = data;
 		return;
 	}
-
+	if (masked_addr == 0x1f801800)
+		return;
 	if (masked_addr == 0x1f8010f0) { // DCPR
 		DCPR = data;
 		if (debug) printf(" Write 0x%.8x to dcpr", data);
@@ -352,7 +358,7 @@ static auto readExec(std::string directory) -> std::vector<uint8_t> {
 }
 
 uint32_t memory::loadExec() {
-	file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");
+	file = readExec("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
 
 	uint32_t start_pc;
 	uint32_t entry_addr;

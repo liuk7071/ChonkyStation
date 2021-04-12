@@ -41,9 +41,6 @@ public:
 	uint32_t lo;
 
 public:
-	void channel2_block_dma();
-	void channel2_linked_list();
-	void channel6_block_dma();
 	void check_dma();
 	void do_dma(int channel);
 
