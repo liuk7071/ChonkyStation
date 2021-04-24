@@ -1,7 +1,12 @@
 #include "gpu.h"
-
+#include "Bus.h"
+#include <cmath>
+Bus* bus;
 
 gpu::gpu() {
+	
+	rast.SetFrameBuffer((uint32_t*)pixels, 640, 480);
+
 	debug = true;
 	point v1, v2, v3, v4;
 	v1.x = 0; 
@@ -12,15 +17,16 @@ gpu::gpu() {
 	v3.y = 480;
 	v4.x = 640;
 	v4.y = 480;
-	//
+
 	//quad(v1, v2, v3, v4, 0xff00);
 	//triangle(v1, v2, v3, 0xff);
 	
 }
 
-void gpu::connectMem(memory* memory) {
-	mem = *memory;
+void connectBus(Bus *_bus) {
+	bus = _bus;
 }
+
 
 void gpu::debug_printf(const char* fmt, ...) {
 	if (debug) {
@@ -43,101 +49,23 @@ uint32_t gpu::get_status() {
 
 // trongles
 void gpu::putpixel(point v1, uint32_t colour) {
+	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
 	if (v1.x >= 640 || v1.y >= 480)
 		return;
-	pixels[v1.y][v1.x] = colour;
-}
-void gpu::horizontal_line(point v1, point v2, uint32_t colour) {
-	if (v1.x > v2.x) std::swap(v1, v2);
-	uint16_t y = v1.y;
-	for (int i = 0; i < 640; i++) {
-		if (i >= v1.x && i <= v2.x) {
-			point _v1;
-			_v1.x = i;
-			_v1.y = y;
-			putpixel(_v1, colour);
-		}
-	}
-}
-void gpu::triangle(point v0, point v1, point v2, uint32_t colour) {
-	const point* t = &v0;
-	const point* m = &v1;
-	const point* b = &v2;
-
-	if (t->y > m->y) std::swap(t, m);
-	if (m->y > b->y) std::swap(m, b);
-	if (t->y > m->y) std::swap(t, m);
-
-	float dy = (b->y - t->y);
-	float iy = (m->y - t->y);
-
-	if (m->y == t->y)	// top flat triangle
-	{
-		const point* l = m, * r = t;
-		if (l->x > r->x) std::swap(l, r);
-		top_flat_triangle(*l, *r, *b, colour);
-	}
-	else if (m->y == b->y) {	// bottom flat triangle
-		const point* l = m, * r = b;
-		if (l->x > r->x) std::swap(l, r);
-		bottom_flat_triangle(*t, *l, *r, colour);
-	}
-	else {	// general case triangle
-		point v4;
-		v4.x = (int)(t->x + ((float)(m->y - t->y) / (float)(b->y - t->y)) * (b->x - t->x));
-		v4.y = m->y;
-		const point* l = m, * r = &v4;
-		if (l->x > r->x) std::swap(l, r);
-		bottom_flat_triangle(*t, *l, *r, colour);
-		top_flat_triangle(*l, *r, *b, colour);
-	}
-	return;
+	pixels[v1.y][v1.x] = c1.ToUInt32();
 }
 
-void gpu::bottom_flat_triangle(point v0, point v1, point v2, uint32_t colour) {
-	float invslope1 = (v1.x - v0.x) / (v1.y - v0.y);
-	float invslope2 = (v2.x - v0.x) / (v2.y - v0.y);
-
-	point _v1, _v2;
-	for (int scanlineY = int(v0.y + 0.5f); scanlineY < int(v1.y + 0.5f); scanlineY++)
-	{
-		float dy = (scanlineY - v0.y) + 0.5f;
-		float curx1 = v0.x + invslope1 * dy + 0.5f;
-		float curx2 = v0.x + invslope2 * dy + 0.5f;
-
-		int xl = std::min(0, (int)curx1);
-		int xr = std::max(640, (int)curx2);
-		_v1.x = xl;
-		_v1.y = scanlineY;
-		_v2.x = xr;
-		_v2.y = scanlineY;
-		horizontal_line(_v1, _v2, colour);
-	}
-}
-void gpu::top_flat_triangle(point v0, point v1, point v2, uint32_t colour) {
-	float invslope1 = (v2.x - v0.x) / (v2.y - v0.y);
-	float invslope2 = (v2.x - v1.x) / (v2.y - v1.y);
-
-	point _v1, _v2;
-	for (int scanlineY = int(v2.y - 0.5f); scanlineY > int(v0.y - 0.5f); scanlineY--)
-	{
-		float dy = (scanlineY - v2.y) + 0.5f;
-		float curx1 = v2.x + invslope1 * dy + 0.5f;
-		float curx2 = v2.x + invslope2 * dy + 0.5f;
-
-
-		int xl = std::max(0, (int)curx1);
-		int xr = std::min(640, (int)curx2);
-		_v1.x = xl;
-		_v1.y = scanlineY;
-		_v2.x = xr;
-		_v2.y = scanlineY;
-		horizontal_line(_v1, _v2, colour);
-	}
-}
 void gpu::quad(point v1, point v2, point v3, point v4, uint32_t colour) {
-	triangle(v1, v2, v3, colour);
-	triangle(v2, v3, v4, colour);
+	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16);
+	Color c2(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16);
+	Color c3(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16);;
+
+	
+
+	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
+	rast.DrawTriangle(c1, v2.x, v2.y, c2, v3.x, v3.y, c3, v4.x, v4.y);
+	//triangle(v1, v2, v3, colour);
+	//triangle(v2, v3, v4, colour);
 }
 
 void gpu::execute_gp0(uint32_t command) {
@@ -270,8 +198,7 @@ void gpu::execute_gp0(uint32_t command) {
 		cmd_left--;
 		switch (gp0_mode) {
 		case 0: {	// command mode
-			fifo[cmd_length] = command;
-			cmd_length++;
+			fifo[cmd_length++] = command;
 
 			if (cmd_left == 0) {	// all the parameters are in, run command
 
@@ -315,8 +242,6 @@ void gpu::execute_gp0(uint32_t command) {
 				y++;
 				return;
 			}
-
-			
 		}
 		}
 	}
@@ -356,7 +281,6 @@ void gpu::monochrome_four_point_opaque_polygon() {
 }
 void gpu::monochrome_four_point_semi_transparent_polygon() {
 	uint32_t colour = fifo[0] & 0xffffff;
-	colour |= 0x7f000000;
 	debug_printf("[GP0] Monochrome four-point polygon, semi-transparent (colour: 0x%x)\n", colour);
 	point v1, v2, v3, v4;
 	v1.x = fifo[1] & 0xffff;
@@ -380,21 +304,34 @@ void gpu::monochrome_three_point_opaque_polygon() {
 	v2.y = fifo[2] >> 16;
 	v3.x = fifo[3] & 0xffff;
 	v3.y = fifo[3] >> 16;
-	triangle(v1, v2, v3, colour);
+
+	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
+	Color c2(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
+	Color c3(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
+
+
+
+	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
 	return;
 }
 void gpu::monochrome_three_point_semi_transparent_polygon() {
 	debug_printf("[GP0] Monochrome three-point polygon, semi-transparent\n");
 	point v1, v2, v3;
 	uint32_t colour = fifo[0] & 0xffffff;
-	colour |= 0x7f000000;
 	v1.x = fifo[1] & 0xffff;
 	v1.y = fifo[1] >> 16;
 	v2.x = fifo[2] & 0xffff;
 	v2.y = fifo[2] >> 16;
 	v3.x = fifo[3] & 0xffff;
 	v3.y = fifo[3] >> 16;
-	triangle(v1, v2, v3, colour);
+
+	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0x7f);
+	Color c2(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0x7f);
+	Color c3(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0x7f);
+
+
+
+	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
 	return;
 }
 void gpu::shaded_three_point_opaque_polygon() {
@@ -409,8 +346,14 @@ void gpu::shaded_three_point_opaque_polygon() {
 	v2.y = fifo[3] >> 16;
 	v3.x = fifo[5] & 0xffff;
 	v3.y = fifo[5] >> 16;
-	v1.c |= 0x7f000000;
-	triangle(v1, v2, v3, v1.c);
+
+	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16);
+	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16);
+	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16);
+
+
+
+	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
 	return;
 }
 void gpu::shaded_three_point_semi_transparent_polygon() {
@@ -425,8 +368,14 @@ void gpu::shaded_three_point_semi_transparent_polygon() {
 	v2.y = fifo[3] >> 16;
 	v3.x = fifo[5] & 0xffff;
 	v3.y = fifo[5] >> 16;
-	v1.c |= 0x7f000000;
-	triangle(v1, v2, v3, v1.c);
+
+	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16, 0x7f);
+	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16, 0x7f);
+	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16, 0x7f);
+
+
+
+	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
 	return;
 }
 void gpu::shaded_four_point_opaque_polygon() {
@@ -444,7 +393,14 @@ void gpu::shaded_four_point_opaque_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 	debug_printf("[GP0] Shaded four-point polygon, opaque (rendered as mono, colour: 0x%x)\n", v1.c);
-	quad(v1, v2, v3, v4, v1.c);
+
+	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16);
+	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16);
+	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16);
+	Color c4(v4.c & 0xff, (v4.c & 0xff00) >> 8, (v4.c & 0xff0000) >> 16);
+
+	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
+	rast.DrawTriangle(c2, v2.x, v2.y, c3, v3.x, v3.y, c4, v4.x, v4.y);
 	return;
 }
 void gpu::shaded_four_point_semi_transparent_polygon() {
@@ -461,9 +417,14 @@ void gpu::shaded_four_point_semi_transparent_polygon() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
-	v1.c |= 0x7f000000;
 	debug_printf("[GP0] Shaded four-point polygon, semi-transparent (rendered as mono, colour: 0x%x)\n", v1.c);
-	quad(v1, v2, v3, v4, v1.c);
+	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16, 0x7f);
+	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16, 0x7f);
+	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16, 0x7f);
+	Color c4(v4.c & 0xff, (v4.c & 0xff00) >> 8, (v4.c & 0xff0000) >> 16, 0x7f);
+
+	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
+	rast.DrawTriangle(c2, v2.x, v2.y, c3, v3.x, v3.y, c4, v4.x, v4.y);
 	return;
 }
 void gpu::monochrome_rectangle_dot_opaque() {
@@ -473,7 +434,8 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	debug_printf("[GP0] 1x1 Draw Opaque Monochrome Rectangle (coords: %d;%d colour: 0x%x)\n", x, y, colour);
 	if (x >= 640 || y >= 480)
 		return;
-	pixels[y][x] = colour;
+	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
+	pixels[y][x] = c1.ToUInt32();
 	return;
 }
 void gpu::fill_rectangle() {
@@ -506,4 +468,5 @@ void gpu::write32(uint32_t addrX, uint32_t addrY, uint32_t data) {
 	vram[addrY][addrX] = data & 0xff000000 >> 24;
 	vram[addrY][addrX] = data & 0x00ff0000 >> 16;
 	vram[addrY][addrX] = data & 0x0000ff00 >> 8;
+	return;
 }

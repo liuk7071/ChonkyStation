@@ -34,6 +34,8 @@ uint8_t memory::read(uint32_t addr) {
 	//	return 0;
 	if (masked_addr == 0x1f80104a)
 		return 0;
+	if (masked_addr == 0x1f801040)
+		return 0;
 	if (addr == 0x1F801074) exit(0);
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
@@ -230,7 +232,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-
+	
 	if (masked_addr == 0x1f80101c) {
 		exp2_delay_size = data;
 		return;
@@ -311,6 +313,8 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
+	if (masked_addr == 0x1f802082) // "its a PCSX register, ignore it"
+		return;
 
 	if (masked_addr >= 0x1f801074 && masked_addr < 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
 		IRQ_STATUS &= uint32_t(data);
@@ -358,7 +362,15 @@ static auto readExec(std::string directory) -> std::vector<uint8_t> {
 }
 
 uint32_t memory::loadExec() {
-	file = readExec("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
+	//file = readExec("C:\\Users\\zacse\\PSX\\CPUTest\\CPU\\LOADSTORE\\LB\\CPULB.exe");
+	//file = readExec("C:\\Users\\zacse\\PSX\\Cube\\Cube.exe");
+	//file = readExec("C:\\Users\\zacse\\PSX\\Demo\\printgpu\\PRINTGPU.exe");
+	//file = readExec("C:\\Users\\zacse\\PSX\\HelloWorld\\16BPP\\HelloWorld16BPP.exe");
+	//file = readExec("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
+	//file = readExec("C:\\Users\\zacse\\Desktop\\psx\\pcsx-redux\\src\\mips\\helloworld\\helloworld.exe");
+	file = readExec("C:\\Users\\zacse\\Downloads\\dma(2).exe");
+	//file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");
+	//file = readExec("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
 
 	uint32_t start_pc;
 	uint32_t entry_addr;

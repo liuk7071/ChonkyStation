@@ -140,6 +140,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <DebugInformationFormat>None</DebugInformationFormat>
+      <SupportJustMyCode>false</SupportJustMyCode>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -151,7 +153,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Bus.cpp" />
+    <ClCompile Include="cdrom.cpp" />
     <ClCompile Include="ChonkyStation.cpp" />
+    <ClCompile Include="Color.cpp" />
     <ClCompile Include="cop0.cpp" />
     <ClCompile Include="cpu.cpp" />
     <ClCompile Include="glad\src\glad.c" />
@@ -164,9 +168,12 @@
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="memory.cpp" />
+    <ClCompile Include="Rasterizer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h" />
+    <ClInclude Include="cdrom.h" />
+    <ClInclude Include="Color.h" />
     <ClInclude Include="cop0.h" />
     <ClInclude Include="cpu.h" />
     <ClInclude Include="gpu.h" />
@@ -179,6 +186,7 @@
     <ClInclude Include="imgui\imstb_textedit.h" />
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="memory.h" />
+    <ClInclude Include="Rasterizer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\Downloads\SCPH7003\SCPH7003.bin" />

@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
     
     SDL_RenderClear(renderer);
-    SDL_Texture* frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STATIC, screen_width, screen_height);
+    SDL_Texture* frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, screen_width, screen_height);
 
    // SDL_Window* window_vram = SDL_CreateWindow("VRAM Viewer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 2048, 512, SDL_WINDOW_SHOWN);
    // SDL_Renderer* renderer_vram = SDL_CreateRenderer(window_vram, -1, 0);

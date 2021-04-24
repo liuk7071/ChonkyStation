@@ -4,7 +4,8 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdarg>
-#include "memory.h"
+#include "Rasterizer.h"
+
 class gpu
 {
 
@@ -17,6 +18,7 @@ public:		// rasterization stuff
 		uint8_t b = (c >> 16) & 0xff;
 	};
 
+	Rasterizer rast;
 
 	void putpixel(point v1, uint32_t colour);
 	void horizontal_line(point v1, point v2, uint32_t colour);
@@ -36,7 +38,7 @@ public:
 	int gp0_mode = 0;
 	void execute_gp0(uint32_t command);
 	void execute_gp1(uint32_t command);
-	void connectMem(memory* memory);
+	
 
 	// GPUSTAT
 	uint8_t page_base_x;
@@ -73,7 +75,7 @@ public:
 public:
 	bool debug;
 	void debug_printf(const char* fmt, ...);
-	memory mem;
+	
 	
 };
 

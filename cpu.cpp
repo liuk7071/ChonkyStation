@@ -65,10 +65,11 @@ void cpu::do_dma(int channel) {
 		auto direction = (bus.mem.channel2_control) & 1;
 		uint16_t words = (bus.mem.channel2_block_control) & 0xffff;
 		uint32_t addr = bus.mem.channel2_base_address & 0x1ffffc;
+		uint32_t header = bus.mem.read32(addr);
 
 		switch (sync_mode) {
 		case(1): {
-			words *= bus.mem.channel2_block_control >> 16;
+			words *= (bus.mem.channel2_block_control >> 16);
 			debug_printf("[DMA] Start GPU Block Copy\n");
 			switch (direction) {
 			case(1):
@@ -920,7 +921,7 @@ void cpu::execute(uint32_t instr) {
 
 	case(0x20): {
 		switch (primary & 0x0f) {
-		case(0x00): {	// lb
+		case(0x00): {	// lb 
 			uint8_t rs = (instr >> 21) & 0x1f;
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
@@ -935,7 +936,7 @@ void cpu::execute(uint32_t instr) {
 			}
 
 			uint8_t byte = bus.mem.read(addr);
-			regs[rt] = uint32_t(int32_t(int8_t(byte)));
+			regs[rt] = int32_t(int16_t(int8_t(byte)));
 
 			debug_printf("lb %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
 			pc += 4;
@@ -970,24 +971,20 @@ void cpu::execute(uint32_t instr) {
 			uint32_t aligned_word = bus.mem.read32(aligned_addr);
 			debug_printf("lwl %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 			pc += 4;
-			break;
 			switch (addr & 3) {
 			case 0:
-				regs[rt] = aligned_word << 24;
+				regs[rt] = (regs[rt] & 0x00ffffff) | (aligned_word << 24);
 				break;
 			case 1:
-				regs[rt] = aligned_word << 16;
+				regs[rt] = (regs[rt] & 0x0000ffff) | (aligned_word << 16);
 				break;
 			case 2:
-				regs[rt] = aligned_word << 8;
+				regs[rt] = (regs[rt] & 0x000000ff) | (aligned_word << 8);
 				break;
 			case 3:
-				regs[rt] = aligned_word << 0;
+				regs[rt] = (regs[rt] & 0x00000000) | (aligned_word << 0);
 				break;
-			}
-
-			lwl = true;
-			pc += 4;
+			}	
 			break;
 		}
 		case(0x03): {	// lw  
@@ -1054,42 +1051,20 @@ void cpu::execute(uint32_t instr) {
 			uint32_t aligned_word = bus.mem.read32(aligned_addr);
 			debug_printf("lwr %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 			pc += 4;
-			break;
-			if (lwl) {
-				switch (addr & 3) {
-				case 0:
-					regs[rt] = (regs[rt] & 0x00000000) | (aligned_word >> 0);
-					break;
-				case 1:
-					regs[rt] = (regs[rt] & 0xff000000) | (aligned_word >> 8);
-					break;
-				case 2:
-					regs[rt] = (regs[rt] & 0xffff0000) | (aligned_word >> 16);
-					break;
-				case 3:
-					regs[rt] = (regs[rt] & 0xffffff00) | (aligned_word >> 24);
-					break;
-				}
+			switch (addr & 3) {
+			case 0:
+				regs[rt] = (regs[rt] & 0x00000000) | (aligned_word >> 0);
+				break;
+			case 1:
+				regs[rt] = (regs[rt] & 0xff000000) | (aligned_word >> 8);
+				break;
+			case 2:
+				regs[rt] = (regs[rt] & 0xffff0000) | (aligned_word >> 16);
+				break;
+			case 3:
+				regs[rt] = (regs[rt] & 0xffffff00) | (aligned_word >> 24);
+				break;
 			}
-			else {
-				switch (addr & 3) {
-				case 0:
-					regs[rt] = aligned_word >> 0;
-					break;
-				case 1:
-					regs[rt] = aligned_word >> 8;
-					break;
-				case 2:
-					regs[rt] = aligned_word >> 16;
-					break;
-				case 3:
-					regs[rt] = aligned_word >> 24;
-					break;
-				}
-			}
-
-			lwr = true;
-			pc += 4;
 			break;
 		}
 		case(0x07): {
