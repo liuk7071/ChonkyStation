@@ -62,6 +62,7 @@ public:	// commands
 	void monochrome_four_point_semi_transparent_polygon();
 	void monochrome_three_point_opaque_polygon();
 	void monochrome_three_point_semi_transparent_polygon();
+	void texture_blending_four_point_opaque_polygon();
 	void shaded_three_point_opaque_polygon();
 	void shaded_three_point_semi_transparent_polygon();
 	void shaded_four_point_opaque_polygon();

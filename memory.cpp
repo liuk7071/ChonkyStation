@@ -368,7 +368,7 @@ uint32_t memory::loadExec() {
 	//file = readExec("C:\\Users\\zacse\\PSX\\HelloWorld\\16BPP\\HelloWorld16BPP.exe");
 	//file = readExec("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
 	//file = readExec("C:\\Users\\zacse\\Desktop\\psx\\pcsx-redux\\src\\mips\\helloworld\\helloworld.exe");
-	file = readExec("C:\\Users\\zacse\\Downloads\\dma(2).exe");
+	//file = readExec("C:\\Users\\zacse\\Downloads\\dma(2).exe");
 	//file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");
 	//file = readExec("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
 

@@ -57,7 +57,7 @@ uint32_t cpu::fetch(uint32_t addr) {
 
 
 void cpu::do_dma(int channel) {
-	debug = true;
+	//debug = true;
 	switch (channel) {		// switch on the channels
 	case(2): {	// GPU
 		auto sync_mode = (bus.mem.channel2_control >> 9) & 0b11;
@@ -68,7 +68,7 @@ void cpu::do_dma(int channel) {
 		uint32_t header = bus.mem.read32(addr);
 
 		switch (sync_mode) {
-		case(1): {
+		case(1): {	// Block Copy
 			words *= (bus.mem.channel2_block_control >> 16);
 			debug_printf("[DMA] Start GPU Block Copy\n");
 			switch (direction) {
@@ -82,8 +82,8 @@ void cpu::do_dma(int channel) {
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
 				}
-				bus.mem.channel2_control ^= 1UL << 24;
-				bus.mem.channel2_control ^= 1UL << 28;
+				bus.mem.channel2_control &= ~(1 << 24);
+				bus.mem.channel2_control &= ~(1 << 28);
 				debug = false;
 				return;
 			default:
@@ -98,21 +98,20 @@ void cpu::do_dma(int channel) {
 			case(1):
 				debug_printf("[DMA] Transfer direction: ram to device\n");
 				while (1) {
-					uint32_t header = bus.mem.read32(addr);
-					auto words = header >> 24;
-					while (words > 0) {
+					uint32_t _header = bus.mem.read32(addr);
+					auto _words = _header >> 24;
+					while (_words > 0) {
 						addr += 4;
 						uint32_t command = bus.mem.read32(addr);
 						addr &= 0x1ffffc;
 						bus.Gpu.execute_gp0(command);
-						words--;
+						_words--;
 					}
-					if ((header & 0x800000) != 0)
+					if ((_header & 0x800000) != 0)
 						break;
-					addr = header & 0x1ffffc;
+					addr = _header & 0x1ffffc;
 				}
-				bus.mem.channel2_control ^= 1UL << 24;
-				bus.mem.channel2_control ^= 1UL << 28;
+				bus.mem.channel2_control &= ~(1 << 24);
 				debug_printf("[DMA] GPU Linked List transfer complete\n");
 				debug = false;
 				return;
@@ -142,11 +141,12 @@ void cpu::do_dma(int channel) {
 				debug_printf("[DMA] Transfer direction: device to ram\n");
 				debug_printf("[DMA] Transfer size: %d words\n", words);
 				while (words >= 0) {
-					if (words == 0) {
+					current_addr = addr & 0x1ffffc;
+					if (words == 1) {
 						bus.mem.write32(current_addr, 0xffffff);
 						debug_printf("[DMA] OTC Block Copy completed\n");
-						bus.mem.channel6_control ^= 1UL << 24;
-						bus.mem.channel6_control ^= 1UL << 28;
+						bus.mem.channel6_control &= ~(1 << 24);
+						bus.mem.channel6_control &= ~(1 << 28);
 						debug = false;
 						return;
 					}

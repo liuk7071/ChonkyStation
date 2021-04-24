@@ -7,7 +7,7 @@ gpu::gpu() {
 	
 	rast.SetFrameBuffer((uint32_t*)pixels, 640, 480);
 
-	debug = true;
+	debug = false;
 	point v1, v2, v3, v4;
 	v1.x = 0; 
 	v1.y = 0;
@@ -110,6 +110,12 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 4;
 			break;
 		}
+		case(0x2C): { // Textured four-point polygon, opaque, texture-blending
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 8;
+			break;
+		}
 		case(0x30): {	// Shaded three-point polygon, opaque
 			fifo[0] = command;
 			cmd_length++;
@@ -190,7 +196,7 @@ void gpu::execute_gp0(uint32_t command) {
 			break;
 		}
 		default:
-			debug_printf("[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
+			printf("[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
 			exit(0);
 		}
 	}
@@ -209,6 +215,7 @@ void gpu::execute_gp0(uint32_t command) {
 				case(0x22): gpu::monochrome_three_point_semi_transparent_polygon(); break;
 				case(0x28): gpu::monochrome_four_point_opaque_polygon(); break;
 				case(0x2A): gpu::monochrome_four_point_semi_transparent_polygon(); break;
+				case(0x2C): gpu::texture_blending_four_point_opaque_polygon(); break;
 				case(0x30): gpu::shaded_three_point_opaque_polygon(); break;
 				case(0x32): gpu::shaded_three_point_semi_transparent_polygon(); break;
 				case(0x38): gpu::shaded_four_point_opaque_polygon(); break;
@@ -277,6 +284,21 @@ void gpu::monochrome_four_point_opaque_polygon() {
 	v4.x = fifo[4] & 0xffff;
 	v4.y = fifo[4] >> 16;
 	quad(v1, v2, v3, v4, colour);
+	return;
+}
+void gpu::texture_blending_four_point_opaque_polygon() {
+	uint32_t colour = fifo[0] & 0xffffff;
+	debug_printf("[GP0] Monochrome four-point polygon, opaque (colour: 0x%x)\n", colour);
+	point v1, v2, v3, v4;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = fifo[3] & 0xffff;
+	v2.y = fifo[3] >> 16;
+	v3.x = fifo[5] & 0xffff;
+	v3.y = fifo[5] >> 16;
+	v4.x = fifo[7] & 0xffff;
+	v4.y = fifo[7] >> 16;
+	quad(v1, v2, v3, v4, 0xff);
 	return;
 }
 void gpu::monochrome_four_point_semi_transparent_polygon() {
