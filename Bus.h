@@ -3,6 +3,7 @@
 #include <array>
 #include "memory.h"
 #include "gpu.h"
+#include "cdrom.h"
 class Bus
 {
 public:
@@ -11,6 +12,7 @@ public:
 public:
 	gpu Gpu = gpu();
 	memory mem = memory();
+	cdrom CDROM = cdrom();
 public:
 
 };
