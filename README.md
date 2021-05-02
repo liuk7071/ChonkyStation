@@ -1,4 +1,6 @@
 # ChonkyStation
+[![Build (MSBuild)](https://github.com/wheremyfoodat/ChonkyStation/actions/workflows/build.yml/badge.svg)](https://github.com/wheremyfoodat/ChonkyStation/actions/workflows/build.yml)
+
 PSX Emulator coming soon™
 # Features
 - Complete CPU, sort of
