@@ -12,7 +12,7 @@ cpu::cpu() {
 	debug = false;
 	exe = false;
 	log_kernel = false;
-	tty = true;
+	tty = false;
 
 	delay = false;
 }

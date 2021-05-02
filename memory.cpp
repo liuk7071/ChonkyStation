@@ -36,7 +36,9 @@ uint8_t memory::read(uint32_t addr) {
 		return 0;
 	if (masked_addr == 0x1f801040)
 		return 0;
-	if (addr == 0x1F801074) exit(0);
+	
+	if (masked_addr == 0x1f801800)	// cdrom status
+		return rand() % 0xff;
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint8_t));
@@ -113,7 +115,8 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0;
 	if (masked_addr == 0x1f801110)
 		return 0;
-	if (masked_addr == 0x1F801070) {
+	if (masked_addr == 0x1F801070) { // irq_status
+		printf("[IRQ] Status read\n");
 		return 0;
 	}
 
@@ -126,7 +129,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f801814) {	// GPUSTAT
 		if(debug) printf("\n GPUSTAT read");
-		return 0x1c000000;		// stubbing it
+		return 0b01011110100000000000000000000000;		// stubbing it
 	}
 	if (masked_addr == 0x1f801810) // GPUREAD
 		return gpuread;
@@ -190,8 +193,61 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t masked_addr = mask_address(addr);
 	//if(masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
 	//	return;
-	if (masked_addr >= 0x1f80104a && masked_addr < 0x1f80104a + sizeof(uint32_t))	// joy_ctrl
+
+
+	if (masked_addr == 0x1f801800) {	// cdrom status
+		printf("[CDROM] Write 0x%x to status register\n", data);
+		cdrom_status = data;
 		return;
+	}
+	if (masked_addr == 0x1f801801) {
+		switch (cdrom_status & 0b11) {
+		case 0:
+			CDROM.execute(data);
+			break;
+		default:
+			printf("Unhandled CDROM write 0x%x index %d", addr, cdrom_status & 0b11);
+			exit(0);
+		}
+		
+		return;
+	}
+	if (masked_addr == 0x1f801802) {
+		switch (cdrom_status & 0b11) {
+		case 0:
+			CDROM.push(data);
+			break;
+		case 1:
+			printf("[CDROM] Write 0x%x to interrupt enable register\n", data);
+			cdrom_interrupt_enable = data;
+			break;
+		default:
+			printf("Unhandled CDROM write 0x%x index %d", addr, cdrom_status & 0b11);
+			exit(0);
+		}
+		return;
+	}
+	if (masked_addr == 0x1f801803) {	
+		switch (cdrom_status & 0b11) {
+		case 0:
+			printf("[CDROM] Write 0x%x to request register\n", data); 
+			cdrom_request = data;
+			break;
+		case 1:
+			printf("[CDROM] Write 0x%x to interrupt flag register\n", data); 
+			cdrom_interrupt_flag = data;
+			break;
+		default:
+			printf("Unhandled CDROM write 0x%x index %d", addr, cdrom_status & 0b11);
+			exit(0);
+		}
+		
+		return;
+	}
+
+
+	if (masked_addr >= 0x1f80104a && masked_addr < 0x1f80104a + sizeof(uint32_t))	// joy_ctrl
+		return; 
 	if (masked_addr == 0x1f802080) {
 		printf("%c", data);
 		return;
@@ -239,6 +295,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	}
 	if (masked_addr == 0x1f801800)
 		return;
+	
 	if (masked_addr == 0x1f8010f0) { // DCPR
 		DCPR = data;
 		if (debug) printf(" Write 0x%.8x to dcpr", data);
@@ -313,9 +370,16 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
+
+	
+
+
 	if (masked_addr == 0x1f802082) // "its a PCSX register, ignore it"
 		return;
-
+	if (masked_addr == 0x1f80104e)
+		return;
+	if (masked_addr == 0x1f801048)
+		return;
 	if (masked_addr >= 0x1f801074 && masked_addr < 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
 		IRQ_STATUS &= uint32_t(data);
 		if (debug) printf(" Write 0x%.8x to IRQ_STATUS", data);
@@ -366,7 +430,7 @@ uint32_t memory::loadExec() {
 	//file = readExec("C:\\Users\\zacse\\PSX\\Cube\\Cube.exe");
 	//file = readExec("C:\\Users\\zacse\\PSX\\Demo\\printgpu\\PRINTGPU.exe");
 	//file = readExec("C:\\Users\\zacse\\PSX\\HelloWorld\\16BPP\\HelloWorld16BPP.exe");
-	//file = readExec("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
+	file = readExec("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
 	//file = readExec("C:\\Users\\zacse\\Desktop\\psx\\pcsx-redux\\src\\mips\\helloworld\\helloworld.exe");
 	//file = readExec("C:\\Users\\zacse\\Downloads\\dma(2).exe");
 	//file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");

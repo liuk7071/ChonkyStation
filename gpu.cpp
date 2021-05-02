@@ -288,7 +288,7 @@ void gpu::monochrome_four_point_opaque_polygon() {
 }
 void gpu::texture_blending_four_point_opaque_polygon() {
 	uint32_t colour = fifo[0] & 0xffffff;
-	debug_printf("[GP0] Monochrome four-point polygon, opaque (colour: 0x%x)\n", colour);
+	debug_printf("[GP0] Textured four-point polygon, opaque, texture blending (colour: 0x%x)\n", colour);
 	point v1, v2, v3, v4;
 	v1.x = fifo[1] & 0xffff;
 	v1.y = fifo[1] >> 16;
@@ -414,7 +414,7 @@ void gpu::shaded_four_point_opaque_polygon() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
-	debug_printf("[GP0] Shaded four-point polygon, opaque (rendered as mono, colour: 0x%x)\n", v1.c);
+	debug_printf("[GP0] Shaded four-point polygon, opaque\n");
 
 	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16);
 	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16);
@@ -439,7 +439,7 @@ void gpu::shaded_four_point_semi_transparent_polygon() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
-	debug_printf("[GP0] Shaded four-point polygon, semi-transparent (rendered as mono, colour: 0x%x)\n", v1.c);
+	debug_printf("[GP0] Shaded four-point polygon, semi-transparent\n");
 	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16, 0x7f);
 	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16, 0x7f);
 	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16, 0x7f);

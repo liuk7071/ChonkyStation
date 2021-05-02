@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <array>
 #include <vector>
+#include "cdrom.h"
 
 class memory
 {
@@ -9,6 +10,7 @@ public:
 	memory();
 	~memory();
 
+	cdrom CDROM = cdrom();
 	std::vector<uint8_t> file;
 
 public:
@@ -48,6 +50,12 @@ public:
 	uint32_t gp1;
 	uint32_t gpuread;
 	uint32_t gpustat;
+
+	// cdrom
+	uint8_t cdrom_status;
+	uint8_t cdrom_request;
+	uint8_t cdrom_interrupt_enable;
+	uint8_t cdrom_interrupt_flag;
 
 	
 public:

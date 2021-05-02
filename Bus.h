@@ -12,7 +12,7 @@ public:
 public:
 	gpu Gpu = gpu();
 	memory mem = memory();
-	cdrom CDROM = cdrom();
+	
 public:
 
 };
