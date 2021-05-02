@@ -157,7 +157,7 @@ uint32_t memory::read32(uint32_t addr) {
 		return channel6_block_control;
 	if (masked_addr == 0x1f8010e8)	// control
 		return channel6_control;	
-	
+
 
 	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
 		return 0;
@@ -277,6 +277,9 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		exp1[masked_addr & 0xfffff] = data;
 		return;
 	}
+
+	else if (masked_addr == 0x1f802082) // CI exit test
+		exit (data);
 	
 	printf("\nUnhandled write 0x%.8x", addr);
 	exit(0);
