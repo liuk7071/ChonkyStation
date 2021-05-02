@@ -4,7 +4,14 @@
 Bus* bus;
 
 gpu::gpu() {
+	// Initialize pixel matrix
+	pixels = new uint32_t [480 * 640];
 	
+	// initialize vram
+	vram = new uint8_t* [512];
+	for (auto i = 0; i < 512; i++)
+		vram[i] = new uint8_t [2048];
+
 	rast.SetFrameBuffer((uint32_t*)pixels, 640, 480);
 
 	debug = false;
@@ -18,17 +25,8 @@ gpu::gpu() {
 	v4.x = 640;
 	v4.y = 480;
 
-	// Initialize pixel matrix
-	pixels = new uint32_t [480 * 640];
-
-	// initialize vram
-	vram = new uint8_t* [512];
-	for (auto i = 0; i < 512; i++)
-		vram[i] = new uint8_t [2048];
-
 	//quad(v1, v2, v3, v4, 0xff00);
 	//triangle(v1, v2, v3, 0xff);
-	
 }
 
 void connectBus(Bus *_bus) {

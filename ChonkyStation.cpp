@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
     bool quit = false;
     while (!quit) {
         if (elapsed >= 500000) {
+            printf ("non\n");
             while (SDL_PollEvent(&event)) {
                 switch (event.type) {
                 case SDL_QUIT:
