@@ -18,6 +18,14 @@ gpu::gpu() {
 	v4.x = 640;
 	v4.y = 480;
 
+	// Initialize pixel matrix
+	pixels = new uint32_t [480 * 640];
+
+	// initialize vram
+	vram = new uint8_t* [512];
+	for (auto i = 0; i < 512; i++)
+		vram[i] = new uint8_t [2048];
+
 	//quad(v1, v2, v3, v4, 0xff00);
 	//triangle(v1, v2, v3, 0xff);
 	
@@ -52,7 +60,8 @@ void gpu::putpixel(point v1, uint32_t colour) {
 	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
 	if (v1.x >= 640 || v1.y >= 480)
 		return;
-	pixels[v1.y][v1.x] = c1.ToUInt32();
+
+	pixels[v1.y * 640 + v1.x] = c1.ToUInt32();
 }
 
 void gpu::quad(point v1, point v2, point v3, point v4, uint32_t colour) {
@@ -457,7 +466,7 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	if (x >= 640 || y >= 480)
 		return;
 	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
-	pixels[y][x] = c1.ToUInt32();
+	pixels[y * 640 + x] = c1.ToUInt32();
 	return;
 }
 void gpu::fill_rectangle() {

@@ -1,7 +1,7 @@
 #include "cpu.h"
 #include <iostream>
 
-cpu::cpu() {
+cpu::cpu (std::string directory) : rom_directory(directory) {
 	bus.mem.loadBios();
 	pc = 0xbfc00000;
 	next_instr = pc + 4;
@@ -10,7 +10,7 @@ cpu::cpu() {
 	}
 
 	debug = false;
-	exe = false;
+	exe = !rom_directory.empty(); // Don't sideload an exe if no ROM path is given
 	log_kernel = false;
 	tty = false;
 
@@ -213,7 +213,7 @@ void cpu::execute(uint32_t instr) {
 		debug = false;
 		bus.mem.debug = false;
 		printf("kernel setup done, sideloading executable\n");
-		pc = bus.mem.loadExec();
+		pc = bus.mem.loadExec(rom_directory);
 		exe = false;
 
 		memcpy(&regs[28], &bus.mem.file[0x14], sizeof(uint32_t));

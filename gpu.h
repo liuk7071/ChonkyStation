@@ -29,8 +29,8 @@ public:		// rasterization stuff
 
 public:
 	gpu();
-	uint8_t vram[512][2048];
-	uint32_t pixels[480][640];
+	uint8_t** vram;
+	uint32_t* pixels;
 	uint32_t fifo[12];
 	int cmd_length = 0;
 	int cmd_left = 0;

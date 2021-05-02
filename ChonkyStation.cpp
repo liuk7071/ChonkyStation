@@ -13,7 +13,6 @@ SDL_Window* main_window = nullptr;
 SDL_GLContext gl_context = nullptr;
 
 uint32_t instr;
-cpu Cpu = cpu();
 
 int elapsed = 0;
 void cycle() {
@@ -23,12 +22,13 @@ void cycle() {
 int main(int argc, char** argv) {
     
     printf("\n Executing \n \n");
-
+    std::string rom_dir = argc > 1 ? std::string(argv[1]) : ""; 
+    auto Cpu = cpu(rom_dir);
 
     SDL_Event event;
     
 
-    SDL_Init(SDL_INIT_EVERYTHING);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
     SDL_Window* window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screen_width, screen_height, SDL_WINDOW_SHOWN);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
     

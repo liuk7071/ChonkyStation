@@ -403,17 +403,13 @@ void memory::write16(uint32_t addr, uint16_t data) {
 }
 
 
-
-
-void memory::loadBios() {
-	
-	FILE* BIOS_FILE;
-	BIOS_FILE = fopen("./SCPH1001.bin", "rb");
-	fread(bios, 1, 524288, BIOS_FILE);
-}
-
-static auto readExec(std::string directory) -> std::vector<uint8_t> {
+static auto readBinary(std::string directory) -> std::vector<uint8_t> {
 	std::ifstream file(directory, std::ios::binary);
+	if (!file.is_open()) {
+		std::cout << "Couldn't find ROM at " << directory << "\n";
+		exit (1);
+	}
+
 	std::vector<uint8_t> exe;
 	file.unsetf(std::ios::skipws);
 	std::streampos fileSize;
@@ -425,19 +421,29 @@ static auto readExec(std::string directory) -> std::vector<uint8_t> {
 		std::istream_iterator<uint8_t>(file),
 		std::istream_iterator<uint8_t>());
 	file.close();
+
 	return exe;
 }
 
-uint32_t memory::loadExec() {
-	//file = readExec("C:\\Users\\zacse\\PSX\\CPUTest\\CPU\\LOADSTORE\\LB\\CPULB.exe");
-	//file = readExec("C:\\Users\\zacse\\PSX\\Cube\\Cube.exe");
-	//file = readExec("C:\\Users\\zacse\\PSX\\Demo\\printgpu\\PRINTGPU.exe");
-	//file = readExec("C:\\Users\\zacse\\PSX\\HelloWorld\\16BPP\\HelloWorld16BPP.exe");
-	file = readExec("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
-	//file = readExec("C:\\Users\\zacse\\Desktop\\psx\\pcsx-redux\\src\\mips\\helloworld\\helloworld.exe");
-	//file = readExec("C:\\Users\\zacse\\Downloads\\dma(2).exe");
-	//file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");
-	//file = readExec("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
+void memory::loadBios() {
+	bios = readBinary ("./SCPH1001.bin");
+}
+
+uint32_t memory::loadExec(std::string directory) {
+	if (directory.empty()) { // If no exe was passed via command-line, load the default one
+		//file = readBinary("C:\\Users\\zacse\\PSX\\CPUTest\\CPU\\LOADSTORE\\LB\\CPULB.exe");
+		//file = readBinary("C:\\Users\\zacse\\PSX\\Cube\\Cube.exe");
+		//file = readBinary("C:\\Users\\zacse\\PSX\\Demo\\printgpu\\PRINTGPU.exe");
+		//file = readBinary("C:\\Users\\zacse\\PSX\\HelloWorld\\16BPP\\HelloWorld16BPP.exe");
+		file = readBinary("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
+		//file = readBinary("C:\\Users\\zacse\\Desktop\\psx\\pcsx-redux\\src\\mips\\helloworld\\helloworld.exe");
+		//file = readBinary("C:\\Users\\zacse\\Downloads\\dma(2).exe");
+		//file = readBinary("C:\\Users\\zacse\\Downloads\\virus.exe");
+		//file = readBinary("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
+	}
+
+	else
+		file = readBinary (directory);
 
 	uint32_t start_pc;
 	uint32_t entry_addr;
