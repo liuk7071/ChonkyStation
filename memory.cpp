@@ -278,7 +278,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		return;
 	}
 
-	else if (masked_addr == 0x1f802082) // CI exit test
+	else if (masked_addr == 0x1f802082) // Exit code register for Continuous Integration tests
 		exit (data);
 	
 	printf("\nUnhandled write 0x%.8x", addr);

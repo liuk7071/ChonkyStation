@@ -9,10 +9,10 @@ __attribute__ ((naked)) void test_main() {
         "bne $zero, $s1, .failure \n" // Check if $zero == $s1
         "sb $s1, 0($s0)           \n" // If passed, write 0 to exit register
         ".failure:                \n" 
-        "li $s1, 1                \n" // If it didn't passed, write 1 to exit register
-        "sb $s1, 0($s0)           \n"
+        "    li $s1, 1            \n" // If it didn't passed, write 1 to exit register
+        "    sb $s1, 0($s0)       \n"
         ".lock:                   \n"
-        "j .lock"
+        "    j .lock"
     );
 }
 
