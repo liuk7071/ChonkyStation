@@ -17,7 +17,7 @@ if [ $? -ne 0 ]; then
     echo 'Sign extension test: Failed'
     exit -1
 else
-	echo '$Sign extension test: Passed!'
+	echo 'Sign extension test: Passed!'
 fi
 
 echo "Done testing!"
