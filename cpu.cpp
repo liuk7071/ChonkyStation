@@ -1,8 +1,10 @@
 #include "cpu.h"
 #include <iostream>
 
-cpu::cpu() {
-	bus.mem.loadBios();
+cpu::cpu (std::string rom_directory, std::string bios_directory, bool running_in_ci) : rom_directory(rom_directory) {
+	if (!running_in_ci) // Do not load a BIOS if we're in CI
+		bus.mem.loadBios (bios_directory);
+	
 	pc = 0xbfc00000;
 	next_instr = pc + 4;
 	for (int i = 0x0; i < 32; i++) {
@@ -10,7 +12,7 @@ cpu::cpu() {
 	}
 
 	debug = false;
-	exe = false;
+	exe = !rom_directory.empty(); // Don't sideload an exe if no ROM path is given
 	log_kernel = false;
 	tty = false;
 
@@ -21,6 +23,16 @@ cpu::~cpu() {
 
 }
 
+void cpu::sideloadExecutable(std::string directory) {
+	debug = false;
+	bus.mem.debug = false;
+	std::cout << "Kernel setup done. Sideloading executable at " << directory << "\n";
+	pc = bus.mem.loadExec(rom_directory);
+	exe = false;
+
+	memcpy(&regs[28], &bus.mem.file[0x14], sizeof(uint32_t));
+	memcpy(&regs[29], &bus.mem.file[0x30], sizeof(uint32_t)); // TODO: This is broken, it doesn't take into accoumt the offset field, and it doesn't set r30
+}
 
 void cpu::debug_printf(const char* fmt, ...) {
 	if(debug) {
@@ -209,18 +221,8 @@ void cpu::execute(uint32_t instr) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
 	}
 
-	if (pc == 0x80030000 && exe) {
-		debug = false;
-		bus.mem.debug = false;
-		printf("kernel setup done, sideloading executable\n");
-		pc = bus.mem.loadExec();
-		exe = false;
-
-		memcpy(&regs[28], &bus.mem.file[0x14], sizeof(uint32_t));
-		memcpy(&regs[29], &bus.mem.file[0x30], sizeof(uint32_t));
-
-		return;
-	}
+	if (pc == 0x80030000 && exe)
+		sideloadExecutable (rom_directory);
 
 
 	uint8_t primary = instr >> 26;
@@ -1283,4 +1285,11 @@ void cpu::execute(uint32_t instr) {
 
 	if (lwl) lwl = false;
 	if (lwr) lwr = false;
+}
+
+void cpu::step() {
+	const auto instr = fetch(pc);
+	if (debug) // TODO: Don't check for debug at runtime 
+		printf("0x%.8X | 0x%.8X: ", pc, instr);
+    execute(instr);
 }

@@ -157,7 +157,7 @@ uint32_t memory::read32(uint32_t addr) {
 		return channel6_block_control;
 	if (masked_addr == 0x1f8010e8)	// control
 		return channel6_control;	
-	
+
 
 	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
 		return 0;
@@ -277,6 +277,9 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		exp1[masked_addr & 0xfffff] = data;
 		return;
 	}
+
+	else if (masked_addr == 0x1f802082) // Exit code register for Continuous Integration tests
+		exit (data);
 	
 	printf("\nUnhandled write 0x%.8x", addr);
 	exit(0);
@@ -390,7 +393,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 		return;
 	}
 	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801E80) {	// SPU regs
-		if (debug) printf(" SPU register write, ignored", data);
+		if (debug) printf(" SPU register write, ignored");
 		return;
 	}
 	write(addr, uint8_t(data & 0x00ff), false);
@@ -400,17 +403,13 @@ void memory::write16(uint32_t addr, uint16_t data) {
 }
 
 
-
-
-void memory::loadBios() {
-	
-	FILE* BIOS_FILE;
-	BIOS_FILE = fopen("./SCPH1001.bin", "rb");
-	fread(bios, 1, 524288, BIOS_FILE);
-}
-
-static auto readExec(std::string directory) -> std::vector<uint8_t> {
+static auto readBinary(std::string directory) -> std::vector<uint8_t> {
 	std::ifstream file(directory, std::ios::binary);
+	if (!file.is_open()) {
+		std::cout << "Couldn't find ROM at " << directory << "\n";
+		exit (1);
+	}
+
 	std::vector<uint8_t> exe;
 	file.unsetf(std::ios::skipws);
 	std::streampos fileSize;
@@ -422,19 +421,16 @@ static auto readExec(std::string directory) -> std::vector<uint8_t> {
 		std::istream_iterator<uint8_t>(file),
 		std::istream_iterator<uint8_t>());
 	file.close();
+
 	return exe;
 }
 
-uint32_t memory::loadExec() {
-	//file = readExec("C:\\Users\\zacse\\PSX\\CPUTest\\CPU\\LOADSTORE\\LB\\CPULB.exe");
-	//file = readExec("C:\\Users\\zacse\\PSX\\Cube\\Cube.exe");
-	//file = readExec("C:\\Users\\zacse\\PSX\\Demo\\printgpu\\PRINTGPU.exe");
-	//file = readExec("C:\\Users\\zacse\\PSX\\HelloWorld\\16BPP\\HelloWorld16BPP.exe");
-	file = readExec("C:\\Users\\zacse\\PSX\\GPU\\16BPP\\RenderPolygon\\RenderPolygon16BPP.exe");
-	//file = readExec("C:\\Users\\zacse\\Desktop\\psx\\pcsx-redux\\src\\mips\\helloworld\\helloworld.exe");
-	//file = readExec("C:\\Users\\zacse\\Downloads\\dma(2).exe");
-	//file = readExec("C:\\Users\\zacse\\Downloads\\virus.exe");
-	//file = readExec("C:\\Users\\zacse\\Downloads\\psxtest_cpu_1\\psxtest_cpu.exe");
+void memory::loadBios(std::string directory) {
+	bios = readBinary (directory);
+}
+
+uint32_t memory::loadExec(std::string directory) {
+	file = readBinary (directory);
 
 	uint32_t start_pc;
 	uint32_t entry_addr;
@@ -448,10 +444,8 @@ uint32_t memory::loadExec() {
 	printf("\nDestination: 0x%x", entry_addr);
 	printf("\nFile size: 0x%x\n\n\n", file_size);
 	
-	uint8_t* data = file.data();
-	
 	for (int i = 0; i < file_size; i++) {
-		write(entry_addr + i, data[0x800 + i], false);
+		write(entry_addr + i, file[0x800 + i], false);
 	}
 
 	

@@ -8,32 +8,30 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
-int screen_width = 640, screen_height = 480;
-SDL_Window* main_window = nullptr;
-SDL_GLContext gl_context = nullptr;
-
-uint32_t instr;
-cpu Cpu = cpu();
-
-int elapsed = 0;
-void cycle() {
-    
-}
 
 int main(int argc, char** argv) {
-    
     printf("\n Executing \n \n");
+
+    // Parse CLI args (TODO: Use a library)
+    const auto rom_dir = argc > 1 ? std::string(argv[1]) : "";  // Path of the ROM (Or "" if we just want to run the BIOS)
+    const bool running_in_ci = argc > 2 && std::string(argv[2]).compare("--continuous-integration") == 0; // Running in CI makes the system run without SDL 
+    const std::string bios_dir = running_in_ci ? "" : "./SCPH1001.bin"; // In CI, don't load a BIOS, otherwise load SCPH1001.bin. TODO: Add a CLI arg for the BIOS path
+
+    auto Cpu = cpu (rom_dir, bios_dir, running_in_ci); // TODO: Have a system class, don't use the CPU as one   
+    if (running_in_ci) { // When executing in CI, run the system headless, without a BIOS.
+        Cpu.sideloadExecutable (rom_dir);
+        while (true) // The CI tests write to a custom register that force-closes the emulator when they're done, so this will run until that is hit
+            Cpu.step();
+    }
 
 
     SDL_Event event;
-    
-
-    SDL_Init(SDL_INIT_EVERYTHING);
-    SDL_Window* window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screen_width, screen_height, SDL_WINDOW_SHOWN);
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
+    const auto window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN);
+    const auto renderer = SDL_CreateRenderer(window, -1, 0);
     
     SDL_RenderClear(renderer);
-    SDL_Texture* frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, screen_width, screen_height);
+    const auto frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 640, 480);
 
    // SDL_Window* window_vram = SDL_CreateWindow("VRAM Viewer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 2048, 512, SDL_WINDOW_SHOWN);
    // SDL_Renderer* renderer_vram = SDL_CreateRenderer(window_vram, -1, 0);
@@ -41,8 +39,9 @@ int main(int argc, char** argv) {
    // SDL_RenderClear(renderer_vram);
    // SDL_Texture* frame_vram = SDL_CreateTexture(renderer_vram, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STATIC, 2048, 512);
   
-
+    int elapsed = 0;    // TODO: Move to CPU class
     bool quit = false;
+
     while (!quit) {
         if (elapsed >= 500000) {
             while (SDL_PollEvent(&event)) {
@@ -59,13 +58,9 @@ int main(int argc, char** argv) {
             elapsed = 0;
         }
 
-        instr = Cpu.fetch(Cpu.pc);
-        if (Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
-        Cpu.execute(instr);
-        elapsed++;
-        Cpu.check_dma();
-        
-        
+        Cpu.step();
+        elapsed++;       // TODO: Move to CPU class
+        Cpu.check_dma(); // TODO: Only check DMA when control registers are written to        
     }
     SDL_DestroyWindow(window);
     SDL_Quit();
