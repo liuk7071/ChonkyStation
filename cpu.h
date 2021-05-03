@@ -19,6 +19,7 @@ public:
 		Reserved_Instruction = 0xA,
 		Overflow = 0xC
 	};
+	
 	cop0 COP0 = cop0();
 	Bus bus = Bus();
 	

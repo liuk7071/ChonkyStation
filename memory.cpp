@@ -444,10 +444,8 @@ uint32_t memory::loadExec(std::string directory) {
 	printf("\nDestination: 0x%x", entry_addr);
 	printf("\nFile size: 0x%x\n\n\n", file_size);
 	
-	uint8_t* data = file.data();
-	
 	for (int i = 0; i < file_size; i++) {
-		write(entry_addr + i, data[0x800 + i], false);
+		write(entry_addr + i, file[0x800 + i], false);
 	}
 
 	
