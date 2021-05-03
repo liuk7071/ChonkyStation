@@ -17,7 +17,7 @@ __attribute__ ((naked)) void test_main() {
         
         "sw $s0, -4($sp)             \n" // Test a backwards sw
         "lw $t1, -4($sp)             \n"
-        "bne $s0, $s1, .failure      \n"
+        "bne $s0, $t1, .failure      \n"
 
         ".success:                   \n" // Ran if all tests passed
         "    li $s1, 0               \n"
