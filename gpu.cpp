@@ -4,10 +4,10 @@
 Bus* bus;
 
 gpu::gpu() {
-	// Initialize pixel matrix
+	// Initialize pixel array
 	pixels = new uint32_t [480 * 640];
 	
-	// initialize vram
+	// initialize vram (TODO: Use a 1D array instead to avoid double indirection)
 	vram = new uint8_t* [512];
 	for (auto i = 0; i < 512; i++)
 		vram[i] = new uint8_t [2048];

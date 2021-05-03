@@ -8,32 +8,19 @@
 #include "imgui/imgui_internal.h"
 #include "imgui/backends/imgui_impl_sdl.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
-int screen_width = 640, screen_height = 480;
-SDL_Window* main_window = nullptr;
-SDL_GLContext gl_context = nullptr;
-
-uint32_t instr;
-
-int elapsed = 0;
-void cycle() {
-    
-}
 
 int main(int argc, char** argv) {
-    
     printf("\n Executing \n \n");
-    std::string rom_dir = argc > 1 ? std::string(argv[1]) : ""; 
-    auto Cpu = cpu(rom_dir);
+    const auto rom_dir = argc > 1 ? std::string(argv[1]) : ""; 
+    auto Cpu = cpu(rom_dir); // TODO: Have a system class, don't use the CPU as oen
 
     SDL_Event event;
-    
-
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
-    SDL_Window* window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, screen_width, screen_height, SDL_WINDOW_SHOWN);
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
+    const auto window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN);
+    const auto renderer = SDL_CreateRenderer(window, -1, 0);
     
     SDL_RenderClear(renderer);
-    SDL_Texture* frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, screen_width, screen_height);
+    const auto frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 640, 480);
 
    // SDL_Window* window_vram = SDL_CreateWindow("VRAM Viewer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 2048, 512, SDL_WINDOW_SHOWN);
    // SDL_Renderer* renderer_vram = SDL_CreateRenderer(window_vram, -1, 0);
@@ -41,11 +28,13 @@ int main(int argc, char** argv) {
    // SDL_RenderClear(renderer_vram);
    // SDL_Texture* frame_vram = SDL_CreateTexture(renderer_vram, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STATIC, 2048, 512);
   
-
+  
+    uint32_t instr = 0; // TODO: Move to CPU class
+    int elapsed = 0;    // TODO: Move to CPU class
     bool quit = false;
+
     while (!quit) {
         if (elapsed >= 500000) {
-            printf ("non\n");
             while (SDL_PollEvent(&event)) {
                 switch (event.type) {
                 case SDL_QUIT:
