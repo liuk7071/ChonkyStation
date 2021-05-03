@@ -11,8 +11,19 @@
 
 int main(int argc, char** argv) {
     printf("\n Executing \n \n");
-    const auto rom_dir = argc > 1 ? std::string(argv[1]) : ""; 
-    auto Cpu = cpu(rom_dir); // TODO: Have a system class, don't use the CPU as oen
+
+    // Parse CLI args (TODO: Use a library)
+    const auto rom_dir = argc > 1 ? std::string(argv[1]) : "";  // Path of the ROM (Or "" if we just want to run the BIOS)
+    const bool running_in_ci = argc > 2 && std::string(argv[2]).compare("--continuous-integration") == 0; // Running in CI makes the system run without SDL 
+    const std::string bios_dir = running_in_ci ? "" : "./SCPH1001.bin"; // In CI, don't load a BIOS, otherwise load SCPH1001.bin. TODO: Add a CLI arg for the BIOS path
+
+    auto Cpu = cpu (rom_dir, bios_dir, running_in_ci); // TODO: Have a system class, don't use the CPU as one   
+    if (running_in_ci) { // When executing in CI, run the system headless, without a BIOS.
+        Cpu.sideloadExecutable (rom_dir);
+        while (true) // The CI tests write to a custom register that force-closes the emulator when they're done, so this will run until that is hit
+            Cpu.step();
+    }
+
 
     SDL_Event event;
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
@@ -28,8 +39,6 @@ int main(int argc, char** argv) {
    // SDL_RenderClear(renderer_vram);
    // SDL_Texture* frame_vram = SDL_CreateTexture(renderer_vram, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STATIC, 2048, 512);
   
-  
-    uint32_t instr = 0; // TODO: Move to CPU class
     int elapsed = 0;    // TODO: Move to CPU class
     bool quit = false;
 
@@ -49,13 +58,9 @@ int main(int argc, char** argv) {
             elapsed = 0;
         }
 
-        instr = Cpu.fetch(Cpu.pc);
-        if (Cpu.debug) printf("0x%.8X | 0x%.8X: ", Cpu.pc, instr);
-        Cpu.execute(instr);
-        elapsed++;
-        Cpu.check_dma();
-        
-        
+        Cpu.step();
+        elapsed++;       // TODO: Move to CPU class
+        Cpu.check_dma(); // TODO: Only check DMA when control registers are written to        
     }
     SDL_DestroyWindow(window);
     SDL_Quit();

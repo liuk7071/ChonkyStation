@@ -64,7 +64,7 @@ public:
 	{
 		return (low <= x && x <= high);
 	}
-	void loadBios();
+	void loadBios (std::string directory);
 	uint32_t loadExec (std::string directory);
 	void write(uint32_t addr, uint8_t data, bool log);
 	void write16(uint32_t addr, uint16_t data);
