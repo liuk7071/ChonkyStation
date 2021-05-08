@@ -14,7 +14,7 @@ gpu::gpu() {
 
 	rast.SetFrameBuffer((uint32_t*)pixels, 640, 480);
 
-	debug = false;
+	debug = true;
 	point v1, v2, v3, v4;
 	v1.x = 0; 
 	v1.y = 0;
@@ -93,6 +93,13 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 2;
 			break;
 		}
+		case(0x05): { // nop (?)
+			debug_printf("[GP0] NOP\n");
+			break;
+		}
+		case(0x08):	// nop
+			debug_printf("[GP0] NOP (0x%x)\n", command);
+			break;
 		case(0x20): { // Monochrome three - point polygon, opaque
 			fifo[0] = command;
 			cmd_length++;
@@ -203,8 +210,8 @@ void gpu::execute_gp0(uint32_t command) {
 			break;
 		}
 		default:
-			printf("[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
-			exit(0);
+			printf("\n[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
+			//exit(0);
 		}
 	}
 	else {
@@ -271,6 +278,11 @@ void gpu::execute_gp1(uint32_t command) {
 	case(0x1): // reset command buffer
 		debug_printf("[GP1] Reset Command Buffer\n");
 		break;
+	case(0x4): { // set dma direction
+		debug_printf("[GP1] Set DMA Direction to %d\n", command & 0b11);
+		dma_direction = command & 0b11;
+		break;
+	}
 	default:
 		debug_printf("[GP1] Unknown GP1 command: 0x%x\n", instr);
 		//exit(0);
@@ -468,7 +480,7 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	return;
 }
 void gpu::fill_rectangle() {
-	debug_printf("[GP0] Fill Rectangle");
+	debug_printf("[GP0] Fill Rectangle\n");
 	return;
 }
 void gpu::cpu_to_vram() {

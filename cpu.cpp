@@ -14,7 +14,7 @@ cpu::cpu (std::string rom_directory, std::string bios_directory, bool running_in
 	debug = false;
 	exe = !rom_directory.empty(); // Don't sideload an exe if no ROM path is given
 	log_kernel = false;
-	tty = false;
+	tty = true;
 
 	delay = false;
 }
@@ -31,7 +31,12 @@ void cpu::sideloadExecutable(std::string directory) {
 	exe = false;
 
 	memcpy(&regs[28], &bus.mem.file[0x14], sizeof(uint32_t));
-	memcpy(&regs[29], &bus.mem.file[0x30], sizeof(uint32_t)); // TODO: This is broken, it doesn't take into accoumt the offset field, and it doesn't set r30
+	uint32_t r29_30_base;
+	uint32_t r29_30_offset;
+	memcpy(&r29_30_base, &bus.mem.file[0x30], sizeof(uint32_t)); 
+	memcpy(&r29_30_offset, &bus.mem.file[0x34], sizeof(uint32_t));
+	regs[29] = r29_30_base + r29_30_offset;
+	regs[30] = r29_30_base + r29_30_offset;
 }
 
 void cpu::debug_printf(const char* fmt, ...) {
@@ -221,8 +226,10 @@ void cpu::execute(uint32_t instr) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
 	}
 
-	if (pc == 0x80030000 && exe)
-		sideloadExecutable (rom_directory);
+	if (pc == 0x80030000 && exe) {
+		sideloadExecutable(rom_directory);
+		return;
+	}
 
 
 	uint8_t primary = instr >> 26;

@@ -54,6 +54,7 @@ public:
 	uint8_t hres2;
 	uint8_t hres1;
 	uint8_t vres;
+	uint8_t dma_direction;
 
 	uint32_t get_status();
 

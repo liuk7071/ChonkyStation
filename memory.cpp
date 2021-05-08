@@ -109,9 +109,9 @@ uint16_t memory::read16(uint32_t addr) {
 uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-	if (masked_addr == 0x1f80104a)
+	if (masked_addr == 0x1f80104a) // JOY_CTRL
 		return 0;
-	if (masked_addr == 0x1f801040)
+	if (masked_addr == 0x1f801040) // JOY_DATA
 		return 0;
 	if (masked_addr == 0x1f801110)
 		return 0;
