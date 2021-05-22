@@ -29,45 +29,16 @@ uint32_t memory::mask_address(const uint32_t addr)
 uint8_t memory::read(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-
+	
 	//if (masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
 	//	return 0;
 	if (masked_addr == 0x1f80104a)
 		return 0;
 	if (masked_addr == 0x1f801040)
 		return 0;
-	if (masked_addr == 0x1F801070) { // I_STAT
-		printf("[IRQ] Status 8bit read\n");
-		return I_STAT;
-	}
-	if (masked_addr == 0x1f801800) {	// cdrom status
-		printf("[CDROM] Status register read\n");
-		return CDROM.status; // Stubbing PRMEMPT & PRMRDY
-	}
-
-	if (masked_addr == 0x1f801801) {
-		switch (CDROM.status & 0b11) {
-		case 1:
-			printf("[CDROM] Read response fifo\n");
-			return CDROM.read_fifo();
-		default:
-			printf("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
-			exit(0);
-		}
-	}
-	if (masked_addr == 0x1f801803) {
-		switch (CDROM.status & 0b11) {
-		case 0:
-			printf("[CDROM] Read IE\n");
-			return CDROM.interrupt_enable;
-		case 1:
-			printf("[CDROM] Read IF\n");
-			return CDROM.interrupt_flag;
-		default:
-			printf("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
-			exit(0);
-		}
-	}
+	
+	if (masked_addr == 0x1f801800)	// cdrom status
+		return rand() % 0xff;
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint8_t));
@@ -88,7 +59,7 @@ uint8_t memory::read(uint32_t addr) {
 	//}
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {	// return default exp1 value
 		return 0xff;
-	}
+	}	
 
 	printf("\nUnhandled read 0x%.8x", addr);
 	exit(0);
@@ -97,8 +68,6 @@ uint8_t memory::read(uint32_t addr) {
 uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-	if (masked_addr == 0x1f801120)	// timer 2 stuff
-		return 0;
 	if (masked_addr == 0x1f80104a)
 		return 0;
 	if (masked_addr == 0x1f801040)
@@ -107,13 +76,9 @@ uint16_t memory::read16(uint32_t addr) {
 	if (masked_addr >= 0x1F801D80 && masked_addr <= 0x1F801DBC) {	// SPUSTAT
 		return 0;
 	}
-	if (masked_addr == 0x1F801070) { // I_STAT
-		printf("[IRQ] Status 16bit read\n");
-		return I_STAT;
-	}
-	if (masked_addr == 0x1f801074) { // I_MASK
-		printf("[IRQ] Status 16bit read\n");
-		return I_MASK;
+
+	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
+		return 0;
 	}
 
 	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801CfE || masked_addr == 0x1f801d0c && masked_addr <= 0x1f801dfc || masked_addr >= 0x1f801d1c && masked_addr <= 0x1f801dfc)	// more spu registers
@@ -135,7 +100,7 @@ uint16_t memory::read16(uint32_t addr) {
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
 		return 0xffff;
 	}
-
+	
 
 	printf("\nUnhandled read 0x%.8x", addr);
 	exit(0);
@@ -150,28 +115,25 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0;
 	if (masked_addr == 0x1f801110)
 		return 0;
+	if (masked_addr == 0x1F801070) { // irq_status
+		printf("[IRQ] Status read\n");
+		return 0;
+	}
 
 	if (masked_addr == 0x1f80101c) {
 		return exp2_delay_size;
-	}
-
-	if (masked_addr == 0x1f801070) { // I_STAT
-		return I_STAT;
-	}
-	if (masked_addr == 0x1f801074) { // I_MASK
-		return I_MASK;
 	}
 
 	if (masked_addr >= 0x1F801080 && masked_addr <= 0x1F8010FC) // dma registers
 		return 0;
 
 	if (masked_addr == 0x1f801814) {	// GPUSTAT
-		if (debug) printf("\n GPUSTAT read");
+		if(debug) printf("\n GPUSTAT read");
 		return 0b01011110100000000000000000000000;		// stubbing it
 	}
 	if (masked_addr == 0x1f801810) // GPUREAD
 		return gpuread;
-
+	
 
 	// dma
 
@@ -194,10 +156,12 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f8010e4) // block control
 		return channel6_block_control;
 	if (masked_addr == 0x1f8010e8)	// control
-		return channel6_control;
+		return channel6_control;	
 
 
-
+	if (masked_addr >= 0x1f801074 && masked_addr <= 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
+		return 0;
+	}
 
 	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint32_t));
@@ -215,13 +179,13 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
 		return 0xffffffff;
 	}
-
+	
 
 	printf("\nUnhandled read 0x%.8x", addr);
 	exit(0);
-
-
-
+	
+	
+	
 }
 
 void memory::write(uint32_t addr, uint8_t data, bool log) {
@@ -230,60 +194,60 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	//if(masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
 	//	return;
 
+
 	if (masked_addr == 0x1f801800) {	// cdrom status
 		printf("[CDROM] Write 0x%x to status register\n", data);
-		CDROM.status &= ~1;
-		CDROM.status |= data & 1;
+		cdrom_status = data;
 		return;
 	}
 	if (masked_addr == 0x1f801801) {
-		switch (CDROM.status & 0b11) {
+		switch (cdrom_status & 0b11) {
 		case 0:
 			CDROM.execute(data);
 			break;
 		default:
-			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			printf("Unhandled CDROM write 0x%x index %d", addr, cdrom_status & 0b11);
 			exit(0);
 		}
-
+		
 		return;
 	}
 	if (masked_addr == 0x1f801802) {
-		switch (CDROM.status & 0b11) {
+		switch (cdrom_status & 0b11) {
 		case 0:
 			CDROM.push(data);
 			break;
 		case 1:
 			printf("[CDROM] Write 0x%x to interrupt enable register\n", data);
-			CDROM.interrupt_enable = data;
+			cdrom_interrupt_enable = data;
 			break;
 		default:
-			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			printf("Unhandled CDROM write 0x%x index %d", addr, cdrom_status & 0b11);
 			exit(0);
 		}
 		return;
 	}
-	if (masked_addr == 0x1f801803) {
-		switch (CDROM.status & 0b11) {
+	if (masked_addr == 0x1f801803) {	
+		switch (cdrom_status & 0b11) {
 		case 0:
-			printf("[CDROM] Write 0x%x to request register\n", data);
-			CDROM.request = data;
+			printf("[CDROM] Write 0x%x to request register\n", data); 
+			cdrom_request = data;
 			break;
 		case 1:
-			printf("[CDROM] Write 0x%x to interrupt flag register\n", data);
-			CDROM.interrupt_flag &= ~data;
+			printf("[CDROM] Write 0x%x to interrupt flag register\n", data); 
+			cdrom_interrupt_flag = data;
 			break;
 		default:
-			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			printf("Unhandled CDROM write 0x%x index %d", addr, cdrom_status & 0b11);
 			exit(0);
 		}
-
+		
 		return;
 	}
 
 
 	if (masked_addr >= 0x1f80104a && masked_addr < 0x1f80104a + sizeof(uint32_t))	// joy_ctrl
-		return;
+		return; 
 	if (masked_addr == 0x1f802080) {
 		printf("%c", data);
 		return;
@@ -309,42 +273,32 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		ram[masked_addr & 0x1fffff] = data;
 		return;
 	}
-	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
+	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {	
 		exp1[masked_addr & 0xfffff] = data;
 		return;
 	}
 
 	else if (masked_addr == 0x1f802082) // Exit code register for Continuous Integration tests
-		exit(data);
-
+		exit (data);
+	
 	printf("\nUnhandled write 0x%.8x", addr);
 	exit(0);
-
-
-
+	
+	
+	
 }
 
 void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-
-	if (masked_addr == 0x1F801070) { // I_STAT
-		printf("[IRQ] Write 0x%x to I_STAT\n", data);
-		I_STAT &= data;
-		return;
-	}
-	if (masked_addr == 0x1f801074) { // I_MASK
-		I_MASK = data;
-		printf("[IRQ] Write 0x%x to I_MASK\n", data);
-		return;
-	}
+	
 	if (masked_addr == 0x1f80101c) {
 		exp2_delay_size = data;
 		return;
 	}
 	if (masked_addr == 0x1f801800)
 		return;
-
+	
 	if (masked_addr == 0x1f8010f0) { // DCPR
 		DCPR = data;
 		if (debug) printf(" Write 0x%.8x to dcpr", data);
@@ -395,6 +349,16 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		if (debug) printf(" Write 0x%.8x to RAM_SIZE", data);
 		return;
 	}
+	if (masked_addr >= 0x1f801070 && masked_addr < 0x1f801070 + sizeof(uint32_t)) { // IRQ_STATUS
+		IRQ_STATUS = data;
+		if (debug) printf(" Write 0x%.8x to IRQ_STATUS", data);
+		return;
+	}
+	if (masked_addr >= 0x1f801074 && masked_addr < 0x1f801074 + sizeof(uint32_t)) { // IRQ_MASK
+		IRQ_MASK = data;
+		if (debug) printf(" Write 0x%.8x to IRQ_MASK", data);
+		return;
+	}
 	if (masked_addr >= 0xfffe0130 && masked_addr < 0xfffe0130 + sizeof(uint32_t)) {	// CACHE_CONTROL
 		CACHE_CONTROL = data;
 		return;
@@ -403,29 +367,27 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	write(addr + 3, (data & 0xff000000) >> 24, false);
 	write(addr + 2, (data & 0x00ff0000) >> 16, false);
 	write(addr + 1, (data & 0x0000ff00) >> 8, false);
-
-	if (debug) printf(" Write 0x%.8x at address 0x%.8x", data, addr);
+	
+	if(debug) printf(" Write 0x%.8x at address 0x%.8x", data, addr);
 }
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
 
-	if (masked_addr == 0x1F801070) { // I_STAT
-		printf("[IRQ] Write 0x%x to I_STAT\n", data);
-		I_STAT &= data;
-		return;
-	}
-	if (masked_addr == 0x1F801074) { // I_MASK
-		printf("[IRQ] Write 0x%x to I_MASK\n", data);
-		I_MASK = data;
-		return;
-	}
+	
+
+
 	if (masked_addr == 0x1f802082) // "its a PCSX register, ignore it"
 		return;
 	if (masked_addr == 0x1f80104e)
 		return;
 	if (masked_addr == 0x1f801048)
 		return;
+	if (masked_addr >= 0x1f801074 && masked_addr < 0x1f801074 + sizeof(uint32_t)) { // IRQ_STATUS
+		IRQ_STATUS &= uint32_t(data);
+		if (debug) printf(" Write 0x%.8x to IRQ_STATUS", data);
+		return;
+	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
 		return;
@@ -436,7 +398,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	}
 	write(addr, uint8_t(data & 0x00ff), false);
 	write(addr + 1, (data & 0xff00) >> 8, false);
-
+	
 	if (debug) printf(" Write 0x%.4x at address 0x%.8x", read16(addr), addr);
 }
 
@@ -445,7 +407,7 @@ static auto readBinary(std::string directory) -> std::vector<uint8_t> {
 	std::ifstream file(directory, std::ios::binary);
 	if (!file.is_open()) {
 		std::cout << "Couldn't find ROM at " << directory << "\n";
-		exit(1);
+		exit (1);
 	}
 
 	std::vector<uint8_t> exe;
@@ -454,7 +416,7 @@ static auto readBinary(std::string directory) -> std::vector<uint8_t> {
 	file.seekg(0, std::ios::end);
 	fileSize = file.tellg();
 	file.seekg(0, std::ios::beg);
-
+	
 	exe.insert(exe.begin(),
 		std::istream_iterator<uint8_t>(file),
 		std::istream_iterator<uint8_t>());
@@ -464,11 +426,11 @@ static auto readBinary(std::string directory) -> std::vector<uint8_t> {
 }
 
 void memory::loadBios(std::string directory) {
-	bios = readBinary(directory);
+	bios = readBinary (directory);
 }
 
 uint32_t memory::loadExec(std::string directory) {
-	file = readBinary(directory);
+	file = readBinary (directory);
 
 	uint32_t start_pc;
 	uint32_t entry_addr;
@@ -481,11 +443,11 @@ uint32_t memory::loadExec(std::string directory) {
 	printf("\nStart pc: 0x%x", start_pc);
 	printf("\nDestination: 0x%x", entry_addr);
 	printf("\nFile size: 0x%x\n\n\n", file_size);
-
+	
 	for (int i = 0; i < file_size; i++) {
 		write(entry_addr + i, file[0x800 + i], false);
 	}
 
-
+	
 	return start_pc;
 }

@@ -13,7 +13,6 @@ public:
 	
 public:
 	enum exceptions {
-		INT = 0x0,
 		BadAddr = 0x4,
 		SysCall = 0x8,
 		Break = 0x9,
@@ -31,9 +30,13 @@ public:
 public:
 	void exception(exceptions);
 	uint32_t jump; // jump branch delay slot
+	bool lwl; // set if the last instruction was a lwl
+	bool lwr; // set if the last instruction was a lwr
 public:
 	// registers
 	uint32_t pc;
+	uint32_t sp;
+	uint32_t zero;
 	uint32_t regs[32];
 	uint32_t hi;
 	uint32_t lo;
@@ -41,7 +44,6 @@ public:
 public:
 	void check_dma();
 	void do_dma(int channel);
-	void checkIRQ();
 	void step();
 	void sideloadExecutable (std::string directory);
 
