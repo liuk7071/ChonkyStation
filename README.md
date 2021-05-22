@@ -1,5 +1,5 @@
 # ChonkyStation
-[![Build (MSBuild)](https://github.com/liuk7071/ChonkyStation/actions/workflows/build.yml/badge.svg)](https://github.com/liuk7071/ChonkyStation/actions/workflows/build.yml) [![Automated Tests](https://github.com/wheremyfoodat/ChonkyStation/actions/workflows/run_unit_tests.yml/badge.svg)](https://github.com/wheremyfoodat/ChonkyStation/actions/workflows/run_unit_tests.yml)
+[![Build (MSBuild)](https://github.com/liuk7071/ChonkyStation/actions/workflows/build.yml/badge.svg)](https://github.com/liuk7071/ChonkyStation/actions/workflows/build.yml) [![Automated Tests](https://github.com/liuk7071/ChonkyStation/actions/workflows/run_unit_tests.yml/badge.svg)](https://github.com/liuk7071/ChonkyStation/actions/workflows/run_unit_tests.yml)
 
 PSX Emulator coming soon™
 # Features

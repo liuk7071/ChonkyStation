@@ -1,10 +1,10 @@
 #include "cpu.h"
 #include <iostream>
 
-cpu::cpu (std::string rom_directory, std::string bios_directory, bool running_in_ci) : rom_directory(rom_directory) {
+cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_ci) : rom_directory(rom_directory) {
 	if (!running_in_ci) // Do not load a BIOS if we're in CI
-		bus.mem.loadBios (bios_directory);
-	
+		bus.mem.loadBios(bios_directory);
+
 	pc = 0xbfc00000;
 	next_instr = pc + 4;
 	for (int i = 0x0; i < 32; i++) {
@@ -33,14 +33,14 @@ void cpu::sideloadExecutable(std::string directory) {
 	memcpy(&regs[28], &bus.mem.file[0x14], sizeof(uint32_t));
 	uint32_t r29_30_base;
 	uint32_t r29_30_offset;
-	memcpy(&r29_30_base, &bus.mem.file[0x30], sizeof(uint32_t)); 
+	memcpy(&r29_30_base, &bus.mem.file[0x30], sizeof(uint32_t));
 	memcpy(&r29_30_offset, &bus.mem.file[0x34], sizeof(uint32_t));
 	regs[29] = r29_30_base + r29_30_offset;
 	regs[30] = r29_30_base + r29_30_offset;
 }
 
 void cpu::debug_printf(const char* fmt, ...) {
-	if(debug) {
+	if (debug) {
 		std::va_list args;
 		va_start(args, fmt);
 		std::vprintf(fmt, args);
@@ -51,13 +51,14 @@ void cpu::debug_printf(const char* fmt, ...) {
 
 void cpu::exception(exceptions exc) {
 	uint32_t handler = 0;
-	
+
 	if ((COP0.regs[12] & (1 << 22)) == 0) {
 		handler = 0x80000080;
-	} else {
+	}
+	else {
 		handler = 0xbfc00180;
 	}
-	
+
 
 	auto mode = COP0.regs[12] & 0x3f;
 	COP0.regs[12] &= 0x3f;
@@ -103,8 +104,11 @@ void cpu::do_dma(int channel) {
 				bus.mem.channel2_control &= ~(1 << 28);
 				debug = false;
 				return;
+			case(0):
+				debug_printf("[DMA] GPU to RAM block copy (unimlpemented)\n");
+				return;
 			default:
-				debug_printf("[DMA] Unhandled Direction");
+				printf("[DMA] Unhandled Direction (GPU Block Copy)");
 				exit(0);
 			}
 		}
@@ -133,11 +137,11 @@ void cpu::do_dma(int channel) {
 				debug = false;
 				return;
 			default:
-				debug_printf("[DMA] Unhandled Direction\n");
+				printf("[DMA] Unhandled Direction (GPU Linked List)\n");
 				exit(0);
 			}
 		default:
-			debug_printf("[DMA] Unhandled sync mode (GPU)");
+			printf("[DMA] Unhandled sync mode (GPU)");
 			exit(0);
 		}
 	}
@@ -173,14 +177,14 @@ void cpu::do_dma(int channel) {
 				}
 
 			default:
-				debug_printf("[DMA] Unhandled Direction\n");
+				printf("[DMA] Unhandled Direction (OTC Block Copy)\n");
 				exit(0);
 			}
 
 			exit(0);
 		}
 		default:
-			debug_printf("[DMA] Unhandled sync mode (OTC)");
+			printf("[DMA] Unhandled sync mode (OTC)");
 			exit(0);
 		}
 		exit(0);
@@ -211,7 +215,7 @@ void cpu::check_dma() {
 
 void cpu::execute(uint32_t instr) {
 	regs[0] = 0; // $zero
-	
+
 	bus.mem.gpustat = regs[3];
 
 	if (pc == 0xA0 || pc == 0x800000A0 || pc == 0xA00000A0) {
@@ -850,10 +854,8 @@ void cpu::execute(uint32_t instr) {
 				break;
 			}
 			case(0b00100): { // mtc0
-				uint8_t rs = (instr >> 21) & 0x1f;
 				uint8_t rd = (instr >> 11) & 0x1f;
 				uint8_t rt = (instr >> 16) & 0x1f;
-				uint16_t imm = instr & 0xffff;
 				COP0.regs[rd] = regs[rt];
 				debug_printf("mtc0 %s, %s\n", reg[rd].c_str(), reg[rt].c_str());
 				break;
@@ -880,7 +882,8 @@ void cpu::execute(uint32_t instr) {
 			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x02): {
-			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
+			printf("GTE instruction, ignoring\n"); pc += 4;
+			break;
 		}
 		case(0x03): {
 			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
@@ -993,7 +996,7 @@ void cpu::execute(uint32_t instr) {
 			case 3:
 				regs[rt] = (regs[rt] & 0x00000000) | (aligned_word << 0);
 				break;
-			}	
+			}
 			break;
 		}
 		case(0x03): {	// lw  
@@ -1170,9 +1173,9 @@ void cpu::execute(uint32_t instr) {
 				bus.mem.write32(addr, regs[rt]);
 				debug_printf("\n");
 			}
-			
-			
-			
+
+
+
 			pc += 4;
 			break;
 		}
@@ -1289,14 +1292,27 @@ void cpu::execute(uint32_t instr) {
 		exit(0);
 	}
 	}
-
-	if (lwl) lwl = false;
-	if (lwr) lwr = false;
 }
-
+void cpu::checkIRQ() {
+	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag)
+		//printf("[IRQ] CDROM INT%d, setting I_STAT bit\n", bus.mem.CDROM.interrupt_flag & 0b111);
+		bus.mem.I_STAT |= (1 << 2);
+}
 void cpu::step() {
+
+	checkIRQ();
+	if (bus.mem.I_STAT & bus.mem.I_MASK) {
+		COP0.regs[13] |= (1 << 10);
+
+		if ((COP0.regs[12] & 1) && (COP0.regs[12] & (1 << 10))) {
+			printf("[IRQ] Interrupt fired\n");
+			exception(exceptions::INT);
+		}
+	}
+
+
 	const auto instr = fetch(pc);
 	if (debug) // TODO: Don't check for debug at runtime 
 		printf("0x%.8X | 0x%.8X: ", pc, instr);
-    execute(instr);
+	execute(instr);
 }

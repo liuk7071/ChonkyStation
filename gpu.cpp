@@ -14,7 +14,7 @@ gpu::gpu() {
 
 	rast.SetFrameBuffer((uint32_t*)pixels, 640, 480);
 
-	debug = true;
+	debug = false;
 	point v1, v2, v3, v4;
 	v1.x = 0; 
 	v1.y = 0;
