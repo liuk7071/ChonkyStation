@@ -43,6 +43,8 @@ public:
 	void do_dma(int channel);
 	void checkIRQ();
 	void step();
+	void runCycles(int cycles);
+	int frame_cycles;
 	void sideloadExecutable(std::string directory);
 
 public:

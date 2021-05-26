@@ -29,7 +29,7 @@ public:		// rasterization stuff
 
 public:
 	gpu();
-	uint8_t** vram;
+	uint16_t* vram = new uint16_t[1024*512];
 	uint32_t* pixels;
 	uint32_t fifo[12];
 	int cmd_length = 0;

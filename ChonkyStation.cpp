@@ -39,11 +39,10 @@ int main(int argc, char** argv) {
    // SDL_RenderClear(renderer_vram);
    // SDL_Texture* frame_vram = SDL_CreateTexture(renderer_vram, SDL_PIXELFORMAT_BGR888, SDL_TEXTUREACCESS_STATIC, 2048, 512);
   
-    int elapsed = 0;    // TODO: Move to CPU class
     bool quit = false;
 
     while (!quit) {
-        if (elapsed >= 500000) {
+        if (Cpu.frame_cycles >= 500000) {
             while (SDL_PollEvent(&event)) {
                 switch (event.type) {
                 case SDL_QUIT:
@@ -55,12 +54,10 @@ int main(int argc, char** argv) {
             SDL_RenderClear(renderer);
             SDL_RenderCopy(renderer, frame, NULL, NULL);
             SDL_RenderPresent(renderer);
-            elapsed = 0;
+            Cpu.frame_cycles = 0;
         }
 
-        Cpu.step();
-        elapsed++;       // TODO: Move to CPU class
-        Cpu.check_dma(); // TODO: Only check DMA when control registers are written to        
+        Cpu.runCycles(Cpu.bus.mem.CDROM.delay);
     }
     SDL_DestroyWindow(window);
     SDL_Quit();

@@ -6,11 +6,6 @@ Bus* bus;
 gpu::gpu() {
 	// Initialize pixel array
 	pixels = new uint32_t [480 * 640];
-	
-	// initialize vram (TODO: Use a 1D array instead to avoid double indirection)
-	vram = new uint8_t* [512];
-	for (auto i = 0; i < 512; i++)
-		vram[i] = new uint8_t [2048];
 
 	rast.SetFrameBuffer((uint32_t*)pixels, 640, 480);
 
@@ -254,15 +249,7 @@ void gpu::execute_gp0(uint32_t command) {
 				break;
 			}
 
-			for (; y < height; y++) {
-				for (; x < width; x++) {
-					write32(x, y, command);
-					return;
-				}
-				x = 0;
-				y++;
-				return;
-			}
+			
 		}
 		}
 	}
@@ -505,9 +492,9 @@ void gpu::vram_to_cpu() {
 
 
 void gpu::write32(uint32_t addrX, uint32_t addrY, uint32_t data) {
-	vram[addrY][addrX] = data & 0x000000ff;
-	vram[addrY][addrX] = data & 0xff000000 >> 24;
-	vram[addrY][addrX] = data & 0x00ff0000 >> 16;
-	vram[addrY][addrX] = data & 0x0000ff00 >> 8;
+	//vram[addrY][addrX] = data & 0x000000ff;
+	//vram[addrY][addrX] = data & 0xff000000 >> 24;
+	//vram[addrY][addrX] = data & 0x00ff0000 >> 16;
+	//vram[addrY][addrX] = data & 0x0000ff00 >> 8;
 	return;
 }

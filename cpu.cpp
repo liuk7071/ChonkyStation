@@ -882,7 +882,11 @@ void cpu::execute(uint32_t instr) {
 			printf("Unknown instruction: 0x%.2X\n", primary); exit(0); break;
 		}
 		case(0x02): {
-			printf("GTE instruction, ignoring\n"); pc += 4;
+			switch (instr & 0x3f) {
+			default:
+				printf("Unimplemented GTE instruction: 0x%x\n", instr & 0x3f);
+			}
+			pc += 4;
 			break;
 		}
 		case(0x03): {
@@ -1299,8 +1303,7 @@ void cpu::checkIRQ() {
 		bus.mem.I_STAT |= (1 << 2);
 }
 void cpu::step() {
-
-	checkIRQ();
+	check_dma(); // TODO: Only check DMA when control registers are written to   
 	if (bus.mem.I_STAT & bus.mem.I_MASK) {
 		COP0.regs[13] |= (1 << 10);
 
@@ -1315,4 +1318,19 @@ void cpu::step() {
 	if (debug) // TODO: Don't check for debug at runtime 
 		printf("0x%.8X | 0x%.8X: ", pc, instr);
 	execute(instr);
+	frame_cycles += 2;
+}
+void cpu::runCycles(int cycles) {
+	int old_cycles = bus.mem.CDROM.delay;
+	if (!bus.mem.CDROM.irq && (bus.mem.CDROM.queued_INT2 || bus.mem.CDROM.queued_INT5)) {
+		bus.mem.CDROM.sendQueuedINT();
+	}
+	else { checkIRQ(); }
+	for (int i = 0; i < bus.mem.CDROM.delay; i++) {
+		step();
+		if (old_cycles != bus.mem.CDROM.delay) {
+			i = 0;
+			old_cycles = bus.mem.CDROM.delay;
+		}
+	}
 }

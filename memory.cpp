@@ -32,6 +32,9 @@ uint8_t memory::read(uint32_t addr) {
 
 	//if (masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
 	//	return 0;
+	if (masked_addr == 0x1f801044) { // JOY_STAT
+		return 0;
+	}
 	if (masked_addr == 0x1f80104a)
 		return 0;
 	if (masked_addr == 0x1f801040)
@@ -42,7 +45,7 @@ uint8_t memory::read(uint32_t addr) {
 	}
 	if (masked_addr == 0x1f801800) {	// cdrom status
 		printf("[CDROM] Status register read\n");
-		return CDROM.status; // Stubbing PRMEMPT & PRMRDY
+		return CDROM.status;
 	}
 
 	if (masked_addr == 0x1f801801) {
@@ -99,6 +102,9 @@ uint16_t memory::read16(uint32_t addr) {
 	uint32_t masked_addr = mask_address(addr);
 	if (masked_addr == 0x1f801120)	// timer 2 stuff
 		return 0;
+	if (masked_addr == 0x1f801044) { // JOY_STAT
+		return 0;
+	}
 	if (masked_addr == 0x1f80104a)
 		return 0;
 	if (masked_addr == 0x1f801040)
@@ -144,6 +150,9 @@ uint16_t memory::read16(uint32_t addr) {
 uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+	if (masked_addr == 0x1f801044) { // JOY_STAT
+		return 0;
+	}
 	if (masked_addr == 0x1f80104a) // JOY_CTRL
 		return 0;
 	if (masked_addr == 0x1f801040) // JOY_DATA
@@ -272,6 +281,9 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		case 1:
 			printf("[CDROM] Write 0x%x to interrupt flag register\n", data);
 			CDROM.interrupt_flag &= ~data;
+			if ((CDROM.interrupt_flag & 0b111) == 0) {
+				CDROM.irq = false;
+			}
 			break;
 		default:
 			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
