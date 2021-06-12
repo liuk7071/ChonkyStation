@@ -3,6 +3,15 @@
 #include <string.h>
 #include "Bus.h"
 #include "cop0.h"
+
+#define COLOR_RED     "\x1b[31m"
+#define COLOR_GREEN   "\x1b[32m"
+#define COLOR_YELLOW  "\x1b[33m"
+#define COLOR_BLUE    "\x1b[34m"	// Colours for output
+#define COLOR_MAGENTA "\x1b[35m"
+#define COLOR_CYAN    "\x1b[36m"
+#define COLOR_RESET   "\x1b[0m"
+
 class cpu
 {
 public:
@@ -41,9 +50,8 @@ public:
 public:
 	void check_dma();
 	void do_dma(int channel);
-	void checkIRQ();
+	void check_CDROM_IRQ();
 	void step();
-	void runCycles(int cycles);
 	int frame_cycles;
 	void sideloadExecutable(std::string directory);
 

@@ -94,7 +94,7 @@ uint8_t memory::read(uint32_t addr) {
 	}
 
 	printf("\nUnhandled read 0x%.8x", addr);
-	exit(0);
+	//exit(0);
 }
 
 uint16_t memory::read16(uint32_t addr) {
@@ -144,7 +144,7 @@ uint16_t memory::read16(uint32_t addr) {
 
 
 	printf("\nUnhandled read 0x%.8x", addr);
-	exit(0);
+	//exit(0);
 }
 
 uint32_t memory::read32(uint32_t addr) {
@@ -227,7 +227,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 
 	printf("\nUnhandled read 0x%.8x", addr);
-	exit(0);
+	//exit(0);
 
 
 
@@ -330,7 +330,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		exit(data);
 
 	printf("\nUnhandled write 0x%.8x", addr);
-	exit(0);
+	//exit(0);
 
 
 

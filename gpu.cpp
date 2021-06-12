@@ -88,13 +88,6 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 2;
 			break;
 		}
-		case(0x05): { // nop (?)
-			debug_printf("[GP0] NOP\n");
-			break;
-		}
-		case(0x08):	// nop
-			debug_printf("[GP0] NOP (0x%x)\n", command);
-			break;
 		case(0x20): { // Monochrome three - point polygon, opaque
 			fifo[0] = command;
 			cmd_length++;

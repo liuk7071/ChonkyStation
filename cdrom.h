@@ -6,7 +6,7 @@ class cdrom
 {
 public:
 	cdrom();
-	bool disk = false; // disk inserted
+	bool disk = true; // disk inserted
 	bool irq;
 	int delay = 1; // the INT delay in cycles
 public: // fifo
@@ -15,7 +15,8 @@ public: // fifo
 	int cmd_length;
 	int response_length = 0; // last command's response length
 	int queued_response_length = 0; // queued response's length
-	int response_delay = 1; // queued INT's delay in cycles
+	int queued_delay = 1; // queued INT's delay in cycles
+	uint8_t get_stat(); // get status byte
 	void push(uint8_t data);
 public:
 	void execute(uint8_t command);
@@ -29,6 +30,7 @@ public:
 	uint8_t amm;
 	uint8_t ass;
 	uint8_t asect;
+
 	void INT2();
 	void INT3();
 	void INT5();

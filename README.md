@@ -9,3 +9,6 @@ PSX Emulator coming soon™
 
 ![Screenshot](docs/img/boot.png)
 ![Screenshot](docs/img/amidog.png)
+
+# Thank you pesca btw
+https://github.com/wheremyfoodat

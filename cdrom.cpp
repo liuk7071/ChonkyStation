@@ -1,10 +1,16 @@
 #include "cdrom.h"
 cdrom::cdrom() {
 }
+
+uint8_t cdrom::get_stat() {
+	return 0b00000010;	// Pretend that the motor is on
+}
+
 void cdrom::push(uint8_t data) {
 	printf("[CDROM] Parameter: %xh\n", data);
 	fifo[cmd_length] = data;
 	cmd_length++;
+	status &= ~0b00001000; // Parameter fifo empty bit
 }
 
 void cdrom::execute(uint8_t command) {
@@ -61,9 +67,9 @@ void cdrom::INT5() {
 	return;
 }
 void cdrom::sendQueuedINT() {
-	delay = response_delay;
+	delay = queued_delay;
 	if (queued_INT2) {
-		printf("[CDROM] Sending delayed INT2\n");
+		//printf("[CDROM] Sending delayed INT2\n");
 		for (int i = 0; i < 16; i++) {
 			response_fifo[i] = queued_fifo[i];
 		}
@@ -74,7 +80,7 @@ void cdrom::sendQueuedINT() {
 		
 	}
 	if (queued_INT5) {
-		printf("[CDROM] Sending delayed INT5\n");
+		//printf("[CDROM] Sending delayed INT5\n");
 		for (int i = 0; i < 16; i++) {
 			response_fifo[i] = queued_fifo[i];
 		}
@@ -87,6 +93,7 @@ void cdrom::sendQueuedINT() {
 }
 // commands
 void cdrom::test() {
+	status |= 0b00001000;
 	switch (fifo[0]) {
 	case 0x20: { // Get cdrom BIOS date/version (yy,mm,dd,ver)
 		printf("[CDROM] test 20h\n");
@@ -102,20 +109,20 @@ void cdrom::test() {
 		printf("[CDROM] Unhandled test command: %xh\n", fifo[0]);
 		exit(0);
 	}
-	delay = 1;
+	delay = 2;
 }
 void cdrom::GetStat() {	// Return status byte
 	printf("[CDROM] GetStat\n");
-	response_fifo[0] = 0b10;
+	response_fifo[0] = get_stat();
 	response_length = 1;
 	INT3();
 	status |= 0b00100000;
-	delay = 20000;
+	delay = 40000;
 }
-void cdrom::GetID() { // Drive Status
+void cdrom::GetID() { // Disk info
 	printf("[CDROM] GetID\n");
 	if (disk) {
-		response_fifo[0] = 0b00000000;
+		response_fifo[0] = get_stat();
 		response_length = 1;
 		INT3();
 		queued_fifo[0] = 0x02;
@@ -128,11 +135,9 @@ void cdrom::GetID() { // Drive Status
 		queued_fifo[7] = 0x41;
 		queued_response_length = 8;
 		queued_INT2 = true;
-		response_delay = 50000;
-		status |= 0b00100000;
 	}
 	else {
-		response_fifo[0] = 0b00000000;
+		response_fifo[0] = get_stat();
 		response_length = 1;
 		INT3();
 		queued_fifo[0] = 0x08;
@@ -145,31 +150,32 @@ void cdrom::GetID() { // Drive Status
 		queued_fifo[7] = 0;
 		queued_response_length = 8;
 		queued_INT5 = true;
-		response_delay = 50000;
-		status |= 0b00100000;
 	}
-	delay = 50000;
+	delay = 40000;
+	queued_delay = 50000;
+	status |= 0b00100000;
 }
 void cdrom::SetLoc() { // Sets the seek target
+	status |= 0b00001000;
 	printf("[CDROM] SetLoc\n");
 	amm = fifo[0];		// 
-	ass = fifo[1];		//	I don't really know what these do yet so I'm just storing them in 3 variables
+	ass = fifo[1];		//	I don't really know what these do yet so I'm just storing them in 3 variables. I'm guessing I'll need them later to know where to read from
 	asect = fifo[2];	// 
-	response_fifo[0] = 0b00000000;
+	response_fifo[0] = get_stat();
 	response_length = 1;
 	INT3();
 	status |= 0b00100000;
-	delay = 451584;
+	delay = 50000;
 }
 void cdrom::init() {
 	printf("[CDROM] Init\n");
-	response_fifo[0] = 0b00000010;
+	response_fifo[0] = get_stat();
 	response_length = 1;
 	INT3();
-	delay = 50000;
+	delay = 40000;
 	queued_fifo[0] = 0b00000010;
 	queued_response_length = 1;
 	queued_INT2 = true;
-	response_delay = 50000;
+	queued_delay = 50000;
 	status |= 0b00100000;
 }
