@@ -2,6 +2,8 @@
 #include <iostream>
 #define log
 #undef log
+#define log_kernel_tty
+
 
 cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_ci) : rom_directory(rom_directory) {
 	if (!running_in_ci) // Do not load a BIOS if we're in CI
@@ -30,7 +32,6 @@ void cpu::sideloadExecutable(std::string directory) {
 	std::cout << "Kernel setup done. Sideloading executable at " << directory << "\n";
 	pc = bus.mem.loadExec(rom_directory);
 	exe = false;
-
 	memcpy(&regs[28], &bus.mem.file[0x14], sizeof(uint32_t));
 	uint32_t r29_30_base;
 	uint32_t r29_30_offset;
@@ -40,7 +41,7 @@ void cpu::sideloadExecutable(std::string directory) {
 	regs[30] = r29_30_base + r29_30_offset;
 }
 
-void cpu::debug_printf(const char* fmt, ...) {
+void cpu::debug_log(const char* fmt, ...) {
 #ifdef log
 	std::va_list args;
 	va_start(args, fmt);
@@ -48,25 +49,49 @@ void cpu::debug_printf(const char* fmt, ...) {
 	va_end(args);
 #endif
 }
+void cpu::debug_warn(const char* fmt, ...) {
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
+	std::va_list args;
+	va_start(args, fmt);
+	std::vprintf(fmt, args);
+	va_end(args);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+}
+void cpu::debug_err(const char* fmt, ...) {
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+	std::va_list args;
+	va_start(args, fmt);
+	std::vprintf(fmt, args);
+	va_end(args);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+}
 
 
 void cpu::exception(exceptions exc) {
 	uint32_t handler = 0;
-
-	if ((COP0.regs[12] & (1 << 22)) == 0) {
-		handler = 0x80000080;
+	bool bd = (COP0.regs[13] >> 31) & 1;
+	
+	if (exc == 0x4 || exc == 0x5) {		// BadVAddr
+		COP0.regs[8] = pc;
 	}
-	else {
+
+	if (COP0.regs[12] & 0x400000) {
 		handler = 0xbfc00180;
 	}
+	else {
+		handler = 0x80000080;
+	}
 
-
-	auto mode = COP0.regs[12] & 0x3f;
-	COP0.regs[12] &= 0x3f;
-	COP0.regs[12] |= (mode << 2) & 0x3f;
+	//auto mode = COP0.regs[12] & 0x3f;
+	//COP0.regs[12] &= 0x3f;
+	//COP0.regs[12] |= (mode << 2) & 0x3f;
+	COP0.regs[12] = (COP0.regs[12] & ~0x3f) | ((COP0.regs[12] & 0xf) << 2);
 
 	COP0.regs[13] = uint32_t(exc) << 2;
-	COP0.regs[14] = pc;
+	if (bd && uint32_t(exc) != 0) 
+		COP0.regs[14] = pc + 4; 
+	else 
+		COP0.regs[14] = pc;
 	pc = handler;
 }
 
@@ -89,11 +114,11 @@ void cpu::do_dma(int channel) {
 		switch (sync_mode) {
 		case(1): {	// Block Copy
 			words *= (bus.mem.channel2_block_control >> 16);
-			debug_printf("[DMA] Start GPU Block Copy\n");
+			debug_log("[DMA] Start GPU Block Copy\n");
 			switch (direction) {
 			case(1):
-				debug_printf("[DMA] Transfer direction: ram to device\n");
-				debug_printf("[DMA] Transfer size: %d words\n", words);
+				debug_log("[DMA] Transfer direction: ram to device\n");
+				debug_log("[DMA] Transfer size: %d words\n", words);
 				while (words > 0) {
 					uint32_t current_addr = addr & 0x1ffffc;
 					uint32_t data = bus.mem.read32(current_addr);
@@ -106,7 +131,7 @@ void cpu::do_dma(int channel) {
 				debug = false;
 				return;
 			case(0):
-				debug_printf("[DMA] GPU to RAM block copy (unimlpemented)\n");
+				debug_log("[DMA] GPU to RAM block copy (unimlpemented)\n");
 				return;
 			default:
 				printf("[DMA] Unhandled Direction (GPU Block Copy)");
@@ -115,10 +140,10 @@ void cpu::do_dma(int channel) {
 		}
 
 		case(2):	// Linked List
-			debug_printf("[DMA] Start GPU Linked List\n");
+			debug_log("[DMA] Start GPU Linked List\n");
 			switch (direction) {
 			case(1):
-				debug_printf("[DMA] Transfer direction: ram to device\n");
+				debug_log("[DMA] Transfer direction: ram to device\n");
 				while (1) {
 					uint32_t _header = bus.mem.read32(addr);
 					auto _words = _header >> 24;
@@ -134,7 +159,7 @@ void cpu::do_dma(int channel) {
 					addr = _header & 0x1ffffc;
 				}
 				bus.mem.channel2_control &= ~(1 << 24);
-				debug_printf("[DMA] GPU Linked List transfer complete\n");
+				debug_log("[DMA] GPU Linked List transfer complete\n");
 				debug = false;
 				return;
 			default:
@@ -156,17 +181,17 @@ void cpu::do_dma(int channel) {
 
 		switch (sync_mode) {	// switch on the sync mode
 		case(0): {			// block dma
-			debug_printf("[DMA] Start OTC Block Copy\n");
+			debug_log("[DMA] Start OTC Block Copy\n");
 			uint32_t current_addr = addr & 0x1ffffc;
 			switch (direction) {
 			case(0):
-				debug_printf("[DMA] Transfer direction: device to ram\n");
-				debug_printf("[DMA] Transfer size: %d words\n", words);
+				debug_log("[DMA] Transfer direction: device to ram\n");
+				debug_log("[DMA] Transfer size: %d words\n", words);
 				while (words >= 0) {
 					current_addr = addr & 0x1ffffc;
 					if (words == 1) {
 						bus.mem.write32(current_addr, 0xffffff);
-						debug_printf("[DMA] OTC Block Copy completed\n");
+						debug_log("[DMA] OTC Block Copy completed\n");
 						bus.mem.channel6_control &= ~(1 << 24);
 						bus.mem.channel6_control &= ~(1 << 28);
 						debug = false;
@@ -217,6 +242,7 @@ void cpu::check_dma() {
 void cpu::execute(uint32_t instr) {
 	regs[0] = 0; // $zero
 
+#ifdef log_kernel_tty
 	if (pc == 0xA0 || pc == 0x800000A0 || pc == 0xA00000A0) {
 		if (log_kernel) printf("\nkernel call A(0x%x)", regs[9]);
 	}
@@ -228,7 +254,7 @@ void cpu::execute(uint32_t instr) {
 	if (pc == 0xC0 || pc == 0x800000C0 || pc == 0xA00000C0) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
 	}
-
+#endif
 	if (pc == 0x80030000 && exe) {
 		sideloadExecutable(rom_directory);
 		return;
@@ -258,85 +284,85 @@ void cpu::execute(uint32_t instr) {
 		case 0x00: {
 			uint32_t result = regs[rt] << shift_imm;
 			regs[rd] = result;
-			debug_printf("sll %s, %s, 0x%.8x\n", reg[rd].c_str(), reg[rt].c_str(), shift_imm);
+			debug_log("sll %s, %s, 0x%.8x\n", reg[rd].c_str(), reg[rt].c_str(), shift_imm);
 			break;
 		}
 		case 0x02: {
 			regs[rd] = regs[rt] >> shift_imm;
-			debug_printf("srl 0x%.2X, %s, 0x%.8x\n", reg[rd].c_str(), reg[rt].c_str(), shift_imm);
+			debug_log("srl 0x%.2X, %s, 0x%.8x\n", reg[rd].c_str(), reg[rt].c_str(), shift_imm);
 			break;
 		}
 		case 0x03: {
 			regs[rd] = int32_t(regs[rt]) >> shift_imm;
-			debug_printf("sra %s, %s, 0x%.8x\n", reg[rd].c_str(), reg[rt].c_str(), shift_imm);
+			debug_log("sra %s, %s, 0x%.8x\n", reg[rd].c_str(), reg[rt].c_str(), shift_imm);
 			break;
 		}
 		case 0x04: {
 			regs[rd] = regs[rt] << (regs[rs] & 0x1f);
-			debug_printf("sllv %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("sllv %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x06: {
 			regs[rd] = regs[rt] >> (regs[rs] & 0x1f);
-			debug_printf("srlv %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("srlv %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x07: {
 			regs[rd] = uint32_t(int32_t(regs[rt]) >> (regs[rs] & 0x1f));
-			debug_printf("srav %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("srav %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x08: {
 			uint32_t addr = regs[rs];
 			if (addr & 3) {
-				exception(exceptions::BadAddr);
+				exception(exceptions::BadFetchAddr);
 				return;
 			}
 			jump = addr;
-			debug_printf("jr %s\n", reg[rs].c_str());
+			debug_log("jr %s\n", reg[rs].c_str());
 			delay = true;
 			break;
 		}
 		case 0x09: {
 			uint32_t addr = regs[rs];
 			if (addr & 3) {
-				exception(exceptions::BadAddr);
+				exception(exceptions::BadFetchAddr);
 				return;
 			}
 			jump = addr;
 			regs[rd] = pc + 8;
-			debug_printf("jalr %s\n", reg[rs].c_str());
+			debug_log("jalr %s\n", reg[rs].c_str());
 			delay = true;
 			break;
 		}
 		case 0x0C: {
-			debug_printf("syscall\n");
+			debug_log("syscall\n");
 			exception(exceptions::SysCall);
 			return;
 		}
 		case 0x0D: {
-			debug_printf("break\n");
+			debug_log("break\n");
 			exception(exceptions::Break);
 			return;
 		}
 		case 0x10: {
 			regs[rd] = hi;
-			debug_printf("mfhi %s\n", reg[rd].c_str());
+			debug_log("mfhi %s\n", reg[rd].c_str());
 			break;
 		}
 		case 0x11: {
 			hi = regs[rs];
-			debug_printf("mthi %s\n", reg[rs].c_str());
+			debug_log("mthi %s\n", reg[rs].c_str());
 			break;
 		}
 		case 0x12: {
 			regs[rd] = lo;
-			debug_printf("mflo %s\n", reg[rd].c_str());
+			debug_log("mflo %s\n", reg[rd].c_str());
 			break;
 		}
 		case 0x13: {
 			lo = regs[rs];
-			debug_printf("mtlo %s\n", reg[rs].c_str());
+			debug_log("mtlo %s\n", reg[rs].c_str());
 			break;
 		}
 		case 0x18: {
@@ -346,7 +372,7 @@ void cpu::execute(uint32_t instr) {
 
 			hi = uint32_t((result >> 32) & 0xffffffff);
 			lo = uint32_t(result & 0xffffffff);
-			debug_printf("mult %s, %s", reg[rs].c_str(), reg[rt].c_str());
+			debug_log("mult %s, %s", reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x19: {
@@ -356,7 +382,7 @@ void cpu::execute(uint32_t instr) {
 
 			hi = uint32_t(result >> 32);
 			lo = uint32_t(result);
-			debug_printf("multu %s, %s", reg[rs].c_str(), reg[rt].c_str());
+			debug_log("multu %s, %s", reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x1A: {
@@ -380,7 +406,7 @@ void cpu::execute(uint32_t instr) {
 			}
 			hi = uint32_t(n % d);
 			lo = uint32_t(n / d);
-			debug_printf("div %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
+			debug_log("div %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x1B: {
@@ -391,29 +417,29 @@ void cpu::execute(uint32_t instr) {
 			}
 			hi = regs[rs] % regs[rt];
 			lo = regs[rs] / regs[rt];
-			debug_printf("divu %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
+			debug_log("divu %s, %s\n", reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x20: {
-			debug_printf("add %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), imm);
+			debug_log("add %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), imm);
 			uint32_t result = regs[rs] + regs[rt];
-			if (((regs[rs] >> 31) == (regs[rt] >> 31)) && ((regs[rs] >> 31) != (result >> 31))) {
-				debug_printf(" add exception");
+			if (((int32_t(regs[rs]) ^ result) & (int32_t(regs[rt]) ^ result)) >> 31) {
+				debug_log(" add exception");
 				exception(exceptions::Overflow);
 				return;
 			}
-			debug_printf("\n");
+			debug_log("\n");
 			regs[rd] = result;
 			break;
 		}
 		case 0x21: {
 			regs[rd] = regs[rs] + regs[rt];
-			debug_printf("addu %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("addu %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x22: {
 			uint32_t result = regs[rs] - regs[rt];
-			debug_printf("sub %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("sub %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			if (((regs[rs] ^ result) & (~regs[rt] ^ result)) >> 31) { // overflow
 				exception(exceptions::Overflow);
 				return;
@@ -423,42 +449,42 @@ void cpu::execute(uint32_t instr) {
 		}
 		case 0x23: {
 			regs[rd] = regs[rs] - regs[rt];
-			debug_printf("subu %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("subu %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x24: {
 			regs[rd] = regs[rs] & regs[rt];
-			debug_printf("and %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("and %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x25: {
 			regs[rd] = regs[rs] | regs[rt];
-			debug_printf("or %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("or %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x26: {
 			regs[rd] = regs[rs] ^ regs[rt];
-			debug_printf("xor %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("xor %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x27: {
 			regs[rd] = ~(regs[rs] | regs[rt]);
-			debug_printf("nor %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("nor %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			break;
 		}
 		case 0x2A: {
-			debug_printf("slt %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("slt %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			regs[rd] = int32_t(regs[rs]) < int32_t(regs[rt]);
 			break;
 		}
 		case 0x2B: {
-			debug_printf("sltu %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
+			debug_log("sltu %s, %s, %s\n", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			regs[rd] = regs[rs] < regs[rt];
 			break;
 		}
 
 		default:
-			printf(COLOR_RED "\nUnimplemented subinstruction: 0x%x", primary);
+			debug_err("\nUnimplemented subinstruction: 0x%x", primary);
 			exit(0);
 
 		}
@@ -469,127 +495,127 @@ void cpu::execute(uint32_t instr) {
 		auto bit20 = (instr >> 20) & 1;
 		if (bit16 == 0) {		// bltz
 			if (bit20 == 1) regs[0x1f] = pc + 8; // check if link (bltzal)
-			debug_printf("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
+			debug_log("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 			if (signed_rs < 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
 				delay = true;
-				debug_printf(" branched\n");
+				debug_log(" branched\n");
 			}
-			else { debug_printf("\n"); }
+			else { debug_log("\n"); }
 			break;
 		}
 
 		if (bit16 == 1) {		// bgez
-			debug_printf("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
+			debug_log("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 			if (bit20 == 1) regs[0x1f] = pc + 8; // check if link (bgezal)
 			if (signed_rs >= 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
 				delay = true;
-				debug_printf(" branched\n");
+				debug_log(" branched\n");
 			}
-			else { debug_printf("\n"); }
+			else { debug_log("\n"); }
 			break;
 		}
 	}
 	case 0x02: {
 		jump = (pc & 0xf0000000) | (jump_imm << 2);
-		debug_printf("j 0x%.8x\n", jump_imm);
+		debug_log("j 0x%.8x\n", jump_imm);
 		delay = true;
 		break;
 	}
 	case 0x03: {
 		jump = (pc & 0xf0000000) | (jump_imm << 2);
-		debug_printf("jal 0x%.8x\n", jump_imm);
+		debug_log("jal 0x%.8x\n", jump_imm);
 		regs[0x1f] = pc + 8;
 		delay = true;
 		break;
 	}
 	case 0x04: {
-		debug_printf("beq %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), sign_extended_imm);
+		debug_log("beq %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), sign_extended_imm);
 		if (regs[rs] == regs[rt]) {
 			jump = (pc + 4) + (sign_extended_imm << 2);
 			delay = true;
-			debug_printf(" branched\n");
+			debug_log(" branched\n");
 		}
-		else { debug_printf("\n"); }
+		else { debug_log("\n"); }
 		break;
 	}
 	case 0x05: {
-		debug_printf("bne %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), sign_extended_imm);
+		debug_log("bne %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), sign_extended_imm);
 		if (regs[rs] != regs[rt]) {
 			jump = (pc + 4) + (sign_extended_imm << 2);
 			delay = true;
-			debug_printf(" branched\n");
+			debug_log(" branched\n");
 		}
-		else { debug_printf("\n"); }
+		else { debug_log("\n"); }
 		break;
 	}
 	case 0x06: {
-		debug_printf("blez %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
+		debug_log("blez %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 		if (signed_rs <= 0) {
 			jump = (pc + 4) + (sign_extended_imm << 2);
 			delay = true;
-			debug_printf(" branched\n");
+			debug_log(" branched\n");
 		}
-		else { debug_printf("\n"); }
+		else { debug_log("\n"); }
 		break;
 	}
 	case 0x07: {
-		debug_printf("bgtz %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
+		debug_log("bgtz %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 		if (signed_rs > 0) {
 			jump = (pc + 4) + (sign_extended_imm << 2);
 			delay = true;
-			debug_printf(" branched\n");
+			debug_log(" branched\n");
 		}
-		else { debug_printf("\n"); }
+		else { debug_log("\n"); }
 		break;
 	}
 	case 0x08: {
-		debug_printf("addi %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), imm);
+		debug_log("addi %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), imm);
 		uint32_t result = regs[rs] + sign_extended_imm;
 		if (((regs[rs] >> 31) == (sign_extended_imm >> 31)) && ((regs[rs] >> 31) != (result >> 31))) {
-			debug_printf(" addi exception");
+			debug_log(" addi exception");
 			exception(exceptions::Overflow);
 			return;
 		}
-		debug_printf("\n");
+		debug_log("\n");
 		regs[rt] = result;
 		break;
 	}
 	case 0x09: {
 		regs[rt] = regs[rs] + sign_extended_imm;
-		debug_printf("addiu %s, %s, 0x%.4x\n", reg[rs].c_str(), reg[rt].c_str(), imm);
+		debug_log("addiu %s, %s, 0x%.4x\n", reg[rs].c_str(), reg[rt].c_str(), imm);
 		break;
 	}
 	case 0x0A: {
 		regs[rt] = 0;
 		if (signed_rs < signed_sign_extended_imm)
 			regs[rt] = 1;
-		debug_printf("slti %s, %s, 0x%.4X\n", reg[rs].c_str(), reg[rt].c_str(), imm);
+		debug_log("slti %s, %s, 0x%.4X\n", reg[rs].c_str(), reg[rt].c_str(), imm);
 		break;
 	}
 	case 0x0B: {
 		regs[rt] = regs[rs] < sign_extended_imm;
-		debug_printf("sltiu %s, %s, 0x%.4X\n", reg[rs].c_str(), reg[rt].c_str(), imm);
+		debug_log("sltiu %s, %s, 0x%.4X\n", reg[rs].c_str(), reg[rt].c_str(), imm);
 		break;
 	}
 	case 0x0C: {
-		debug_printf("andi %s, %s, 0x%.4x\n", reg[rs].c_str(), reg[rt].c_str(), imm);
+		debug_log("andi %s, %s, 0x%.4x\n", reg[rs].c_str(), reg[rt].c_str(), imm);
 		regs[rt] = (regs[rs] & imm);
 		break;
 	}
 	case 0x0D: {
-		debug_printf("ori %s, %s, 0x%.4x\n", reg[rs].c_str(), reg[rt].c_str(), imm);
+		debug_log("ori %s, %s, 0x%.4x\n", reg[rs].c_str(), reg[rt].c_str(), imm);
 		regs[rt] = (regs[rs] | imm);
 		break;
 	}
 	case 0x0E: {
-		debug_printf("xori %s, %s, 0x%.4x\n", reg[rs].c_str(), reg[rt].c_str(), imm);
+		debug_log("xori %s, %s, 0x%.4x\n", reg[rs].c_str(), reg[rt].c_str(), imm);
 		regs[rt] = (regs[rs] ^ imm);
 		break;
 	}
 	case 0x0F: {
-		debug_printf("lui %s, 0x%.4x\n", reg[rt].c_str(), imm);
+		debug_log("lui %s, 0x%.4x\n", reg[rt].c_str(), imm);
 		regs[rt] = imm << 16;
 		break;
 	}
@@ -602,14 +628,14 @@ void cpu::execute(uint32_t instr) {
 			uint8_t rt = (instr >> 16) & 0x1f;
 			uint16_t imm = instr & 0xffff;
 			regs[rt] = COP0.regs[rd];
-			debug_printf("mfc0 %s, %s\n", reg[rd].c_str(), reg[rt].c_str());
+			debug_log("mfc0 %s, %s\n", reg[rd].c_str(), reg[rt].c_str());
 			break;
 		}
 		case(0b00100): { // mtc0
 			uint8_t rd = (instr >> 11) & 0x1f;
 			uint8_t rt = (instr >> 16) & 0x1f;
 			COP0.regs[rd] = regs[rt];
-			debug_printf("mtc0 %s, %s\n", reg[rd].c_str(), reg[rt].c_str());
+			debug_log("mtc0 %s, %s\n", reg[rd].c_str(), reg[rt].c_str());
 			break;
 		}
 		case(0b10000): { // rfe
@@ -617,44 +643,45 @@ void cpu::execute(uint32_t instr) {
 				printf("Invalid RFE");
 				exit(0);
 			}
-			debug_printf("rfe");
-			auto mode = COP0.regs[12] & 0x3f;
-			COP0.regs[12] &= ~0x3f;
-			COP0.regs[12] |= mode >> 2;
+			debug_log("rfe");
+			//auto mode = COP0.regs[12] & 0x3f;
+			//COP0.regs[12] &= ~0x3f;
+			//COP0.regs[12] |= mode >> 2;
+			COP0.regs[12] = (COP0.regs[12] & 0xfffffff0) | ((COP0.regs[12] & 0x3c) >> 2);
 			break;
 		}
 		default:
-			printf(COLOR_RED "Unknown coprocessor instruction: 0x%.2x", cop_instr);
+			printf("Unknown coprocessor instruction: 0x%.2x", cop_instr);
 			exit(0);
 		}
 		break;
 	}
 	case 0x12: {
-		printf(COLOR_YELLOW "Unimplemented GTE instruction: 0x%x\n", instr & 0x3f);
+		debug_warn("Unimplemented GTE instruction: 0x%x\n", instr & 0x3f);
 		break;
 	}
 	case 0x20: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
 		if ((COP0.regs[12] & 0x10000) == 1) {
-			debug_printf(" cache isolated, ignoring load\n");
+			debug_log(" cache isolated, ignoring load\n");
 			break;
 		}
 
 		uint8_t byte = bus.mem.read(addr);
 		regs[rt] = int32_t(int16_t(int8_t(byte)));
-		debug_printf("lb %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("lb %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
 		break;
 	}
 	case 0x21: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_printf("lh %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("lh %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
 		if ((COP0.regs[12] & 0x10000) == 0) {
 			int16_t data = int16_t(bus.mem.read16(addr));
 			regs[rt] = uint32_t(int32_t(data));
-			debug_printf("\n");
+			debug_log("\n");
 		}
 		else {
-			debug_printf(" cache isolated, ignoring load\n");
+			debug_log(" cache isolated, ignoring load\n");
 		}
 		break;
 	}
@@ -662,7 +689,7 @@ void cpu::execute(uint32_t instr) {
 		uint32_t addr = regs[rs] + sign_extended_imm;
 		uint32_t aligned_addr = addr & ~3;
 		uint32_t aligned_word = bus.mem.read32(aligned_addr);
-		debug_printf("lwl %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("lwl %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		switch (addr & 3) {
 		case 0:
 			regs[rt] = (regs[rt] & 0x00ffffff) | (aligned_word << 24);
@@ -681,39 +708,39 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x23: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_printf("lw %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("lw %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		if ((COP0.regs[12] & 0x10000) == 0) {
 			regs[rt] = bus.mem.read32(addr);
-			debug_printf("\n");
+			debug_log("\n");
 		}
 		else {
-			debug_printf(" cache isolated, ignoring load\n");
+			debug_log(" cache isolated, ignoring load\n");
 		}
 		break;
 	}
 	case 0x24: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_printf("lbu %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("lbu %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		if ((COP0.regs[12] & 0x10000) == 0) {
 			uint8_t byte = bus.mem.read(addr);
 			regs[rt] = uint32_t(byte);
-			debug_printf("\n");
+			debug_log("\n");
 		}
 		else {
-			debug_printf(" cache isolated, ignoring load\n");
+			debug_log(" cache isolated, ignoring load\n");
 		}
 		break;
 	}
 	case 0x25: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_printf("lhu %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("lhu %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		if ((COP0.regs[12] & 0x10000) == 0) {
 			uint16_t data = bus.mem.read16(addr);
 			regs[rt] = uint32_t(data);
-			debug_printf("\n");
+			debug_log("\n");
 		}
 		else {
-			debug_printf(" cache isolated, ignoring load\n");
+			debug_log(" cache isolated, ignoring load\n");
 		}
 		break;
 	}
@@ -721,7 +748,7 @@ void cpu::execute(uint32_t instr) {
 		uint32_t addr = regs[rs] + sign_extended_imm;
 		uint32_t aligned_addr = addr & ~3;
 		uint32_t aligned_word = bus.mem.read32(aligned_addr);
-		debug_printf("lwr %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("lwr %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		switch (addr & 3) {
 		case 0:
 			regs[rt] = (regs[rt] & 0x00000000) | (aligned_word >> 0);
@@ -740,25 +767,29 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x28: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_printf("sb %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("sb %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		if ((COP0.regs[12] & 0x10000) == 0) {
 			bus.mem.write(addr, uint8_t(regs[rt]), true);
-			debug_printf("\n");
+			debug_log("\n");
 		}
 		else {
-			debug_printf(" cache isolated, ignoring write\n");
+			debug_log(" cache isolated, ignoring write\n");
 		}
 		break;
 	}
 	case 0x29: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_printf("sh %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		if (addr & 1) {
+			exception(exceptions::BadStoreAddr);
+			return;
+		}
+		debug_log("sh %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		if ((COP0.regs[12] & 0x10000) == 0) {
 			bus.mem.write16(addr, uint16_t(regs[rt]));
-			debug_printf("\n");
+			debug_log("\n");
 		}
 		else {
-			debug_printf(" cache isolated, ignoring write\n");
+			debug_log(" cache isolated, ignoring write\n");
 		}
 		break;
 	}
@@ -785,12 +816,16 @@ void cpu::execute(uint32_t instr) {
 		}
 
 		bus.mem.write32(addr, val);
-		debug_printf("swl %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("swl %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		break;
 	}
 	case 0x2B: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_printf("sw %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("sw %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
+		if (addr & 3) {
+			exception(exceptions::BadStoreAddr);
+			return;
+		}
 
 		if (addr == 0x1f801810) {	// handle gp0 command
 			bus.Gpu.execute_gp0(regs[rt]);
@@ -804,7 +839,7 @@ void cpu::execute(uint32_t instr) {
 
 		if ((COP0.regs[12] & 0x10000) == 0) {
 			bus.mem.write32(addr, regs[rt]);
-			debug_printf("\n");
+			debug_log("\n");
 		}
 		break;
 	}
@@ -831,27 +866,23 @@ void cpu::execute(uint32_t instr) {
 		}
 
 		bus.mem.write32(addr, val);
-		debug_printf("swr %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("swr %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		break;
 	}
 	case 0x32: {
-		debug_printf(COLOR_YELLOW "Unimplemented lwc2\n");
+		debug_warn("Unimplemented lwc2\n");
 		break;
 	}
 	case 0x3A: {
-		debug_printf(COLOR_YELLOW "Unimplemented swc2\n");
+		debug_warn("Unimplemented swc2\n");
 		break;
 	}
 
-
-	
 	default:
-		printf(COLOR_RED "\nUnimplemented instruction: 0x%x", primary);
+		debug_err("\nUnimplemented instruction: 0x%x", primary);
 		exit(0);
 	}
 	pc += 4;
-
-	
 }
 void cpu::check_CDROM_IRQ() {
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag) {

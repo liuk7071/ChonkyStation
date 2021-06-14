@@ -57,10 +57,6 @@ public:
 
 public:
 	bool debug;
-	bool inRange(unsigned low, unsigned high, unsigned x)
-	{
-		return (low <= x && x <= high);
-	}
 	void loadBios(std::string directory);
 	uint32_t loadExec(std::string directory);
 	void write(uint32_t addr, uint8_t data, bool log);

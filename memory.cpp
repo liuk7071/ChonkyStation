@@ -330,9 +330,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		exit(data);
 
 	printf("\nUnhandled write 0x%.8x", addr);
-	//exit(0);
-
-
+	exit(0);
 
 }
 
@@ -412,9 +410,9 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		return;
 	}
 	write(addr, uint8_t(data & 0x000000ff), false);
-	write(addr + 3, (data & 0xff000000) >> 24, false);
-	write(addr + 2, (data & 0x00ff0000) >> 16, false);
-	write(addr + 1, (data & 0x0000ff00) >> 8, false);
+	write(addr + 3, uint8_t((data & 0xff000000) >> 24), false);
+	write(addr + 2, uint8_t((data & 0x00ff0000) >> 16), false);
+	write(addr + 1, uint8_t((data & 0x0000ff00) >> 8), false);
 
 	if (debug) printf(" Write 0x%.8x at address 0x%.8x", data, addr);
 }

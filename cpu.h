@@ -1,29 +1,26 @@
 #include <stdint.h>
 #include <cstdarg>
 #include <string.h>
+#include <windows.h>
 #include "Bus.h"
 #include "cop0.h"
-
-#define COLOR_RED     "\x1b[31m"
-#define COLOR_GREEN   "\x1b[32m"
-#define COLOR_YELLOW  "\x1b[33m"
-#define COLOR_BLUE    "\x1b[34m"	// Colours for output
-#define COLOR_MAGENTA "\x1b[35m"
-#define COLOR_CYAN    "\x1b[36m"
-#define COLOR_RESET   "\x1b[0m"
 
 class cpu
 {
 public:
 	cpu(std::string rom_directory, std::string bios_directory, bool running_in_ci);
 	~cpu();
-	void debug_printf(const char* fmt, ...);
+	void debug_log(const char* fmt, ...);
+	void debug_warn(const char* fmt, ...);
+	void debug_err(const char* fmt, ...);
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	std::string reg[32] = { "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3", "$t0", "$t1", "$t2", "$t3","$t4", "$t5", "$t6", "$t7", "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7","$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra" };
 
 public:
 	enum exceptions {
 		INT = 0x0,
-		BadAddr = 0x4,
+		BadFetchAddr = 0x4,
+		BadStoreAddr = 0x5,
 		SysCall = 0x8,
 		Break = 0x9,
 		Reserved_Instruction = 0xA,

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <windows.h>
 #include <iomanip>
 #include <map>
 #include "cpu.h"

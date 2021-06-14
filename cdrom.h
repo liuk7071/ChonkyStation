@@ -6,7 +6,7 @@ class cdrom
 {
 public:
 	cdrom();
-	bool disk = true; // disk inserted
+	bool disk = false; // disk inserted
 	bool irq;
 	int delay = 1; // the INT delay in cycles
 public: // fifo
