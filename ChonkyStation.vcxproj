@@ -156,6 +156,7 @@
     <ClCompile Include="cdrom.cpp" />
     <ClCompile Include="ChonkyStation.cpp" />
     <ClCompile Include="Color.cpp" />
+    <ClCompile Include="controller.cpp" />
     <ClCompile Include="cop0.cpp" />
     <ClCompile Include="cpu.cpp" />
     <ClCompile Include="glad\src\glad.c" />
@@ -174,6 +175,7 @@
     <ClInclude Include="Bus.h" />
     <ClInclude Include="cdrom.h" />
     <ClInclude Include="Color.h" />
+    <ClInclude Include="controller.h" />
     <ClInclude Include="cop0.h" />
     <ClInclude Include="cpu.h" />
     <ClInclude Include="gpu.h" />

@@ -6,7 +6,6 @@ class cdrom
 {
 public:
 	cdrom();
-	bool disk = false; // disk inserted
 	bool irq;
 	int delay = 1; // the INT delay in cycles
 public: // fifo
@@ -36,12 +35,17 @@ public:
 	void INT5();
 	bool INT = false; // true if there are INTs to acknowledge
 	bool queued_INT2 = false;
+	bool queued_INT3 = false;
 	bool queued_INT5 = false; // true if an INT5 is queued
+	bool delayed_INT3 = false; // INT3 should be delayed
+	void delayedINT();
 	void sendQueuedINT();
 	// commands
 	void test();
 	void GetStat();
 	void GetID();
 	void SetLoc();
+	void SeekL();
 	void init();
+	void Setmode();
 };

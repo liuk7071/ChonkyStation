@@ -66,6 +66,9 @@
     <ClCompile Include="Color.cpp">
       <Filter>File di origine</Filter>
     </ClCompile>
+    <ClCompile Include="controller.cpp">
+      <Filter>File di origine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h">
@@ -114,6 +117,9 @@
       <Filter>File di intestazione</Filter>
     </ClInclude>
     <ClInclude Include="Color.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="controller.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
   </ItemGroup>

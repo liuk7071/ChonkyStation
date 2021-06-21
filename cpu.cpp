@@ -43,10 +43,12 @@ void cpu::sideloadExecutable(std::string directory) {
 
 void cpu::debug_log(const char* fmt, ...) {
 #ifdef log
-	std::va_list args;
-	va_start(args, fmt);
-	std::vprintf(fmt, args);
-	va_end(args);
+	if (debug) {
+		std::va_list args;
+		va_start(args, fmt);
+		std::vprintf(fmt, args);
+		va_end(args);
+	}
 #endif
 }
 void cpu::debug_warn(const char* fmt, ...) {
@@ -82,16 +84,9 @@ void cpu::exception(exceptions exc) {
 		handler = 0x80000080;
 	}
 
-	//auto mode = COP0.regs[12] & 0x3f;
-	//COP0.regs[12] &= 0x3f;
-	//COP0.regs[12] |= (mode << 2) & 0x3f;
 	COP0.regs[12] = (COP0.regs[12] & ~0x3f) | ((COP0.regs[12] & 0xf) << 2);
-
 	COP0.regs[13] = uint32_t(exc) << 2;
-	if (bd && uint32_t(exc) != 0) 
-		COP0.regs[14] = pc + 4; 
-	else 
-		COP0.regs[14] = pc;
+	COP0.regs[14] = pc;
 	pc = handler;
 }
 
@@ -423,7 +418,8 @@ void cpu::execute(uint32_t instr) {
 		case 0x20: {
 			debug_log("add %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), imm);
 			uint32_t result = regs[rs] + regs[rt];
-			if (((int32_t(regs[rs]) ^ result) & (int32_t(regs[rt]) ^ result)) >> 31) {
+
+			if (((regs[rs] >> 31) == (regs[rt] >> 31)) && ((regs[rs] >> 31) != (result >> 31))) {
 				debug_log(" add exception");
 				exception(exceptions::Overflow);
 				return;
@@ -885,6 +881,7 @@ void cpu::execute(uint32_t instr) {
 	pc += 4;
 }
 void cpu::check_CDROM_IRQ() {
+	bus.mem.CDROM.delayedINT();
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag) {
 		//printf("[IRQ] CDROM INT%d, setting I_STAT bit (I_MASK = 0x%x)\n", bus.mem.CDROM.interrupt_flag & 0b111, bus.mem.I_MASK);
 		bus.mem.I_STAT |= (1 << 2);
@@ -905,7 +902,7 @@ void cpu::step() {
 	}
 	const auto instr = fetch(pc);
 #ifdef log
-	printf("0x%.8X | 0x%.8X: ", pc, instr);
+	debug_log("0x%.8X | 0x%.8X: ", pc, instr);
 #endif
 	execute(instr);
 	frame_cycles += 2;

@@ -1,8 +1,11 @@
 #pragma once
 #include <stdint.h>
+#include <cstdarg>
+#include <windows.h>
 #include <array>
 #include <vector>
 #include "cdrom.h"
+#include "controller.h"
 
 class memory
 {
@@ -11,6 +14,7 @@ public:
 	~memory();
 
 	cdrom CDROM = cdrom();
+	controller pad1 = controller();
 	std::vector<uint8_t> file;
 	std::vector <uint8_t> bios;
 
@@ -57,6 +61,9 @@ public:
 
 public:
 	bool debug;
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	void debug_warn(const char* fmt, ...);
+	void debug_err(const char* fmt, ...);
 	void loadBios(std::string directory);
 	uint32_t loadExec(std::string directory);
 	void write(uint32_t addr, uint8_t data, bool log);

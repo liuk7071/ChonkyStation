@@ -12,7 +12,7 @@
 
 int main(int argc, char** argv) {
     std::map<int, bool> keyboard;
-    keyboard[SDLK_RETURN] = true;
+    //keyboard[SDLK_RETURN] = true;
 
     printf("\n Executing \n \n");
     // Parse CLI args (TODO: Use a library)
@@ -44,14 +44,14 @@ int main(int argc, char** argv) {
                     quit = true;
                     break;
                 case SDL_KEYDOWN:
-                    keyboard[event.key.keysym.sym] = false;
+                    keyboard[event.key.keysym.sym] = true;
                     break;
                 case SDL_KEYUP:
-                    keyboard[event.key.keysym.sym] = true;
+                    keyboard[event.key.keysym.sym] = false;
                     break;
                 }
             }
-            if (!keyboard[SDLK_RETURN]) {   // Manually fire a VBLANK IRQ to test some programs (I know)
+            if (keyboard[SDLK_RETURN]) {   // Manually fire a VBLANK IRQ to test some programs (I know)
                 Cpu.bus.mem.I_STAT &= ~1;
                 Cpu.bus.mem.I_STAT |= 1;
             }

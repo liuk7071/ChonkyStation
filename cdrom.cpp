@@ -1,4 +1,6 @@
 #include "cdrom.h"
+#define disk
+
 cdrom::cdrom() {
 }
 
@@ -19,6 +21,8 @@ void cdrom::execute(uint8_t command) {
 	case 0x01: GetStat(); break;
 	case 0x02: SetLoc(); break;
 	case 0x0A: init(); break;
+	case 0x0E: Setmode(); break;
+	case 0x15: SeekL(); break;
 	case 0x19: test(); break;
 	case 0x1A: GetID(); break;
 
@@ -57,6 +61,7 @@ void cdrom::INT2() {
 	return;
 }
 void cdrom::INT3() {
+	printf("a\n");
 	interrupt_flag &= ~0b111;
 	interrupt_flag |= 0b011;
 	return;
@@ -65,6 +70,12 @@ void cdrom::INT5() {
 	interrupt_flag &= ~0b111;
 	interrupt_flag |= 0b101;
 	return;
+}
+void cdrom::delayedINT() {
+	if (delayed_INT3) {
+		delayed_INT3 = false;
+		INT3();
+	}
 }
 void cdrom::sendQueuedINT() {
 	delay = queued_delay;
@@ -78,6 +89,17 @@ void cdrom::sendQueuedINT() {
 		status |= 0b00100000;
 		queued_INT2 = false;
 		
+	}
+	if (queued_INT3) {
+		//printf("[CDROM] Sending delayed INT3\n");
+		for (int i = 0; i < 16; i++) {
+			response_fifo[i] = queued_fifo[i];
+		}
+		response_length = queued_response_length;
+		INT3();
+		status |= 0b00100000;
+		queued_INT3 = false;
+
 	}
 	if (queued_INT5) {
 		//printf("[CDROM] Sending delayed INT5\n");
@@ -119,38 +141,45 @@ void cdrom::GetStat() {	// Return status byte
 	status |= 0b00100000;
 	delay = 40000;
 }
+void cdrom::Setmode() {	// Set mode 
+	status |= 0b00001000;
+	printf("[CDROM] Setmode (0x%x)\n", fifo[0]);
+	response_fifo[0] = get_stat();
+	INT3();
+	status |= 0b00100000;
+	delay = 2;
+}
 void cdrom::GetID() { // Disk info
 	printf("[CDROM] GetID\n");
-	if (disk) {
-		response_fifo[0] = get_stat();
-		response_length = 1;
-		INT3();
-		queued_fifo[0] = 0x02;
-		queued_fifo[1] = 0;
-		queued_fifo[2] = 0;
-		queued_fifo[3] = 0;
-		queued_fifo[4] = 0x53;
-		queued_fifo[5] = 0x43;
-		queued_fifo[6] = 0x45;
-		queued_fifo[7] = 0x41;
-		queued_response_length = 8;
-		queued_INT2 = true;
-	}
-	else {
-		response_fifo[0] = get_stat();
-		response_length = 1;
-		INT3();
-		queued_fifo[0] = 0x08;
-		queued_fifo[1] = 0x40;
-		queued_fifo[2] = 0;
-		queued_fifo[3] = 0;
-		queued_fifo[4] = 0;
-		queued_fifo[5] = 0;
-		queued_fifo[6] = 0;
-		queued_fifo[7] = 0;
-		queued_response_length = 8;
-		queued_INT5 = true;
-	}
+#ifdef disk
+	response_fifo[0] = get_stat();
+	response_length = 1;
+	INT3();
+	queued_fifo[0] = 0x02;
+	queued_fifo[1] = 0;
+	queued_fifo[2] = 0;
+	queued_fifo[3] = 0;
+	queued_fifo[4] = 0x53;
+	queued_fifo[5] = 0x43;
+	queued_fifo[6] = 0x45;
+	queued_fifo[7] = 0x41;
+	queued_response_length = 8;
+	queued_INT2 = true;
+#else
+	response_fifo[0] = get_stat();
+	response_length = 1;
+	INT3();
+	queued_fifo[0] = 0x08;
+	queued_fifo[1] = 0x40;
+	queued_fifo[2] = 0;
+	queued_fifo[3] = 0;
+	queued_fifo[4] = 0;
+	queued_fifo[5] = 0;
+	queued_fifo[6] = 0;
+	queued_fifo[7] = 0;
+	queued_response_length = 8;
+	queued_INT5 = true;
+#endif
 	delay = 40000;
 	queued_delay = 50000;
 	status |= 0b00100000;
@@ -165,7 +194,20 @@ void cdrom::SetLoc() { // Sets the seek target
 	response_length = 1;
 	INT3();
 	status |= 0b00100000;
-	delay = 50000;
+	delay = 10000;
+}
+void cdrom::SeekL() {	// Seek to the seek target (SetLoc)
+	status |= 0b00001000;
+	printf("[CDROM] SeekL\n");
+	response_fifo[0] = get_stat();
+	response_length = 1;
+	delayed_INT3 = true;
+	queued_fifo[0] = get_stat();
+	queued_response_length = 1;
+	queued_INT2 = true;
+	status |= 0b00100000;
+	delay = 100000;
+	queued_delay = 100000;
 }
 void cdrom::init() {
 	printf("[CDROM] Init\n");

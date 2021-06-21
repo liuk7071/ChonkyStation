@@ -1,4 +1,5 @@
 #include "memory.h"
+#include <iostream>
 #include <fstream>
 
 #pragma warning(disable : 4996)
@@ -10,6 +11,22 @@ memory::~memory() {
 
 }
 
+void memory::debug_warn(const char* fmt, ...) {
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
+	std::va_list args;
+	va_start(args, fmt);
+	std::vprintf(fmt, args);
+	va_end(args);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+}
+void memory::debug_err(const char* fmt, ...) {
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
+	std::va_list args;
+	va_start(args, fmt);
+	std::vprintf(fmt, args);
+	va_end(args);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+}
 
 uint32_t memory::mask_address(const uint32_t addr)
 {
@@ -32,17 +49,18 @@ uint8_t memory::read(uint32_t addr) {
 
 	//if (masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
 	//	return 0;
-	if (masked_addr == 0x1f801044) { // JOY_STAT
-		return 0;
-	}
-	if (masked_addr == 0x1f80104a)
-		return 0;
-	if (masked_addr == 0x1f801040)
-		return 0;
 	if (masked_addr == 0x1F801070) { // I_STAT
 		printf("[IRQ] Status 8bit read\n");
 		return I_STAT;
 	}
+
+
+	// controller
+	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
+		debug_warn("[PAD] Read JOY_RX_DATA (0x%x)\n", pad1.joy_rx_data);
+		return pad1.joy_rx_data;
+	}
+
 	if (masked_addr == 0x1f801800) {	// cdrom status
 		printf("[CDROM] Status register read\n");
 		return CDROM.status;
@@ -94,7 +112,7 @@ uint8_t memory::read(uint32_t addr) {
 	}
 
 	printf("\nUnhandled read 0x%.8x", addr);
-	//exit(0);
+	exit(0);
 }
 
 uint16_t memory::read16(uint32_t addr) {
@@ -102,13 +120,21 @@ uint16_t memory::read16(uint32_t addr) {
 	uint32_t masked_addr = mask_address(addr);
 	if (masked_addr == 0x1f801120)	// timer 2 stuff
 		return 0;
+
+	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
-		return 0;
+		debug_warn("[PAD] Read JOY_STAT\n");
+		return pad1.joy_stat;
 	}
-	if (masked_addr == 0x1f80104a)
-		return 0;
-	if (masked_addr == 0x1f801040)
-		return 0;
+	if (masked_addr == 0x1f80104a) {	// JOY_CTRL
+		uint16_t randn = rand() % 0xffff;
+		debug_warn("[PAD] Read JOY_CTRL (0x%x)\n", randn);
+		return pad1.joy_ctrl;
+	}
+	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
+		debug_warn("[PAD] Read JOY_RX_DATA\n");
+		return pad1.joy_rx_data;
+	}
 
 	if (masked_addr >= 0x1F801D80 && masked_addr <= 0x1F801DBC) {	// SPUSTAT
 		return 0;
@@ -150,16 +176,9 @@ uint16_t memory::read16(uint32_t addr) {
 uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-	if (masked_addr == 0x1f801044) { // JOY_STAT
-		return 0;
-	}
-	if (masked_addr == 0x1f80104a) // JOY_CTRL
-		return 0;
-	if (masked_addr == 0x1f801040) // JOY_DATA
-		return 0;
-	if (masked_addr == 0x1f801110)
-		return 0;
 
+	if (masked_addr == 0x1f801110)	// timer 1 stuff
+		return 0;
 	if (masked_addr == 0x1f80101c) {
 		return exp2_delay_size;
 	}
@@ -227,7 +246,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 
 	printf("\nUnhandled read 0x%.8x", addr);
-	//exit(0);
+	exit(0);
 
 
 
@@ -239,10 +258,18 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	//if(masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
 	//	return;
 
+	// controllers
+	if (masked_addr == 0x1f801040) {
+		debug_warn("[PAD] Write 0x%x to JOY_TX_DATA\n", data);
+		pad1.joy_tx_data = data;
+		pad1.exec();
+		return;
+	}
+
 	if (masked_addr == 0x1f801800) {	// cdrom status
 		printf("[CDROM] Write 0x%x to status register\n", data);
-		CDROM.status &= ~1;
-		CDROM.status |= data & 1;
+		CDROM.status &= ~0b11;
+		CDROM.status |= data & 0b11;
 		return;
 	}
 	if (masked_addr == 0x1f801801) {
@@ -432,10 +459,20 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	}
 	if (masked_addr == 0x1f802082) // "its a PCSX register, ignore it"
 		return;
-	if (masked_addr == 0x1f80104e)
+
+	// controller
+	if (masked_addr == 0x1f801048) {
+		debug_warn("[PAD] Write 0x%x to JOY_MODE\n");
+		pad1.joy_mode = data;
 		return;
-	if (masked_addr == 0x1f801048)
+	}
+	if (masked_addr == 0x1f80104e) {
+		debug_warn("[PAD] Write 0x%x to JOY_BAUD\n");
+		pad1.joy_baud = data;
 		return;
+	}
+
+
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
 		return;
