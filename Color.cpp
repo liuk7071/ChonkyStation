@@ -11,12 +11,12 @@ Color::Color(float r, float g, float b, float a)
 uint32_t
 Color::ToUInt32() const
 {
-	uint32_t r = (uint32_t)(R);
-	uint32_t g = (uint32_t)(G);
-	uint32_t b = (uint32_t)(B);
-	uint32_t a = (uint32_t)(A);
+	uint32_t r = (((uint32_t)(R) * 31) + 127) / 255;
+	uint32_t g = (((uint32_t)(G) * 31) + 127) / 255;
+	uint32_t b = (((uint32_t)(B) * 31) + 127) / 255;
+	uint32_t a = ((uint32_t)(R) + 127) / 255;
 
-	return (a << 24) | (r << 16) | (g << 8) | b;
+	return (a << 15) | (b << 10) | (g << 5) | r;
 }
 
 Color

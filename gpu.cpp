@@ -50,11 +50,13 @@ uint32_t gpu::get_status() {
 
 // trongles
 void gpu::putpixel(point v1, uint32_t colour) {
-	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
-	if (v1.x >= 640 || v1.y >= 480)
-		return;
+	//Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
+	//if (v1.x >= 1024 || v1.y >= 512)
+	//	return;
+	//
+	//rast.vram[v1.y * 1024 + v1.x] = c1.ToUInt32();
 
-	pixels[v1.y * 640 + v1.x] = c1.ToUInt32();
+	rast.SetPixel(v1.x, v1.y, colour);
 }
 
 void gpu::quad(point v1, point v2, point v3, point v4, uint32_t colour) {
@@ -68,6 +70,11 @@ void gpu::quad(point v1, point v2, point v3, point v4, uint32_t colour) {
 	rast.DrawTriangle(c1, v2.x, v2.y, c2, v3.x, v3.y, c3, v4.x, v4.y);
 	//triangle(v1, v2, v3, colour);
 	//triangle(v2, v3, v4, colour);
+}
+
+// Textures
+uint16_t gpu::vram_read(int x, int y) {
+	return rast.vram[y * 1024 + x];
 }
 
 void gpu::execute_gp0(uint32_t command) {
@@ -159,12 +166,12 @@ void gpu::execute_gp0(uint32_t command) {
 			debug_printf("[GP0] Copy Rectangle (VRAM to CPU)\n");
 			break;
 		}
-		case(0xE1): {	// Dram Mode Setting
-			debug_printf("[GP0] Mode Setting\n");
+		case(0xE1): {	// Draw Mode Setting
+			debug_printf("[GP0] Draw Mode Setting\n");
 			page_base_x = command & 0xf;
 			page_base_y = (command >> 4) & 1;
 			semi_transparency = (command >> 5) & 3;
-			// texture_depth
+			texture_depth = (command >> 7) & 3;
 			dithering = ((command >> 9) & 1) != 0;
 			allow_display_drawing = ((command >> 10) & 1) != 0;
 			// rectangle x flip
@@ -232,17 +239,43 @@ void gpu::execute_gp0(uint32_t command) {
 		case 1: {	// load mode
 			debug_printf("[CPU to VRAM transfer] Data: 0x%x\n", command);
 			uint32_t resolution = fifo[2];
+			uint32_t coords = fifo[1];
 			auto width = resolution & 0xffff;
 			auto height = resolution >> 16;
+			if (width == 0) width = 1024;
+			if (height == 0) height = 512;
+			auto x = coords & 0xffff;
+			auto y = coords >> 16;
+			
+			xpos %= 1024;
+			ypos %= 512;
+			
+			rast.vram[(y + ypos) * 1024 + (x+xpos)] = command & 0xffff;
+			xpos++;
 
-			int x = 0;
-			int y = 0;
-			if (cmd_left == 0) {	// load done
-				gp0_mode = 0;
-				break;
+			if (xpos == width) {
+				xpos = 0;
+				ypos++;
+
+				if (ypos == height) {
+					gp0_mode = 0;
+					break;
+				}
 			}
 
-			
+			rast.vram[(y+ypos) * 1024 + (x + xpos)] = command >> 16;
+			xpos++;
+
+			if (xpos == width) {
+				xpos = 0;
+				ypos++;
+
+				if (ypos == height) {
+					gp0_mode = 0;
+					break;
+				}
+			}
+
 		}
 		}
 	}
@@ -264,7 +297,7 @@ void gpu::execute_gp1(uint32_t command) {
 		break;
 	}
 	default:
-		debug_printf("[GP1] Unknown GP1 command: 0x%x\n", instr);
+		printf("[GP1] Unknown GP1 command: 0x%x\n", instr);
 		//exit(0);
 	}
 }
@@ -297,7 +330,11 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
+	rast.textured = true;
+	rast.page.x = page_base_x;
+	rast.page.y = page_base_y;
 	quad(v1, v2, v3, v4, 0xff);
+	rast.textured = false;
 	return;
 }
 void gpu::monochrome_four_point_semi_transparent_polygon() {
@@ -456,7 +493,7 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	if (x >= 640 || y >= 480)
 		return;
 	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
-	pixels[y * 640 + x] = c1.ToUInt32();
+	rast.vram[y * 1024 + x] = c1.ToUInt32();
 	return;
 }
 void gpu::fill_rectangle() {
@@ -466,9 +503,12 @@ void gpu::fill_rectangle() {
 void gpu::cpu_to_vram() {
 	debug_printf("[GP0] Copy Rectangle (CPU to VRAM)\n");
 	uint32_t resolution = fifo[2];
+	uint32_t coords = fifo[1];
 	auto width = resolution & 0xffff;
 	auto height = resolution >> 16;
-	auto size = width * height;
+	xpos = 0;
+	ypos = 0;
+	uint32_t size = width * height;
 	size += 1;
 	size &= ~1;
 	cmd_left = size / 2;
@@ -483,11 +523,3 @@ void gpu::vram_to_cpu() {
 	return;
 }
 
-
-void gpu::write32(uint32_t addrX, uint32_t addrY, uint32_t data) {
-	//vram[addrY][addrX] = data & 0x000000ff;
-	//vram[addrY][addrX] = data & 0xff000000 >> 24;
-	//vram[addrY][addrX] = data & 0x00ff0000 >> 16;
-	//vram[addrY][addrX] = data & 0x0000ff00 >> 8;
-	return;
-}

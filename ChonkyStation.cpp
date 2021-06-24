@@ -30,10 +30,10 @@ int main(int argc, char** argv) {
 
     SDL_Event event;
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
-    const auto window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN);
+    const auto window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 512, SDL_WINDOW_SHOWN);
     const auto renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderClear(renderer);
-    const auto frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, 640, 480);
+    const auto frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STATIC, 1024, 512);
   
     bool quit = false;
     while (!quit) {
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
                 Cpu.bus.mem.I_STAT |= 1;
             }
 
-            SDL_UpdateTexture(frame, NULL, Cpu.bus.Gpu.pixels, 640 * sizeof(uint32_t));
+            SDL_UpdateTexture(frame, NULL, Cpu.bus.Gpu.rast.vram, 1024 * sizeof(uint16_t));
             SDL_RenderClear(renderer);
             SDL_RenderCopy(renderer, frame, NULL, NULL);
             SDL_RenderPresent(renderer);

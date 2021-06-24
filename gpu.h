@@ -17,19 +17,17 @@ public:		// rasterization stuff
 		uint8_t g = (c >> 8) & 0xff;
 		uint8_t b = (c >> 16) & 0xff;
 	};
-
 	Rasterizer rast;
 
 	void putpixel(point v1, uint32_t colour);
-	void horizontal_line(point v1, point v2, uint32_t colour);
-	void bottom_flat_triangle(point v1, point v2, point v3, uint32_t colour);
-	void top_flat_triangle(point v1, point v2, point v3, uint32_t colour);
-	void triangle(point v1, point v2, point v3, uint32_t colour);
 	void quad(point v1, point v2, point v3, point v4, uint32_t colour);
 
 public:
 	gpu();
-	uint16_t* vram = new uint16_t[1024*512];
+	
+	uint16_t vram_read(int x, int y);
+	int xpos = 0;
+	int ypos = 0;	// Used to keep track of memory transfers
 	uint32_t* pixels;
 	uint32_t fifo[12];
 	int cmd_length = 0;
@@ -44,7 +42,7 @@ public:
 	uint8_t page_base_x;
 	uint8_t page_base_y;
 	uint8_t semi_transparency;
-	uint8_t texture_page_colors;
+	uint8_t texture_depth;
 	uint8_t dithering;
 	bool allow_display_drawing;
 	bool mask_bit;

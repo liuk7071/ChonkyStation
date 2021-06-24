@@ -3,6 +3,7 @@
 #include <cmath>
 #include "Rasterizer.h"
 
+
 Edge::Edge(const Color& color1, int x1, int y1,
 	const Color& color2, int x2, int y2)
 {
@@ -40,6 +41,26 @@ Span::Span(const Color& color1, int x1, const Color& color2, int x2)
 	}
 }
 
+uint16_t Rasterizer::vram_read(int x, int y) {
+	return vram[y * 1024 + x];
+}
+uint16_t Rasterizer::fetch_texel(int x, int y, point clut, point page, Depth depth) {
+	switch (depth) {
+	case Depth::BITS4: {
+		uint16_t texel = vram_read(page.x + x / 4, page.y + y);
+		int index = (texel >> (x % 4) * 4) & 0xF;
+		return vram_read(clut.x + index, clut.y);
+	}
+	case Depth::BITS8: {
+		uint16_t texel = vram_read(x / 2 + page.x, y + page.y);
+		int index = (texel >> (x % 2) * 8) & 0xFF;
+		return vram_read(clut.x + index, clut.y);
+	}
+	case Depth::BITS16: {
+		return vram_read(x + page.x, y + page.y);
+	}
+	}
+}
 void
 Rasterizer::SetFrameBuffer(uint32_t* frameBuffer,
 	unsigned int width, unsigned int height)
@@ -55,7 +76,15 @@ Rasterizer::SetPixel(unsigned int x, unsigned int y, const Color& color)
 	if (x >= m_Width || y >= m_Height)
 		return;
 
+	//if (textured) {
+	//	m_FrameBuffer[y * m_Width + x] = fetch_texel(xpos, ypos, clut, page, Depth::BITS16);	// Assume 16bit colour depth
+	//	xpos++;
+	//	
+	//}
+	//else 
 	m_FrameBuffer[y * m_Width + x] = color.ToUInt32();
+	vram[y * 1024 + x] = uint16_t(color.ToUInt32());
+
 }
 
 void
