@@ -4,6 +4,8 @@
 Bus* bus;
 
 gpu::gpu() {
+
+	
 	// Initialize pixel array
 	pixels = new uint32_t [480 * 640];
 
@@ -49,6 +51,265 @@ uint32_t gpu::get_status() {
 
 
 // trongles
+//static const GLchar* vertexShaderSource = 
+//R"(
+//#version 330 core
+//in ivec3 vposition;
+//in uvec3 vcolor;
+//out vec3 color;
+//void main() {
+//    float xpos = (float(vposition.x) / 512) - 1.0;
+//    float ypos = 1.0 - (float(vposition.y) / 256);
+//    gl_Position.xyzw = vec4(xpos, ypos, 0.0, 1.0);
+//    color = vec3(float(vcolor.r) / 255, float(vcolor.g) / 255, float(vcolor.b) / 255);
+//}
+//)";
+//static const GLchar* fragmentShaderSource =
+//R"(
+//#version 330 core
+//in vec3 color;
+//out vec4 frag_color;
+//void main() {
+//    frag_color = vec4(color, 1.0);
+//}
+//)";
+
+static const GLchar* vertexShaderSource =
+R"(
+#version 430 core
+layout (location = 0) in vec2 vpos;
+layout (location = 1) in vec2 tex_coord;
+out vec2 tex_coords;
+
+uniform ivec2 offset = ivec2(0);
+
+void main()
+{
+	/* Add the draw offset. */  
+	vec2 pos = vpos + offset;
+
+	/* Transform from 0-640 to 0-1 range. */
+	float posx = pos.x / 640 * 2 - 1;
+	/* Transform from 0-480 to 0-1 range. */
+        float posy = pos.y / 480 * (-2) + 1;
+
+	/* Emit vertex. */
+	gl_Position = vec4(posx, posy, 0.0, 1.0);
+	tex_coords = tex_coord;
+}
+)";
+static const GLchar* fragmentShaderSource =
+R"(
+#version 430 core
+in vec2 tex_coords;
+out vec4 frag_color;
+
+uniform int texture_depth;
+
+/* Used for palleted texture lookup. */ 
+uniform sampler2D texture_sample4;
+uniform sampler2D texture_sample8;
+uniform sampler2D texture_sample16;
+
+uniform int clut4[16];
+uniform int clut8[128];
+
+vec4 split_colors(int data)
+{
+    vec4 color;
+    color.r = (data << 3) & 0xf8;
+    color.g = (data >> 2) & 0xf8;
+    color.b = (data >> 7) & 0xf8;
+    color.a = 255.0f;
+
+    return color;
+}
+
+vec4 sample_texel()
+{
+    if (texture_depth == 4) {
+        vec4 index = texture2D(texture_sample4, tex_coords);
+        int texel = clut4[int(index.r * 255)];
+
+        return split_colors(texel) / vec4(255.0f);
+    }
+    else if (texture_depth == 8) {
+        vec4 index = texture2D(texture_sample8, tex_coords);
+        int texel = clut8[int(index.r * 255)];
+
+        return split_colors(texel) / vec4(255.0f);  
+    }
+    else {
+        vec4 texel = texture2D(texture_sample16, tex_coords);
+		int r = int(texel.r * 255);
+        return split_colors(r) / vec4(255.0f);
+    }
+}
+
+void main()
+{
+	frag_color = sample_texel();
+}
+)";
+
+void gpu::GetGlContext(SDL_GLContext* glc) {
+	GlContext = &glc;
+	glClearColor(0, 0, 0, 1);
+	glClear(GL_COLOR_BUFFER_BIT);
+	GLint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+	glCompileShader(vertexShader);
+	GLint success;
+	GLchar infoLog[512];
+	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+		printf("ERROR::SHADER::VERTEX::COMPILATION_FAILED\n%s\n", infoLog);
+	}
+
+	GLint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+	glCompileShader(fragmentShader);
+	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+	if (!success) {
+		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+		printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n%s\n", infoLog);
+	}
+
+	GLint shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, fragmentShader);
+	glLinkProgram(shaderProgram);
+	glUseProgram(shaderProgram);
+	glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+	if (!success) {
+		glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+		printf("ERROR::SHADER::PROGRAM::LINKING_FAILED\n%s\n", infoLog);
+	}
+	//GLuint vao, vbo;
+	//glGenVertexArrays(1, &vao);
+	//glGenBuffers(1, &vbo);
+	//glBindVertexArray(vao);
+	//glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	//auto buffer_size = sizeof(uint16_t) * (64 * 1024);
+	//glBufferStorage(GL_ARRAY_BUFFER, buffer_size, nullptr, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+	//glMapBufferRange(GL_ARRAY_BUFFER, 0, buffer_size, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT);
+
+	uint32_t buffer_mode = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
+	glGenBuffers(1, &pbo16);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo16);
+
+	glBufferStorage(GL_PIXEL_UNPACK_BUFFER, 1024 * 512, nullptr, buffer_mode);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	glGenTextures(1, &texture16);
+	glBindTexture(GL_TEXTURE_2D, texture16);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 1024, 512, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+
+	glBindTexture(GL_TEXTURE_2D, texture16);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo16);
+
+	ptr16 = (uint16_t*)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, 1024 * 512, buffer_mode);
+
+	glGenBuffers(1, &pbo4);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo4);
+
+	glBufferStorage(GL_PIXEL_UNPACK_BUFFER, 1024 * 512 * 4, nullptr, buffer_mode);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	glGenTextures(1, &texture4);
+	glBindTexture(GL_TEXTURE_2D, texture4);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 4096, 512, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+
+	glBindTexture(GL_TEXTURE_2D, texture4);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo4);
+
+	ptr4 = (uint8_t*)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, 1024 * 512 * 4, buffer_mode);
+
+	glGenBuffers(1, &pbo8);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo8);
+
+	glBufferStorage(GL_PIXEL_UNPACK_BUFFER, 1024 * 512 * 2, nullptr, buffer_mode);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+	glGenTextures(1, &texture8);
+	glBindTexture(GL_TEXTURE_2D, texture8);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 2048, 512, 0, GL_RED, GL_UNSIGNED_BYTE, nullptr);
+
+	glBindTexture(GL_TEXTURE_2D, texture8);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo8);
+
+	ptr8 = (uint8_t*)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, 1024 * 512 * 2, buffer_mode);
+
+	
+	
+}
+void gpu::upload_to_gpu()
+{
+	glBindTexture(GL_TEXTURE_2D, texture16);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo16);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RED, GL_UNSIGNED_BYTE, 0);
+
+	glBindTexture(GL_TEXTURE_2D, texture4);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo4);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4096, 512, GL_RED, GL_UNSIGNED_BYTE, 0);
+
+	glBindTexture(GL_TEXTURE_2D, texture8);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo8);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 2048, 512, GL_RED, GL_UNSIGNED_BYTE, 0);
+}
+uint16_t gpu::readv(uint32_t x, uint32_t y)
+{
+	int index = (y * 1024) + x;
+	return ptr16[index];
+}
+
+void gpu::writev(uint32_t x, uint32_t y, uint16_t data)
+{
+	int index = (y * 1024) + x;
+
+	ptr16[index] = data;
+
+	ptr8[index * 2 + 0] = (uint8_t)data;
+	ptr8[index * 2 + 1] = (uint8_t)(data >> 8);
+
+	ptr4[index * 4 + 0] = (uint8_t)data & 0xf;
+	ptr4[index * 4 + 1] = (uint8_t)(data >> 4) & 0xf;
+	ptr4[index * 4 + 2] = (uint8_t)(data >> 8) & 0xf;
+	ptr4[index * 4 + 3] = (uint8_t)(data >> 12) & 0xf;
+}
+
+gpu::point calc_tex_coords(int tx, int ty, int x, int y, int bpp) {
+	gpu::point p;
+	double r = 16 / bpp;
+	double xc = (tx * r + x) / (1024.0 * r);
+	double yc = (ty + y) / 512.0;
+	p.x = xc;
+	p.y = yc;
+	return p;
+}
+
 void gpu::putpixel(point v1, uint32_t colour) {
 	//Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
 	//if (v1.x >= 1024 || v1.y >= 512)
@@ -251,6 +512,7 @@ void gpu::execute_gp0(uint32_t command) {
 			ypos %= 512;
 			
 			rast.vram[(y + ypos) * 1024 + (x+xpos)] = command & 0xffff;
+			//writev(x + xpos, y + ypos, command & 0xffff);
 			xpos++;
 
 			if (xpos == width) {
@@ -259,11 +521,13 @@ void gpu::execute_gp0(uint32_t command) {
 
 				if (ypos == height) {
 					gp0_mode = 0;
+					upload_to_gpu();
 					break;
 				}
 			}
 
 			rast.vram[(y+ypos) * 1024 + (x + xpos)] = command >> 16;
+			//writev(x + xpos, y + ypos, command >> 16);
 			xpos++;
 
 			if (xpos == width) {
@@ -272,6 +536,7 @@ void gpu::execute_gp0(uint32_t command) {
 
 				if (ypos == height) {
 					gp0_mode = 0;
+					upload_to_gpu();
 					break;
 				}
 			}

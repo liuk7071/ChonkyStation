@@ -12,8 +12,6 @@
 
 int main(int argc, char** argv) {
     std::map<int, bool> keyboard;
-    //keyboard[SDLK_RETURN] = true;
-
     printf("\n Executing \n \n");
     // Parse CLI args (TODO: Use a library)
     const auto rom_dir = argc > 1 ? std::string(argv[1]) : "";  // Path of the ROM (Or "" if we just want to run the BIOS)
@@ -27,10 +25,12 @@ int main(int argc, char** argv) {
             Cpu.step();
     }
 
-
     SDL_Event event;
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER);
-    const auto window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 512, SDL_WINDOW_SHOWN);
+    const auto window = SDL_CreateWindow("ChonkyStation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1024, 512, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+    SDL_GLContext GlContext = SDL_GL_CreateContext(window);
+    gladLoadGL();
+    //Cpu.bus.Gpu.GetGlContext(&GlContext);
     const auto renderer = SDL_CreateRenderer(window, -1, 0);
     SDL_RenderClear(renderer);
     const auto frame = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STATIC, 1024, 512);
@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
             SDL_RenderCopy(renderer, frame, NULL, NULL);
             SDL_RenderPresent(renderer);
             Cpu.frame_cycles = 0;
+            //SDL_GL_SwapWindow(window);
         }
 
         Cpu.step();

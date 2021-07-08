@@ -5,6 +5,7 @@
 #include <array>
 #include <vector>
 #include "cdrom.h"
+#include <fstream>
 #include "controller.h"
 
 class memory
@@ -39,26 +40,16 @@ public:
 	uint32_t DICR;
 
 
+	typedef struct DMA {
+		uint32_t MADR;
+		uint32_t BCR;
+		uint32_t CHCR;
+	};
 
-	// channel 2
-	uint32_t channel2_base_address;
-	uint32_t channel2_block_control;
-	uint32_t channel2_control;
+	DMA Ch2, Ch3, Ch6;
 
-	// channel 6
-	uint32_t channel6_base_address;
-	uint32_t channel6_block_control;
-	uint32_t channel6_control;
 
-	uint32_t gp0;
-	uint32_t gp1;
 	uint32_t gpuread;
-	uint32_t gpustat;
-
-
-
-
-
 public:
 	bool debug;
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);

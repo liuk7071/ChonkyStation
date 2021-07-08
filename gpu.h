@@ -5,11 +5,22 @@
 #include <algorithm>
 #include <cstdarg>
 #include "Rasterizer.h"
+#include "SDL.h"
+#include "glad/glad.h"
 
 class gpu
 {
 
-public:		// rasterization stuff
+public:		// trongle stuff
+	uint32_t pbo4, pbo8, pbo16;
+	uint32_t texture4, texture8, texture16;
+	uint8_t* ptr4;
+	uint8_t* ptr8;
+	uint16_t* ptr16;
+	void upload_to_gpu();
+	uint16_t readv(uint32_t x, uint32_t y);
+	void writev(uint32_t x, uint32_t y, uint16_t data);
+	
 	struct point {		// vertex struct
 		uint16_t x, y;	// coordinates
 		uint32_t c;		// BGR colour
@@ -17,6 +28,7 @@ public:		// rasterization stuff
 		uint8_t g = (c >> 8) & 0xff;
 		uint8_t b = (c >> 16) & 0xff;
 	};
+	point calc_tex_coords(int tx, int ty, int x, int y, int bpp);
 	Rasterizer rast;
 
 	void putpixel(point v1, uint32_t colour);
@@ -24,7 +36,9 @@ public:		// rasterization stuff
 
 public:
 	gpu();
-	
+	SDL_GLContext GlContext;
+	void GetGlContext(SDL_GLContext* glc);
+
 	uint16_t vram_read(int x, int y);
 	int xpos = 0;
 	int ypos = 0;	// Used to keep track of memory transfers

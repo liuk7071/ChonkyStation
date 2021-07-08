@@ -99,16 +99,16 @@ void cpu::do_dma(int channel) {
 	//debug = true;
 	switch (channel) {		// switch on the channels
 	case(2): {	// GPU
-		auto sync_mode = (bus.mem.channel2_control >> 9) & 0b11;
-		bool incrementing = ((bus.mem.channel2_control >> 1) & 1) == 0;
-		auto direction = (bus.mem.channel2_control) & 1;
-		uint16_t words = (bus.mem.channel2_block_control) & 0xffff;
-		uint32_t addr = bus.mem.channel2_base_address & 0x1ffffc;
+		auto sync_mode = (bus.mem.Ch2.CHCR >> 9) & 0b11;
+		bool incrementing = ((bus.mem.Ch2.CHCR >> 1) & 1) == 0;
+		auto direction = (bus.mem.Ch2.CHCR) & 1;
+		uint16_t words = (bus.mem.Ch2.BCR) & 0xffff;
+		uint32_t addr = bus.mem.Ch2.MADR & 0x1ffffc;
 		uint32_t header = bus.mem.read32(addr);
 
 		switch (sync_mode) {
 		case(1): {	// Block Copy
-			words *= (bus.mem.channel2_block_control >> 16);
+			words *= (bus.mem.Ch2.BCR >> 16);
 			debug_log("[DMA] Start GPU Block Copy\n");
 			switch (direction) {
 			case(1):
@@ -121,8 +121,8 @@ void cpu::do_dma(int channel) {
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
 				}
-				bus.mem.channel2_control &= ~(1 << 24);
-				bus.mem.channel2_control &= ~(1 << 28);
+				bus.mem.Ch2.CHCR &= ~(1 << 24);
+				bus.mem.Ch2.CHCR &= ~(1 << 28);
 				debug = false;
 				return;
 			case(0):
@@ -153,7 +153,7 @@ void cpu::do_dma(int channel) {
 						break;
 					addr = _header & 0x1ffffc;
 				}
-				bus.mem.channel2_control &= ~(1 << 24);
+				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				debug_log("[DMA] GPU Linked List transfer complete\n");
 				debug = false;
 				return;
@@ -167,12 +167,65 @@ void cpu::do_dma(int channel) {
 		}
 	}
 
+	case(3): {			// CDROM
+		auto sync_mode = (bus.mem.Ch3.CHCR >> 9) & 0b11;
+		bool incrementing = ((bus.mem.Ch3.CHCR >> 1) & 1) == 0;
+		uint16_t words = (bus.mem.Ch3.BCR) & 0xffff;
+		auto direction = (bus.mem.Ch3.CHCR) & 1;
+		uint32_t addr = bus.mem.Ch3.MADR;
+
+		switch (sync_mode) {	// switch on the sync mode
+		case(0): {			// block dma
+			printf("[DMA] Start CDROM Block Copy\n");
+			uint32_t current_addr = addr & 0x1ffffc;
+			switch (direction) {
+			case(0):
+				printf("[DMA] Transfer direction: device to ram\n");
+				printf("[DMA] Transfer size: %d words\n", words);
+				while (words >= 0) {
+					current_addr = addr & 0x1ffffc;
+					if (words == 1) {
+						bus.mem.write32(current_addr, 0xffffff);
+						printf("[DMA] CDROM Block Copy completed\n");
+						bus.mem.Ch3.CHCR &= ~(1 << 24);
+						bus.mem.Ch3.CHCR &= ~(1 << 28);
+						debug = false;
+						
+						bus.mem.CDROM.queued_read = true;
+						bus.mem.CDROM.delay = 1000000;
+						return;
+					}
+					uint8_t b1 = bus.mem.CDROM.cd.PopSectorByte();
+					uint8_t b2 = bus.mem.CDROM.cd.PopSectorByte();
+					uint8_t b3 = bus.mem.CDROM.cd.PopSectorByte();
+					uint8_t b4 = bus.mem.CDROM.cd.PopSectorByte();
+					uint32_t word = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
+					bus.mem.write32(current_addr, word);
+					if (incrementing) addr += 4; else addr -= 4;
+					words--;
+				}
+		
+			default:
+				printf("[DMA] Unhandled Direction (CDROM Block Copy)\n");
+				exit(0);
+			}
+		
+			exit(0);
+		}
+		default:
+			printf("[DMA] Unhandled sync mode (CDROM: %d)", sync_mode);
+			exit(0);
+		}
+		exit(0);
+		break;
+	}
+
 	case(6): {			// OTC
-		auto sync_mode = (bus.mem.channel6_control >> 9) & 0b11;
-		bool incrementing = ((bus.mem.channel6_control >> 1) & 1) == 0;
-		uint16_t words = (bus.mem.channel6_block_control) & 0xffff;
-		auto direction = (bus.mem.channel6_control) & 1;
-		uint32_t addr = bus.mem.channel6_base_address;
+		auto sync_mode = (bus.mem.Ch6.CHCR >> 9) & 0b11;
+		bool incrementing = ((bus.mem.Ch6.CHCR >> 1) & 1) == 0;
+		uint16_t words = (bus.mem.Ch6.BCR) & 0xffff;
+		auto direction = (bus.mem.Ch6.CHCR) & 1;
+		uint32_t addr = bus.mem.Ch6.MADR;
 
 		switch (sync_mode) {	// switch on the sync mode
 		case(0): {			// block dma
@@ -187,8 +240,8 @@ void cpu::do_dma(int channel) {
 					if (words == 1) {
 						bus.mem.write32(current_addr, 0xffffff);
 						debug_log("[DMA] OTC Block Copy completed\n");
-						bus.mem.channel6_control &= ~(1 << 24);
-						bus.mem.channel6_control &= ~(1 << 28);
+						bus.mem.Ch6.CHCR &= ~(1 << 24);
+						bus.mem.Ch6.CHCR &= ~(1 << 28);
 						debug = false;
 						return;
 					}
@@ -219,16 +272,23 @@ void cpu::do_dma(int channel) {
 
 
 void cpu::check_dma() {
-	bool enabled = ((bus.mem.channel2_control >> 24) & 1) == 1;
-	bool trigger = ((bus.mem.channel2_control >> 28) & 1) == 1;
-	auto sync_mode = (bus.mem.channel2_control >> 9) & 0b11;
+	bool enabled = ((bus.mem.Ch2.CHCR >> 24) & 1) == 1;
+	bool trigger = ((bus.mem.Ch2.CHCR >> 28) & 1) == 1;
+	auto sync_mode = (bus.mem.Ch2.CHCR >> 9) & 0b11;
 
 	auto triggered = !(sync_mode == 0 && !trigger);
 	if (enabled && triggered) { do_dma(2); return; }
 
-	enabled = ((bus.mem.channel6_control >> 24) & 1) == 1;
-	trigger = ((bus.mem.channel6_control >> 28) & 1) == 1;
-	sync_mode = (bus.mem.channel6_control >> 9) & 0b11;
+	enabled = ((bus.mem.Ch3.CHCR >> 24) & 1) == 1;
+	trigger = ((bus.mem.Ch3.CHCR >> 28) & 1) == 1;
+	sync_mode = (bus.mem.Ch3.CHCR >> 9) & 0b11;
+
+	triggered = !(sync_mode == 0 && !trigger);
+	if (enabled && triggered) { do_dma(3); return; }
+
+	enabled = ((bus.mem.Ch6.CHCR >> 24) & 1) == 1;
+	trigger = ((bus.mem.Ch6.CHCR >> 28) & 1) == 1;
+	sync_mode = (bus.mem.Ch6.CHCR >> 9) & 0b11;
 
 	triggered = !(sync_mode == 0 && !trigger);
 	if (enabled && triggered) { do_dma(6); return; }
@@ -882,10 +942,13 @@ void cpu::execute(uint32_t instr) {
 }
 void cpu::check_CDROM_IRQ() {
 	bus.mem.CDROM.delayedINT();
+	if (bus.mem.CDROM.queued_read) {
+		bus.mem.CDROM.queuedRead();
+	}
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag) {
 		//printf("[IRQ] CDROM INT%d, setting I_STAT bit (I_MASK = 0x%x)\n", bus.mem.CDROM.interrupt_flag & 0b111, bus.mem.I_MASK);
 		bus.mem.I_STAT |= (1 << 2);
-		if (bus.mem.CDROM.queued_INT2 || bus.mem.CDROM.queued_INT5) {
+		if (bus.mem.CDROM.queued_INT1 || bus.mem.CDROM.queued_INT2 || bus.mem.CDROM.queued_INT5) {
 			bus.mem.CDROM.sendQueuedINT();
 		}
 	}

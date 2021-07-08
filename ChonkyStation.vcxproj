@@ -153,6 +153,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Bus.cpp" />
+    <ClCompile Include="CD.cpp" />
     <ClCompile Include="cdrom.cpp" />
     <ClCompile Include="ChonkyStation.cpp" />
     <ClCompile Include="Color.cpp" />
@@ -173,6 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h" />
+    <ClInclude Include="CD.h" />
     <ClInclude Include="cdrom.h" />
     <ClInclude Include="Color.h" />
     <ClInclude Include="controller.h" />

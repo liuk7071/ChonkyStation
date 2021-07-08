@@ -1,6 +1,6 @@
 #include "memory.h"
 #include <iostream>
-#include <fstream>
+
 
 #pragma warning(disable : 4996)
 memory::memory() {
@@ -111,6 +111,11 @@ uint8_t memory::read(uint32_t addr) {
 		return 0xff;
 	}
 
+	//if (masked_addr >= 0xf1000007 && masked_addr <= 0xf1100000)
+	//	return 0;
+	
+
+
 	printf("\nUnhandled read 0x%.8x", addr);
 	exit(0);
 }
@@ -210,19 +215,27 @@ uint32_t memory::read32(uint32_t addr) {
 
 	// channel 2
 	if (masked_addr == 0x1f8010a0) 	// base address
-		return channel2_base_address;
+		return Ch2.MADR;
 	if (masked_addr == 0x1f8010a4) // block control
-		return channel2_block_control;
+		return Ch2.BCR;
 	if (masked_addr == 0x1f8010a8) 	// control
-		return channel2_control;
+		return Ch2.CHCR;
+
+	// channel 3
+	if (masked_addr == 0x1f8010b0) 	// base address
+		return Ch3.MADR;
+	if (masked_addr == 0x1f8010b4) // block control
+		return Ch3.BCR;
+	if (masked_addr == 0x1f8010b8) 	// control
+		return Ch3.CHCR;
 
 	// channel 6
 	if (masked_addr == 0x1f8010e0) 	// base address
-		return channel6_base_address;
+		return Ch6.MADR;
 	if (masked_addr == 0x1f8010e4) // block control
-		return channel6_block_control;
+		return Ch6.BCR;
 	if (masked_addr == 0x1f8010e8)	// control
-		return channel6_control;
+		return Ch6.CHCR;
 
 
 
@@ -243,7 +256,6 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
 		return 0xffffffff;
 	}
-
 
 	printf("\nUnhandled read 0x%.8x", addr);
 	exit(0);
@@ -395,29 +407,43 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	// channel 2
 	if (masked_addr == 0x1f8010a0) {	// base address
-		channel2_base_address = data;
+		Ch2.MADR = data;
 		return;
 	}
 	if (masked_addr == 0x1f8010a4) { // block control
-		channel2_block_control = data;
+		Ch2.BCR = data;
 		return;
 	}
 	if (masked_addr == 0x1f8010a8) {	// control
-		channel2_control = data;
+		Ch2.CHCR = data;
+		return;
+	}
+
+	// channel 3
+	if (masked_addr == 0x1f8010b0) {	// base address
+		Ch3.MADR = data;
+		return;
+	}
+	if (masked_addr == 0x1f8010b4) { // block control
+		Ch3.BCR = data;
+		return;
+	}
+	if (masked_addr == 0x1f8010b8) {	// control
+		Ch3.CHCR = data;
 		return;
 	}
 
 	// channel 6
 	if (masked_addr == 0x1f8010e0) {	// base address
-		channel6_base_address = data;
+		Ch6.MADR = data;
 		return;
 	}
 	if (masked_addr == 0x1f8010e4) { // block control
-		channel6_block_control = data;
+		Ch6.BCR = data;
 		return;
 	}
 	if (masked_addr == 0x1f8010e8) {	// control
-		channel6_control = data;
+		Ch6.CHCR = data;
 		return;
 	}
 
