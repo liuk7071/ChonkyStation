@@ -65,6 +65,8 @@ void
 Rasterizer::SetFrameBuffer(uint32_t* frameBuffer,
 	unsigned int width, unsigned int height)
 {
+	for (int i = 0; i < (1024*512); i++)
+		vram_rgb[i] = 0xff;
 	m_FrameBuffer = frameBuffer;
 	m_Width = width;
 	m_Height = height;
@@ -84,6 +86,7 @@ Rasterizer::SetPixel(unsigned int x, unsigned int y, const Color& color)
 	//else 
 	m_FrameBuffer[y * m_Width + x] = color.ToUInt32();
 	vram[y * 1024 + x] = uint16_t(color.ToUInt32());
+	vram_rgb[y * 1024 + x] = color.ToRGB32();
 
 }
 
@@ -122,8 +125,20 @@ Rasterizer::DrawSpan(const Span& span, int y)
 
 	// draw each pixel in the span
 	for (int x = span.X1; x < span.X2; x++) {
-		SetPixel(x, y, span.Color1 + (colordiff * factor));
-		factor += factorStep;
+		if (textured) {
+			int xoffs = x - span.X1;
+			uint16_t col = fetch_texel(xoffs, y, clut, page, Depth::BITS16);
+			Color pixel;
+			pixel.A = col >> 15;
+			pixel.B = (col >> 10) & 0b11111;
+			pixel.G = (col >> 5) & 0b11111;
+			pixel.R = col & 0b11111;
+			SetPixel(x, y, pixel);
+		}
+		else {
+			SetPixel(x, y, span.Color1 + (colordiff * factor));
+			factor += factorStep;
+		}
 	}
 }
 

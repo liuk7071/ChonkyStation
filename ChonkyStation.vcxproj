@@ -85,9 +85,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(ProjectDir)renderer\*.h;$(ProjectDir)glad\include;$(ProjectDir)SDL2\include;$(ProjectDir)imgui;$(IncludePath)</IncludePath>
-    <LibraryPath>$(ProjectDir)SDL2\lib\x64;$(LibraryPath)</LibraryPath>
-    <SourcePath>$(ProjectDir)renderer\*.cpp;$(ProjectDir)imgui;$(ProjectDir)glad\src;$(SourcePath)</SourcePath>
+    <IncludePath>$(ProjectDir)imgui\backends\imgui_impl_opengl3.h;$(ProjectDir)imgui\backends\imgui_impl_glfw.h;$(ProjectDir)glad\include;$(ProjectDir)SDL2\include;$(ProjectDir)imgui;$(ProjectDir)GLFW;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)SDL2\lib\x64;$(ProjectDir)GLFW\lib\;$(LibraryPath)</LibraryPath>
+    <SourcePath>$(ProjectDir)imgui\backends\imgui_impl_glfw.cpp;$(ProjectDir)renderer\*.cpp;$(ProjectDir)imgui;$(ProjectDir)glad\src;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -148,7 +148,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -162,6 +162,7 @@
     <ClCompile Include="cpu.cpp" />
     <ClCompile Include="glad\src\glad.c" />
     <ClCompile Include="gpu.cpp" />
+    <ClCompile Include="imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="imgui\backends\imgui_impl_opengl3.cpp" />
     <ClCompile Include="imgui\backends\imgui_impl_sdl.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
@@ -180,6 +181,7 @@
     <ClInclude Include="controller.h" />
     <ClInclude Include="cop0.h" />
     <ClInclude Include="cpu.h" />
+    <ClInclude Include="GLFW\glfw3.h" />
     <ClInclude Include="gpu.h" />
     <ClInclude Include="imgui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="imgui\backends\imgui_impl_sdl.h" />

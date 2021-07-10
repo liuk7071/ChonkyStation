@@ -185,7 +185,12 @@ void cpu::do_dma(int channel) {
 				while (words >= 0) {
 					current_addr = addr & 0x1ffffc;
 					if (words == 1) {
-						bus.mem.write32(current_addr, 0xffffff);
+						uint8_t b1 = bus.mem.CDROM.cd.PopDataByte();
+						uint8_t b2 = bus.mem.CDROM.cd.PopDataByte();
+						uint8_t b3 = bus.mem.CDROM.cd.PopDataByte();
+						uint8_t b4 = bus.mem.CDROM.cd.PopDataByte();
+						uint32_t word = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
+						bus.mem.write32(current_addr, word);
 						printf("[DMA] CDROM Block Copy completed\n");
 						bus.mem.Ch3.CHCR &= ~(1 << 24);
 						bus.mem.Ch3.CHCR &= ~(1 << 28);
@@ -195,10 +200,10 @@ void cpu::do_dma(int channel) {
 						bus.mem.CDROM.delay = 1000000;
 						return;
 					}
-					uint8_t b1 = bus.mem.CDROM.cd.PopSectorByte();
-					uint8_t b2 = bus.mem.CDROM.cd.PopSectorByte();
-					uint8_t b3 = bus.mem.CDROM.cd.PopSectorByte();
-					uint8_t b4 = bus.mem.CDROM.cd.PopSectorByte();
+					uint8_t b1 = bus.mem.CDROM.cd.PopDataByte();
+					uint8_t b2 = bus.mem.CDROM.cd.PopDataByte();
+					uint8_t b3 = bus.mem.CDROM.cd.PopDataByte();
+					uint8_t b4 = bus.mem.CDROM.cd.PopDataByte();
 					uint32_t word = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
 					bus.mem.write32(current_addr, word);
 					if (incrementing) addr += 4; else addr -= 4;

@@ -175,8 +175,7 @@ void gpu::GetGlContext(SDL_GLContext* glc) {
 		glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
 		printf("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n%s\n", infoLog);
 	}
-
-	GLint shaderProgram = glCreateProgram();
+	shaderProgram = glCreateProgram();
 	glAttachShader(shaderProgram, vertexShader);
 	glAttachShader(shaderProgram, fragmentShader);
 	glLinkProgram(shaderProgram);
@@ -511,7 +510,14 @@ void gpu::execute_gp0(uint32_t command) {
 			xpos %= 1024;
 			ypos %= 512;
 			
+			uint32_t c = command & 0xffff;
+			uint32_t a = (c >> 15) & 1;
+			uint32_t b = (c >> 10) & 0b11111;
+			uint32_t g = (c >> 5) & 0b11111;
+			uint32_t r = c & 0b11111;
+			uint32_t rgba = ((r << 3) << 24) | ((g << 3) << 16) | ((b << 3) << 8) | 0xff;
 			rast.vram[(y + ypos) * 1024 + (x+xpos)] = command & 0xffff;
+			rast.vram_rgb[(y + ypos) * 1024 + (x + xpos)] = rgba;
 			//writev(x + xpos, y + ypos, command & 0xffff);
 			xpos++;
 
@@ -521,12 +527,19 @@ void gpu::execute_gp0(uint32_t command) {
 
 				if (ypos == height) {
 					gp0_mode = 0;
-					upload_to_gpu();
+					//upload_to_gpu();
 					break;
 				}
 			}
 
+			c = command >> 16;
+			a = (c >> 15) & 1;
+			b = (c >> 10) & 0b11111;
+			g = (c >> 5) & 0b11111;
+			r = c & 0b11111;
+			rgba = ((r << 3) << 24) | ((g << 3) << 16) | ((b << 3) << 8) | 0xff;
 			rast.vram[(y+ypos) * 1024 + (x + xpos)] = command >> 16;
+			rast.vram_rgb[(y + ypos) * 1024 + (x + xpos)] = rgba;
 			//writev(x + xpos, y + ypos, command >> 16);
 			xpos++;
 
@@ -536,7 +549,7 @@ void gpu::execute_gp0(uint32_t command) {
 
 				if (ypos == height) {
 					gp0_mode = 0;
-					upload_to_gpu();
+					//upload_to_gpu();
 					break;
 				}
 			}
@@ -562,7 +575,7 @@ void gpu::execute_gp1(uint32_t command) {
 		break;
 	}
 	default:
-		printf("[GP1] Unknown GP1 command: 0x%x\n", instr);
+		debug_printf("[GP1] Unknown GP1 command: 0x%x\n", instr);
 		//exit(0);
 	}
 }
@@ -586,20 +599,39 @@ void gpu::monochrome_four_point_opaque_polygon() {
 void gpu::texture_blending_four_point_opaque_polygon() {
 	uint32_t colour = fifo[0] & 0xffffff;
 	debug_printf("[GP0] Textured four-point polygon, opaque, texture blending (colour: 0x%x)\n", colour);
-	point v1, v2, v3, v4;
+	point v1, v2, v3, v4, t1, t2, t3, t4;
+	Rasterizer::point page, clut;
+	page.x = page_base_x;
+	page.y = page_base_y;
 	v1.x = fifo[1] & 0xffff;
 	v1.y = fifo[1] >> 16;
+	clut.x = fifo[2] & 0b111111;
+	clut.y = (fifo[2] & 0b111111111) >> 5;
+	page.x = fifo[5] & 0b111111;
+	page.y = (fifo[5] & 0b111111111) >> 5;
 	v2.x = fifo[3] & 0xffff;
 	v2.y = fifo[3] >> 16;
 	v3.x = fifo[5] & 0xffff;
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
-	rast.textured = true;
-	rast.page.x = page_base_x;
-	rast.page.y = page_base_y;
+
+	t1.x = fifo[2] & 0b11;
+	t1.y = (fifo[2] & 0b1100) >> 2;
+	t2.x = fifo[4] & 0b11;
+	t2.y = (fifo[4] & 0b1100) >> 2;
+	t3.x = fifo[6] & 0b11;
+	t3.y = (fifo[6] & 0b1100) >> 2;
+	t4.x = fifo[8] & 0b11;
+	t4.y = (fifo[8] & 0b1100) >> 2;
+	//rast.textured = true;
+	rast.page = page;
+	rast.clut = clut;
+	if (texture_depth == 0) rast.depth = Rasterizer::Depth::BITS4;
+	if (texture_depth == 1) rast.depth = Rasterizer::Depth::BITS8;
+	if (texture_depth == 2) rast.depth = Rasterizer::Depth::BITS16;
 	quad(v1, v2, v3, v4, 0xff);
-	rast.textured = false;
+	//rast.textured = false;
 	return;
 }
 void gpu::monochrome_four_point_semi_transparent_polygon() {

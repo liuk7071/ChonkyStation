@@ -53,6 +53,7 @@ public:
 public:
 	bool debug;
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	void debug_log(const char* fmt, ...);
 	void debug_warn(const char* fmt, ...);
 	void debug_err(const char* fmt, ...);
 	void loadBios(std::string directory);

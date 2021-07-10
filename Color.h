@@ -11,6 +11,7 @@ public:
 	Color(float r = 1.0f, float g = 1.0f, float b = 1.0f, float a = 1.0f);
 
 	uint32_t ToUInt32() const;
+	uint32_t ToRGB32() const;
 
 	Color operator + (const Color& c) const;
 	Color operator - (const Color& c) const;

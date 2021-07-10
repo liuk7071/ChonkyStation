@@ -1,5 +1,6 @@
 #include "memory.h"
 #include <iostream>
+#define log
 
 
 #pragma warning(disable : 4996)
@@ -11,6 +12,14 @@ memory::~memory() {
 
 }
 
+void memory::debug_log(const char* fmt, ...) {
+#ifdef log
+	std::va_list args;
+	va_start(args, fmt);
+	std::vprintf(fmt, args);
+	va_end(args);
+#endif
+}
 void memory::debug_warn(const char* fmt, ...) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
 	std::va_list args;
@@ -50,7 +59,7 @@ uint8_t memory::read(uint32_t addr) {
 	//if (masked_addr >= 0x1f801800 && masked_addr < 0x1f801800 + sizeof(uint32_t))
 	//	return 0;
 	if (masked_addr == 0x1F801070) { // I_STAT
-		printf("[IRQ] Status 8bit read\n");
+		debug_log("[IRQ] Status 8bit read\n");
 		return I_STAT;
 	}
 
@@ -62,30 +71,30 @@ uint8_t memory::read(uint32_t addr) {
 	}
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
-		printf("[CDROM] Status register read\n");
+		debug_log("[CDROM] Status register read\n");
 		return CDROM.status;
 	}
 
 	if (masked_addr == 0x1f801801) {
 		switch (CDROM.status & 0b11) {
 		case 1:
-			printf("[CDROM] Read response fifo\n");
+			debug_log("[CDROM] Read response fifo\n");
 			return CDROM.read_fifo();
 		default:
-			printf("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
+			debug_log("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 	}
 	if (masked_addr == 0x1f801803) {
 		switch (CDROM.status & 0b11) {
 		case 0:
-			printf("[CDROM] Read IE\n");
+			debug_log("[CDROM] Read IE\n");
 			return CDROM.interrupt_enable;
 		case 1:
-			printf("[CDROM] Read IF\n");
+			debug_log("[CDROM] Read IF\n");
 			return CDROM.interrupt_flag;
 		default:
-			printf("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
+			debug_log("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 	}
@@ -116,7 +125,7 @@ uint8_t memory::read(uint32_t addr) {
 	
 
 
-	printf("\nUnhandled read 0x%.8x", addr);
+	debug_log("\nUnhandled read 0x%.8x", addr);
 	exit(0);
 }
 
@@ -145,11 +154,11 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0;
 	}
 	if (masked_addr == 0x1F801070) { // I_STAT
-		printf("[IRQ] Status 16bit read\n");
+		debug_log("[IRQ] Status 16bit read\n");
 		return I_STAT;
 	}
 	if (masked_addr == 0x1f801074) { // I_MASK
-		printf("[IRQ] Status 16bit read\n");
+		debug_log("[IRQ] Status 16bit read\n");
 		return I_MASK;
 	}
 
@@ -174,7 +183,7 @@ uint16_t memory::read16(uint32_t addr) {
 	}
 
 
-	printf("\nUnhandled read 0x%.8x", addr);
+	debug_log("\nUnhandled read 0x%.8x", addr);
 	//exit(0);
 }
 
@@ -199,7 +208,7 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0;
 
 	if (masked_addr == 0x1f801814) {	// GPUSTAT
-		if (debug) printf("\n GPUSTAT read");
+		if (debug) debug_log("\n GPUSTAT read");
 		return 0b01011110100000000000000000000000;		// stubbing it
 	}
 	if (masked_addr == 0x1f801810) // GPUREAD
@@ -257,7 +266,7 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0xffffffff;
 	}
 
-	printf("\nUnhandled read 0x%.8x", addr);
+	debug_log("\nUnhandled read 0x%.8x", addr);
 	exit(0);
 
 
@@ -279,7 +288,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	}
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
-		printf("[CDROM] Write 0x%x to status register\n", data);
+		debug_log("[CDROM] Write 0x%x to status register\n", data);
 		CDROM.status &= ~0b11;
 		CDROM.status |= data & 0b11;
 		return;
@@ -290,7 +299,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 			CDROM.execute(data);
 			break;
 		default:
-			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			debug_log("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 
@@ -302,11 +311,11 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 			CDROM.push(data);
 			break;
 		case 1:
-			printf("[CDROM] Write 0x%x to interrupt enable register\n", data);
+			debug_log("[CDROM] Write 0x%x to interrupt enable register\n", data);
 			CDROM.interrupt_enable = data;
 			break;
 		default:
-			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			debug_log("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 		return;
@@ -314,18 +323,18 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	if (masked_addr == 0x1f801803) {
 		switch (CDROM.status & 0b11) {
 		case 0:
-			printf("[CDROM] Write 0x%x to request register\n", data);
+			debug_log("[CDROM] Write 0x%x to request register\n", data);
 			CDROM.request = data;
 			break;
 		case 1:
-			printf("[CDROM] Write 0x%x to interrupt flag register\n", data);
+			debug_log("[CDROM] Write 0x%x to interrupt flag register\n", data);
 			CDROM.interrupt_flag &= ~data;
 			if ((CDROM.interrupt_flag & 0b111) == 0) {
 				CDROM.irq = false;
 			}
 			break;
 		default:
-			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			debug_log("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 
@@ -336,7 +345,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	if (masked_addr >= 0x1f80104a && masked_addr < 0x1f80104a + sizeof(uint32_t))	// joy_ctrl
 		return;
 	if (masked_addr == 0x1f802080) {
-		printf("%c", data);
+		debug_log("%c", data);
 		return;
 	}
 
@@ -347,7 +356,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		return;
 
 	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 0x7D000) {
-		printf("Attempted to overwrite bios!");
+		debug_log("Attempted to overwrite bios!");
 		exit(0);
 		return;
 	}
@@ -368,7 +377,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	else if (masked_addr == 0x1f802082) // Exit code register for Continuous Integration tests
 		exit(data);
 
-	printf("\nUnhandled write 0x%.8x", addr);
+	debug_log("\nUnhandled write 0x%.8x", addr);
 	exit(0);
 
 }
@@ -378,13 +387,13 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t masked_addr = mask_address(addr);
 
 	if (masked_addr == 0x1F801070) { // I_STAT
-		printf("[IRQ] Write 0x%x to I_STAT\n", data);
+		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);
 		I_STAT &= data;
 		return;
 	}
 	if (masked_addr == 0x1f801074) { // I_MASK
 		I_MASK = data;
-		printf("[IRQ] Write 0x%x to I_MASK\n", data);
+		debug_log("[IRQ] Write 0x%x to I_MASK\n", data);
 		return;
 	}
 	if (masked_addr == 0x1f80101c) {
@@ -396,12 +405,12 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	if (masked_addr == 0x1f8010f0) { // DCPR
 		DCPR = data;
-		if (debug) printf(" Write 0x%.8x to dcpr", data);
+		if (debug) debug_log(" Write 0x%.8x to dcpr", data);
 		return;
 	}
 	if (masked_addr == 0x1f8010f4) { // DICR
 		DICR = data;
-		if (debug) printf(" Write 0x%.8x to dicr", data);
+		if (debug) debug_log(" Write 0x%.8x to dicr", data);
 		return;
 	}
 
@@ -455,7 +464,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	}
 	if (masked_addr >= 0x1f801060 && masked_addr < 0x1f801060 + sizeof(uint32_t)) {	// RAM_SIZE
 		RAM_SIZE = data;
-		if (debug) printf(" Write 0x%.8x to RAM_SIZE", data);
+		if (debug) debug_log(" Write 0x%.8x to RAM_SIZE", data);
 		return;
 	}
 	if (masked_addr >= 0xfffe0130 && masked_addr < 0xfffe0130 + sizeof(uint32_t)) {	// CACHE_CONTROL
@@ -467,19 +476,19 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	write(addr + 2, uint8_t((data & 0x00ff0000) >> 16), false);
 	write(addr + 1, uint8_t((data & 0x0000ff00) >> 8), false);
 
-	if (debug) printf(" Write 0x%.8x at address 0x%.8x", data, addr);
+	if (debug) debug_log(" Write 0x%.8x at address 0x%.8x", data, addr);
 }
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
 
 	if (masked_addr == 0x1F801070) { // I_STAT
-		printf("[IRQ] Write 0x%x to I_STAT\n", data);
+		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);
 		I_STAT &= data;
 		return;
 	}
 	if (masked_addr == 0x1F801074) { // I_MASK
-		printf("[IRQ] Write 0x%x to I_MASK\n", data);
+		debug_log("[IRQ] Write 0x%x to I_MASK\n", data);
 		I_MASK = data;
 		return;
 	}
@@ -504,13 +513,13 @@ void memory::write16(uint32_t addr, uint16_t data) {
 		return;
 	}
 	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801E80) {	// SPU regs
-		if (debug) printf(" SPU register write, ignored");
+		if (debug) debug_log(" SPU register write, ignored");
 		return;
 	}
 	write(addr, uint8_t(data & 0x00ff), false);
 	write(addr + 1, (data & 0xff00) >> 8, false);
 
-	if (debug) printf(" Write 0x%.4x at address 0x%.8x", read16(addr), addr);
+	if (debug) debug_log(" Write 0x%.4x at address 0x%.8x", read16(addr), addr);
 }
 
 
@@ -551,9 +560,9 @@ uint32_t memory::loadExec(std::string directory) {
 	memcpy(&entry_addr, &file[0x18], sizeof(uint32_t));
 	memcpy(&file_size, &file[0x1c], sizeof(uint32_t));
 
-	printf("\nStart pc: 0x%x", start_pc);
-	printf("\nDestination: 0x%x", entry_addr);
-	printf("\nFile size: 0x%x\n\n\n", file_size);
+	debug_log("\nStart pc: 0x%x", start_pc);
+	debug_log("\nDestination: 0x%x", entry_addr);
+	debug_log("\nFile size: 0x%x\n\n\n", file_size);
 
 	for (int i = 0; i < file_size; i++) {
 		write(entry_addr + i, file[0x800 + i], false);

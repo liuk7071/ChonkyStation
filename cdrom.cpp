@@ -1,6 +1,15 @@
 #include "cdrom.h"
 #define disk
+#define log
 
+void debug_log(const char* fmt, ...) {
+#ifdef log
+	std::va_list args;
+	va_start(args, fmt);
+	std::vprintf(fmt, args);
+	va_end(args);
+#endif
+}
 cdrom::cdrom() {
 }
 
@@ -8,16 +17,15 @@ uint8_t cdrom::get_stat() {
 	uint8_t stat = 0b10;
 	if (reading)
 		stat |= (1 << 5);
-	return 0b00000010;	// Pretend that the motor is on
+	return 0b00000010;	// Pretend that the motor is always  on
 }
 
 uint8_t cdrom::bcd_dec(uint8_t val) {
-	printf("[BCD-DEC CONVERSION] Converted %xh to %xh\n", val, val - 6 * (val >> 4));
 	return val - 6 * (val >> 4);
 }
 
 void cdrom::push(uint8_t data) {
-	printf("[CDROM] Parameter: %xh\n", data);
+	debug_log("[CDROM] Parameter: %xh\n", data);
 	fifo[cmd_length] = data;
 	cmd_length++;
 	status &= ~0b00001000; // Parameter fifo empty bit
@@ -36,10 +44,12 @@ void cdrom::execute(uint8_t command) {
 	case 0x19: test(); break;
 	case 0x1A: GetID(); break;
 
-	default: printf("[CDROM] Unimplemented command: 0x%x\n", command); exit(0);
+	default: debug_log("[CDROM] Unimplemented command: 0x%x\n", command); exit(0);
 
 	}
 	cmd_length = 0;
+	for (auto& i : fifo)
+		fifo[i] = 0;
 	return;
 }
 
@@ -47,7 +57,7 @@ uint8_t cdrom::read_fifo() {
 	uint8_t byte = response_fifo[0];
 	if (response_length == 1) {
 		status &= ~0b00100000;	// Clear response fifo empty bit (means it's empty)
-		printf("[CDROM] Response fifo empty, new status value: 0x%x\n", status);
+		debug_log("[CDROM] Response fifo empty, new status value: 0x%x\n", status);
 		response_fifo[0] = 0;
 		return byte;
 	}
@@ -67,7 +77,7 @@ uint8_t cdrom::read_fifo() {
 	return byte;
 }
 void cdrom::INT1() {
-	printf("INT1\n");
+	debug_log("INT1\n");
 	interrupt_flag &= ~0b111;
 	interrupt_flag |= 0b001;
 	return;
@@ -117,7 +127,7 @@ void cdrom::queuedRead() {
 void cdrom::sendQueuedINT() {
 	delay = queued_delay;
 	if (queued_INT1) {
-		//printf("[CDROM] Sending delayed INT1\n");
+		//debug_log("[CDROM] Sending delayed INT1\n");
 		for (int i = 0; i < 16; i++) {
 			response_fifo[i] = queued_fifo[i];
 		}
@@ -128,7 +138,7 @@ void cdrom::sendQueuedINT() {
 
 	}
 	if (queued_INT2) {
-		//printf("[CDROM] Sending delayed INT2\n");
+		//debug_log("[CDROM] Sending delayed INT2\n");
 		for (int i = 0; i < 16; i++) {
 			response_fifo[i] = queued_fifo[i];
 		}
@@ -138,7 +148,7 @@ void cdrom::sendQueuedINT() {
 		queued_INT2 = false;
 	}
 	if (queued_INT3) {
-		//printf("[CDROM] Sending delayed INT3\n");
+		//debug_log("[CDROM] Sending delayed INT3\n");
 		for (int i = 0; i < 16; i++) {
 			response_fifo[i] = queued_fifo[i];
 		}
@@ -148,7 +158,7 @@ void cdrom::sendQueuedINT() {
 		queued_INT3 = false;
 	}
 	if (queued_INT5) {
-		//printf("[CDROM] Sending delayed INT5\n");
+		//debug_log("[CDROM] Sending delayed INT5\n");
 		for (int i = 0; i < 16; i++) {
 			response_fifo[i] = queued_fifo[i];
 		}
@@ -164,7 +174,7 @@ void cdrom::test() {
 	status |= 0b00001000;
 	switch (fifo[0]) {
 	case 0x20: { // Get cdrom BIOS date/version (yy,mm,dd,ver)
-		printf("[CDROM] test 20h\n");
+		debug_log("[CDROM] test 20h\n");
 		response_fifo[0] = 0x94;
 		response_fifo[1] = 0x09;
 		response_fifo[2] = 0x19;
@@ -174,29 +184,37 @@ void cdrom::test() {
 		break;
 	}
 	default:
-		printf("[CDROM] Unhandled test command: %xh\n", fifo[0]);
+		debug_log("[CDROM] Unhandled test command: %xh\n", fifo[0]);
 		exit(0);
 	}
 	delay = 2;
 }
 void cdrom::GetStat() {	// Return status byte
-	printf("[CDROM] GetStat\n");
+	debug_log("[CDROM] GetStat\n");
 	response_fifo[0] = get_stat();
 	response_length = 1;
 	INT3();
 	status |= 0b00100000;
-	delay = 40000;
+	delay = 6000;
 }
 void cdrom::Setmode() {	// Set mode 
 	status |= 0b00001000;
-	printf("[CDROM] Setmode (0x%x)\n", fifo[0]);
+	debug_log("[CDROM] Setmode (0x%x)\n", fifo[0]);
+	DoubleSpeed = (fifo[0] & 0b10000000) >> 7;
+	xa_adpcm = (fifo[0] & 0b01000000) >> 6;
+	WholeSector = (fifo[0] & 0b00100000) >> 5;
+	CDDA = fifo[0] & 1;
+	if (DoubleSpeed) debug_log("DoubleSpeed\n");
+	if (xa_adpcm) debug_log("XA-ADPCM\n");
+	if (WholeSector) debug_log("WholeSector\n");
+	if (CDDA) debug_log("CDDA\n");
 	response_fifo[0] = get_stat();
 	INT3();
 	status |= 0b00100000;
 	delay = 2;
 }
 void cdrom::GetID() { // Disk info
-	printf("[CDROM] GetID\n");
+	debug_log("[CDROM] GetID\n");
 #ifdef disk
 	response_fifo[0] = get_stat();
 	response_length = 1;
@@ -236,16 +254,16 @@ void cdrom::SetLoc() { // Sets the seek target
 	uint8_t ss = bcd_dec(fifo[1]);
 	uint8_t ff = bcd_dec(fifo[2]);
 	seekloc = ff + (ss * 75) + (mm * 60 * 75);
-	printf("[CDROM] SetLoc (%x;%x;%x %x)\n", mm, ss, ff, seekloc);
+	debug_log("[CDROM] SetLoc (%x;%x;%x %x)\n", mm, ss, ff, seekloc);
 	response_fifo[0] = get_stat();
 	response_length = 1;
 	INT3();
 	status |= 0b00100000;
-	delay = 10000;
+	delay = 20000;
 }
 void cdrom::SeekL() {	// Seek to the seek target (SetLoc)
 	status |= 0b00001000;
-	printf("[CDROM] SeekL\n");
+	debug_log("[CDROM] SeekL\n");
 	response_fifo[0] = get_stat();
 	response_length = 1;
 	delayed_INT3 = true;
@@ -253,13 +271,13 @@ void cdrom::SeekL() {	// Seek to the seek target (SetLoc)
 	queued_response_length = 1;
 	queued_INT2 = true;
 	status |= 0b00100000;
-	delay = 50000;
+	delay = 75000;
 	queued_delay = 1000000;
 }
 void cdrom::ReadN() {	// Read with retry
 	reading = true;
 	status |= 0b00001000;	// Set parameter fifo empty bit
-	printf("[CDROM] ReadN\n");
+	debug_log("[CDROM] ReadN\n");
 	cd.read(seekloc);
 	response_fifo[0] = get_stat();
 	response_length = 1;
@@ -273,7 +291,7 @@ void cdrom::ReadN() {	// Read with retry
 }
 void cdrom::Pause() {
 	status |= 0b00001000;	// Set parameter fifo empty bit
-	printf("[CDROM] Pause\n");
+	debug_log("[CDROM] Pause\n");
 	response_fifo[0] = get_stat();
 	response_length = 1;
 	INT3();
@@ -287,7 +305,7 @@ void cdrom::Pause() {
 	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
 }
 void cdrom::init() {
-	printf("[CDROM] Init\n");
+	debug_log("[CDROM] Init\n");
 	response_fifo[0] = get_stat();
 	response_length = 1;
 	INT3();

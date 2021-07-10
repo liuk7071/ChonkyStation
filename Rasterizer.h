@@ -44,7 +44,9 @@ public:
 		uint8_t b = (c >> 16) & 0xff;
 	};
 	uint16_t fetch_texel(int x, int y, point clut, point page, Depth depth);
+	Depth depth;
 	uint16_t* vram = new uint16_t[1024 * 512];
+	uint32_t* vram_rgb = new uint32_t[1024*512];
 	uint16_t vram_read(int x, int y);
 	int xpos = 0;
 	int ypos = 0;

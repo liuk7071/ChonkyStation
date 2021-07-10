@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <iostream>
+#include <cstdarg>
 #include "CD.h"
 
 class cdrom
@@ -58,6 +59,12 @@ public:
 	void Pause();
 	void init();
 	void Setmode();
+
+	// setmode
+	bool DoubleSpeed = false;
+	bool xa_adpcm = false;
+	bool WholeSector = false;
+	bool CDDA = false;
 	
 public:
 	const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\Crossroad Crisis (USA)\\Crossroad Crisis (USA).bin";

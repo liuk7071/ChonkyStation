@@ -1,4 +1,5 @@
 #pragma once
+#define NOMINMAX
 #include <stdint.h>
 #include <stdio.h>
 #include <iostream>
@@ -12,6 +13,7 @@ class gpu
 {
 
 public:		// trongle stuff
+	GLint shaderProgram;
 	uint32_t pbo4, pbo8, pbo16;
 	uint32_t texture4, texture8, texture16;
 	uint8_t* ptr4;
