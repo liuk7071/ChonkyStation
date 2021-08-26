@@ -26,6 +26,13 @@ cpu::~cpu() {
 
 }
 
+void cpu::reset() {
+	for (auto& i : regs) {
+		regs[i] = 0;
+	}
+	pc = 0xbfc00000;
+}
+
 void cpu::sideloadExecutable(std::string directory) {
 	debug = false;
 	bus.mem.debug = false;
@@ -181,14 +188,15 @@ void cpu::do_dma(int channel) {
 			switch (direction) {
 			case(0):
 				printf("[DMA] Transfer direction: device to ram\n");
+				printf("[DMA] MADR: 0x%x\n", addr);
 				printf("[DMA] Transfer size: %d words\n", words);
 				while (words >= 0) {
 					current_addr = addr & 0x1ffffc;
 					if (words == 1) {
-						uint8_t b1 = bus.mem.CDROM.cd.PopDataByte();
-						uint8_t b2 = bus.mem.CDROM.cd.PopDataByte();
-						uint8_t b3 = bus.mem.CDROM.cd.PopDataByte();
-						uint8_t b4 = bus.mem.CDROM.cd.PopDataByte();
+						uint8_t b1 = bus.mem.CDROM.cd.ReadDataByte();
+						uint8_t b2 = bus.mem.CDROM.cd.ReadDataByte();
+						uint8_t b3 = bus.mem.CDROM.cd.ReadDataByte();
+						uint8_t b4 = bus.mem.CDROM.cd.ReadDataByte();
 						uint32_t word = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
 						bus.mem.write32(current_addr, word);
 						printf("[DMA] CDROM Block Copy completed\n");
@@ -200,10 +208,10 @@ void cpu::do_dma(int channel) {
 						bus.mem.CDROM.delay = 1000000;
 						return;
 					}
-					uint8_t b1 = bus.mem.CDROM.cd.PopDataByte();
-					uint8_t b2 = bus.mem.CDROM.cd.PopDataByte();
-					uint8_t b3 = bus.mem.CDROM.cd.PopDataByte();
-					uint8_t b4 = bus.mem.CDROM.cd.PopDataByte();
+					uint8_t b1 = bus.mem.CDROM.cd.ReadDataByte();
+					uint8_t b2 = bus.mem.CDROM.cd.ReadDataByte();
+					uint8_t b3 = bus.mem.CDROM.cd.ReadDataByte();
+					uint8_t b4 = bus.mem.CDROM.cd.ReadDataByte();
 					uint32_t word = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
 					bus.mem.write32(current_addr, word);
 					if (incrementing) addr += 4; else addr -= 4;
@@ -876,7 +884,7 @@ void cpu::execute(uint32_t instr) {
 			break;
 		}
 
-		bus.mem.write32(addr, val);
+		bus.mem.write32(aligned_addr, val);
 		debug_log("swl %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		break;
 	}
@@ -916,17 +924,17 @@ void cpu::execute(uint32_t instr) {
 			val = (mem & 0x00000000) | (regs[rt] << 0);
 			break;
 		case 1:
-			val = (mem & 0x000000ff) | (regs[rt] >> 8);
+			val = (mem & 0x000000ff) | (regs[rt] << 8);
 			break;
 		case 2:
-			val = (mem & 0x0000ffff) | (regs[rt] >> 16);
+			val = (mem & 0x0000ffff) | (regs[rt] << 16);
 			break;
 		case 3:
-			val = (mem & 0x00ffffff) | (regs[rt] >> 24);
+			val = (mem & 0x00ffffff) | (regs[rt] << 24);
 			break;
 		}
 
-		bus.mem.write32(addr, val);
+		bus.mem.write32(aligned_addr, val);
 		debug_log("swr %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
 		break;
 	}

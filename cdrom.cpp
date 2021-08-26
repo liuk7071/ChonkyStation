@@ -1,6 +1,7 @@
 #include "cdrom.h"
 #define disk
 #define log
+#undef log
 
 void debug_log(const char* fmt, ...) {
 #ifdef log
@@ -250,9 +251,12 @@ void cdrom::GetID() { // Disk info
 }
 void cdrom::SetLoc() { // Sets the seek target
 	status |= 0b00001000;
-	uint8_t mm = bcd_dec(fifo[0]);
-	uint8_t ss = bcd_dec(fifo[1]);
-	uint8_t ff = bcd_dec(fifo[2]);
+	uint8_t temp_mm = bcd_dec(fifo[0]);
+	uint8_t temp_ss = bcd_dec(fifo[1]);
+	uint8_t temp_ff = bcd_dec(fifo[2]);
+	mm = fifo[0];
+	ss = fifo[1];
+	ff = fifo[2];
 	seekloc = ff + (ss * 75) + (mm * 60 * 75);
 	debug_log("[CDROM] SetLoc (%x;%x;%x %x)\n", mm, ss, ff, seekloc);
 	response_fifo[0] = get_stat();

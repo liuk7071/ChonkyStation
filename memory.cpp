@@ -138,7 +138,8 @@ uint16_t memory::read16(uint32_t addr) {
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
 		debug_warn("[PAD] Read JOY_STAT\n");
-		return pad1.joy_stat;
+		//return pad1.joy_stat;
+		return rand() % 0xffff;
 	}
 	if (masked_addr == 0x1f80104a) {	// JOY_CTRL
 		uint16_t randn = rand() % 0xffff;
@@ -471,6 +472,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		CACHE_CONTROL = data;
 		return;
 	}
+
 	write(addr, uint8_t(data & 0x000000ff), false);
 	write(addr + 3, uint8_t((data & 0xff000000) >> 24), false);
 	write(addr + 2, uint8_t((data & 0x00ff0000) >> 16), false);
@@ -527,7 +529,7 @@ static auto readBinary(std::string directory) -> std::vector<uint8_t> {
 	std::ifstream file(directory, std::ios::binary);
 	if (!file.is_open()) {
 		std::cout << "Couldn't find ROM at " << directory << "\n";
-		exit(1);
+		//exit(1);
 	}
 
 	std::vector<uint8_t> exe;

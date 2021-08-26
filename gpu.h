@@ -13,15 +13,12 @@ class gpu
 {
 
 public:		// trongle stuff
-	GLint shaderProgram;
-	uint32_t pbo4, pbo8, pbo16;
-	uint32_t texture4, texture8, texture16;
-	uint8_t* ptr4;
-	uint8_t* ptr8;
-	uint16_t* ptr16;
-	void upload_to_gpu();
-	uint16_t readv(uint32_t x, uint32_t y);
-	void writev(uint32_t x, uint32_t y, uint16_t data);
+	unsigned int VBO, VAO;
+	GLuint FBO; // it was int before 
+	unsigned int id;
+	unsigned int VertexShader;
+	unsigned int FragmentShader;
+	unsigned int ShaderProgram;
 	
 	struct point {		// vertex struct
 		uint16_t x, y;	// coordinates
@@ -38,8 +35,7 @@ public:		// trongle stuff
 
 public:
 	gpu();
-	SDL_GLContext GlContext;
-	void GetGlContext(SDL_GLContext* glc);
+	void InitGL();
 
 	uint16_t vram_read(int x, int y);
 	int xpos = 0;
@@ -73,6 +69,7 @@ public:
 	uint32_t get_status();
 
 public:	// commands
+	void monochrome_line_opaque();
 	void monochrome_four_point_opaque_polygon();
 	void monochrome_four_point_semi_transparent_polygon();
 	void monochrome_three_point_opaque_polygon();

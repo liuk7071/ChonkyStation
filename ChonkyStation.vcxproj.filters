@@ -75,6 +75,9 @@
     <ClCompile Include="imgui\backends\imgui_impl_glfw.cpp">
       <Filter>File di origine</Filter>
     </ClCompile>
+    <ClCompile Include="TinyFileDialogs\tinyfiledialogs.c">
+      <Filter>File di origine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h">
@@ -90,9 +93,6 @@
       <Filter>File di intestazione</Filter>
     </ClInclude>
     <ClInclude Include="imgui\imgui.h">
-      <Filter>File di intestazione</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui\imgui_internal.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
     <ClInclude Include="imgui\imstb_rectpack.h">
@@ -134,9 +134,21 @@
     <ClInclude Include="GLFW\glfw3.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
+    <ClInclude Include="TinyFileDialogs\tinyfiledialogs.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_memory_editor.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="imgui\imgui_internal.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\Downloads\SCPH7003\SCPH7003.bin">
+      <Filter>File di risorse</Filter>
+    </None>
+    <None Include="Shaders\shader.vert">
       <Filter>File di risorse</Filter>
     </None>
   </ItemGroup>

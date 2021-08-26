@@ -14,7 +14,7 @@ public:
 	CD(const char* directory);
 public:
 	void read(uint32_t loc);
-	uint8_t PopDataByte();
+	uint8_t ReadDataByte();
 public:
 	FILE* iso;
 	int buff_left = SECTOR_SIZE;

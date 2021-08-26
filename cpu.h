@@ -9,6 +9,7 @@ class cpu
 {
 public:
 	cpu(std::string rom_directory, std::string bios_directory, bool running_in_ci);
+	void reset();
 	~cpu();
 	void debug_log(const char* fmt, ...);
 	void debug_warn(const char* fmt, ...);

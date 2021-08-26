@@ -29,6 +29,7 @@ public:
 	uint8_t interrupt_flag;
 	uint8_t response_fifo[16];
 	
+	uint8_t mm, ss, ff;
 	uint32_t seekloc = 0;	// Set by SetLoc
 	uint8_t bcd_dec(uint8_t val);	// Convert BCD to decimal
 
