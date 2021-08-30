@@ -38,13 +38,13 @@ public:
 	void execute(uint32_t instr);
 public:
 	void exception(exceptions);
-	uint32_t jump; // jump branch delay slot
+	uint32_t jump = 0; // jump branch delay slot
 public:
 	// registers
-	uint32_t pc;
+	uint32_t pc = 0;
 	uint32_t regs[32];
-	uint32_t hi;
-	uint32_t lo;
+	uint32_t hi = 0;
+	uint32_t lo = 0;
 
 public:
 	void check_dma();
@@ -55,11 +55,11 @@ public:
 	void sideloadExecutable(std::string directory);
 
 public:
-	bool debug;
-	bool log_kernel;
-	bool exe;
-	bool tty;
+	bool debug = false;
+	bool log_kernel = false;
+	bool exe = false;
+	bool tty = false;
 
-	bool delay;
+	bool delay = false;
 	std::string rom_directory;
 };

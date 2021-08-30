@@ -190,9 +190,9 @@ void cpu::do_dma(int channel) {
 				printf("[DMA] Transfer direction: device to ram\n");
 				printf("[DMA] MADR: 0x%x\n", addr);
 				printf("[DMA] Transfer size: %d words\n", words);
-				while (words >= 0) {
+				while (words >= 1) {
 					current_addr = addr & 0x1ffffc;
-					if (words == 1) {
+					if (words == 2) {
 						uint8_t b1 = bus.mem.CDROM.cd.ReadDataByte();
 						uint8_t b2 = bus.mem.CDROM.cd.ReadDataByte();
 						uint8_t b3 = bus.mem.CDROM.cd.ReadDataByte();

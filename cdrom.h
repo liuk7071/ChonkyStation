@@ -9,12 +9,12 @@ class cdrom
 {
 public:
 	cdrom();
-	bool irq;
+	bool irq = false;
 	int delay = 1; // the INT delay in cycles
 public: // fifo
 	uint8_t fifo[16];
 	uint8_t queued_fifo[16]; // queued response
-	int cmd_length;
+	int cmd_length = 0;
 	int response_length = 0; // last command's response length
 	int queued_response_length = 0; // queued response's length
 	int queued_delay = 1; // queued INT's delay in cycles
@@ -24,12 +24,12 @@ public:
 	void execute(uint8_t command);
 	uint8_t read_fifo();
 	uint8_t status = 0b00011000;
-	uint8_t request;
-	uint8_t interrupt_enable;
-	uint8_t interrupt_flag;
+	uint8_t request = 0;
+	uint8_t interrupt_enable = 0;
+	uint8_t interrupt_flag = 0;
 	uint8_t response_fifo[16];
 	
-	uint8_t mm, ss, ff;
+	uint8_t mm = 0, ss = 0, ff = 0;
 	uint32_t seekloc = 0;	// Set by SetLoc
 	uint8_t bcd_dec(uint8_t val);	// Convert BCD to decimal
 

@@ -5,44 +5,42 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdarg>
-#include "Rasterizer.h"
-#include "SDL.h"
 #include "glad/glad.h"
 
 class gpu
 {
 
 public:		// trongle stuff
-	unsigned int VBO, VAO;
-	GLuint FBO; 
-	GLint oldFBO;
-	unsigned int id;
-	unsigned int VertexShader;
-	unsigned int FragmentShader;
-	unsigned int ShaderProgram;
+	unsigned int VBO = 0;
+	unsigned int VAO = 0;
+	GLuint FBO = 0; 
+	GLint oldFBO = 0;
+	unsigned int id = 0;
+	unsigned int VertexShader = 0;
+	unsigned int FragmentShader = 0;
+	unsigned int ShaderProgram = 0;
 	
 	struct point {		// vertex struct
-		uint16_t x, y;	// coordinates
-		uint32_t c;		// BGR colour
+		uint16_t x = 0, y = 0;	// coordinates
+		uint32_t c = 0;		// BGR colour
 		uint8_t r = c & 0xff;
 		uint8_t g = (c >> 8) & 0xff;
 		uint8_t b = (c >> 16) & 0xff;
 	};
 	point calc_tex_coords(int tx, int ty, int x, int y, int bpp);
-	Rasterizer rast;
 
 	void putpixel(point v1, uint32_t colour);
-	void quad(point v1, point v2, point v3, point v4, uint32_t colour);
 
 public:
 	gpu();
 	void InitGL();
+	uint16_t* vram = new uint16_t[1024 * 512];
 
 	uint16_t vram_read(int x, int y);
 	int xpos = 0;
 	int ypos = 0;	// Used to keep track of memory transfers
 	uint32_t* pixels;
-	uint32_t fifo[12];
+	uint32_t fifo[12] = {};
 	int cmd_length = 0;
 	int cmd_left = 0;
 
@@ -52,20 +50,20 @@ public:
 	
 
 	// GPUSTAT
-	uint8_t page_base_x;
-	uint8_t page_base_y;
-	uint8_t semi_transparency;
-	uint8_t texture_depth;
-	uint8_t dithering;
-	bool allow_display_drawing;
-	bool mask_bit;
-	bool disallow_masked_pixels_drawing;
-	uint8_t interlace_field;
-	bool texture_disable;
-	uint8_t hres2;
-	uint8_t hres1;
-	uint8_t vres;
-	uint8_t dma_direction;
+	uint8_t page_base_x = 0;
+	uint8_t page_base_y = 0;
+	uint8_t semi_transparency = 0;
+	uint8_t texture_depth = 0;
+	uint8_t dithering = 0;
+	bool allow_display_drawing = false;
+	bool mask_bit = false;
+	bool disallow_masked_pixels_drawing = false;
+	uint8_t interlace_field = 0;
+	bool texture_disable = false;
+	uint8_t hres2 = 0;
+	uint8_t hres1 = 0;
+	uint8_t vres = 0;
+	uint8_t dma_direction = 0;
 
 	uint32_t get_status();
 
@@ -87,7 +85,7 @@ public:	// commands
 public:
 	void write32(uint32_t addrX, uint32_t addrY, uint32_t data);
 public:
-	bool debug;
+	bool debug = false;
 	void debug_printf(const char* fmt, ...);
 	
 	

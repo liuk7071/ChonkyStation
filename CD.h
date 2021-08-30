@@ -19,6 +19,6 @@ public:
 	FILE* iso;
 	int buff_left = SECTOR_SIZE;
 	uint8_t SectorBuffer[SECTOR_SIZE];
-	uint8_t DataBuffer[CDXA_DATA_SIZE];
+	uint8_t DataBuffer[CDXA_DATA_SIZE+1];
 };
 

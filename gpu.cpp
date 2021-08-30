@@ -6,22 +6,7 @@ Bus* bus;
 gpu::gpu() {
 	// Initialize pixel array
 	pixels = new uint32_t [480 * 640];
-
-	rast.SetFrameBuffer((uint32_t*)pixels, 640, 480);
-
 	debug = false;
-	point v1, v2, v3, v4;
-	v1.x = 0; 
-	v1.y = 0;
-	v2.x = 640;
-	v2.y = 0;
-	v3.x = 0;
-	v3.y = 480;
-	v4.x = 640;
-	v4.y = 480;
-
-	//quad(v1, v2, v3, v4, 0xff00);
-	//triangle(v1, v2, v3, 0xff);
 }
 
 void connectBus(Bus *_bus) {
@@ -145,31 +130,13 @@ gpu::point calc_tex_coords(int tx, int ty, int x, int y, int bpp) {
 }
 
 void gpu::putpixel(point v1, uint32_t colour) {
-	//Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
-	//if (v1.x >= 1024 || v1.y >= 512)
-	//	return;
-	//
-	//rast.vram[v1.y * 1024 + v1.x] = c1.ToUInt32();
-
-	rast.SetPixel(v1.x, v1.y, colour);
+	// TODO: OpenGL implementation
 }
 
-void gpu::quad(point v1, point v2, point v3, point v4, uint32_t colour) {
-	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16);
-	Color c2(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16);
-	Color c3(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16);;
-
-	
-	//
-	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
-	rast.DrawTriangle(c1, v2.x, v2.y, c2, v3.x, v3.y, c3, v4.x, v4.y);
-	//triangle(v1, v2, v3, colour);
-	//triangle(v2, v3, v4, colour);
-}
 
 // Textures
 uint16_t gpu::vram_read(int x, int y) {
-	return rast.vram[y * 1024 + x];
+	return vram[y * 1024 + x];
 }
 
 void gpu::execute_gp0(uint32_t command) {
@@ -358,8 +325,8 @@ void gpu::execute_gp0(uint32_t command) {
 			uint32_t g = (c >> 5) & 0b11111;
 			uint32_t r = c & 0b11111;
 			uint32_t rgba = ((r << 3) << 24) | ((g << 3) << 16) | ((b << 3) << 8) | 0xff;
-			rast.vram[(y + ypos) * 1024 + (x+xpos)] = command & 0xffff;
-			rast.vram_rgb[(y + ypos) * 1024 + (x + xpos)] = rgba;
+			vram[(y + ypos) * 1024 + (x+xpos)] = command & 0xffff;
+			//vram_rgb[(y + ypos) * 1024 + (x + xpos)] = rgba;
 			//writev(x + xpos, y + ypos, command & 0xffff);
 			xpos++;
 
@@ -380,8 +347,8 @@ void gpu::execute_gp0(uint32_t command) {
 			g = (c >> 5) & 0b11111;
 			r = c & 0b11111;
 			rgba = ((r << 3) << 24) | ((g << 3) << 16) | ((b << 3) << 8) | 0xff;
-			rast.vram[(y+ypos) * 1024 + (x + xpos)] = command >> 16;
-			rast.vram_rgb[(y + ypos) * 1024 + (x + xpos)] = rgba;
+			vram[(y+ypos) * 1024 + (x + xpos)] = command >> 16;
+			//vram_rgb[(y + ypos) * 1024 + (x + xpos)] = rgba;
 			//writev(x + xpos, y + ypos, command >> 16);
 			xpos++;
 
@@ -437,9 +404,9 @@ void gpu::monochrome_four_point_opaque_polygon() {
 	v4.y = fifo[4] >> 16;
 
 	uint32_t Vertices1[]{
-		v1.x, v1.y, 0.0,
-		v2.x, v2.y, 0.0,
-		v3.x, v3.y, 0.0,
+		v1.x, v1.y, 0,
+		v2.x, v2.y, 0,
+		v3.x, v3.y, 0,
 	
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
@@ -492,7 +459,7 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	uint32_t colour = fifo[0] & 0xffffff;
 	debug_printf("[GP0] Textured four-point polygon, opaque, texture blending (colour: 0x%x)\n", colour);
 	point v1, v2, v3, v4, t1, t2, t3, t4;
-	Rasterizer::point page, clut;
+	point page, clut;
 	page.x = page_base_x;
 	page.y = page_base_y;
 	v1.x = fifo[1] & 0xffff;
@@ -516,12 +483,6 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	t3.y = (fifo[6] & 0b1100) >> 2;
 	t4.x = fifo[8] & 0b11;
 	t4.y = (fifo[8] & 0b1100) >> 2;
-	//rast.textured = true;
-	rast.page = page;
-	rast.clut = clut;
-	if (texture_depth == 0) rast.depth = Rasterizer::Depth::BITS4;
-	if (texture_depth == 1) rast.depth = Rasterizer::Depth::BITS8;
-	if (texture_depth == 2) rast.depth = Rasterizer::Depth::BITS16;
 
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0.0,
@@ -572,9 +533,6 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
-
-	quad(v1, v2, v3, v4, 0xff);
-	//rast.textured = false;
 	return;
 }
 
@@ -590,7 +548,8 @@ void gpu::monochrome_four_point_semi_transparent_polygon() {
 	v3.y = fifo[3] >> 16;
 	v4.x = fifo[4] & 0xffff;
 	v4.y = fifo[4] >> 16;
-	quad(v1, v2, v3, v4, colour);
+	
+	// TODO: OpenGL implementation
 	return;
 }
 
@@ -605,10 +564,6 @@ void gpu::monochrome_three_point_opaque_polygon() {
 	v3.x = fifo[3] & 0xffff;
 	v3.y = fifo[3] >> 16;
 
-	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
-	Color c2(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
-	Color c3(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
-
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0.0,
 		v2.x, v2.y, 0.0,
@@ -618,7 +573,6 @@ void gpu::monochrome_three_point_opaque_polygon() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
-	printf("%d, %d, %d, %d, %d, %d\n", v1.x, v1.y, v2.x, v2.y, v3.x, v3.y);
 	glViewport(0, 0, 640, 480);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -647,12 +601,8 @@ void gpu::monochrome_three_point_semi_transparent_polygon() {
 	v2.y = fifo[2] >> 16;
 	v3.x = fifo[3] & 0xffff;
 	v3.y = fifo[3] >> 16;
-
-	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0x7f);
-	Color c2(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0x7f);
-	Color c3(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0x7f);
-
-	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
+	
+	// TODO: OpenGL implementation
 	return;
 }
 
@@ -668,10 +618,6 @@ void gpu::shaded_three_point_opaque_polygon() {
 	v2.y = fifo[3] >> 16;
 	v3.x = fifo[5] & 0xffff;
 	v3.y = fifo[5] >> 16;
-
-	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16);
-	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16);
-	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16);
 
 	uint32_t Vertices[]{
 		v1.x, v1.y, 0.0, 
@@ -697,8 +643,6 @@ void gpu::shaded_three_point_opaque_polygon() {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
-
-	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
 	return;
 }
 
@@ -715,11 +659,7 @@ void gpu::shaded_three_point_semi_transparent_polygon() {
 	v3.x = fifo[5] & 0xffff;
 	v3.y = fifo[5] >> 16;
 
-	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16, 0x7f);
-	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16, 0x7f);
-	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16, 0x7f);
-
-	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
+	// TODO: OpenGL implementation
 	return;
 }
 
@@ -738,11 +678,6 @@ void gpu::shaded_four_point_opaque_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 	debug_printf("[GP0] Shaded four-point polygon, opaque\n");
-
-	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16);
-	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16);
-	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16);
-	Color c4(v4.c & 0xff, (v4.c & 0xff00) >> 8, (v4.c & 0xff0000) >> 16);
 
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0.0,
@@ -811,13 +746,8 @@ void gpu::shaded_four_point_semi_transparent_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 	debug_printf("[GP0] Shaded four-point polygon, semi-transparent\n");
-	Color c1(v1.c & 0xff, (v1.c & 0xff00) >> 8, (v1.c & 0xff0000) >> 16, 0x7f);
-	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16, 0x7f);
-	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16, 0x7f);
-	Color c4(v4.c & 0xff, (v4.c & 0xff00) >> 8, (v4.c & 0xff0000) >> 16, 0x7f);
 
-	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
-	rast.DrawTriangle(c2, v2.x, v2.y, c3, v3.x, v3.y, c4, v4.x, v4.y);
+	// TODO: OpenGL implementation
 	return;
 }
 
@@ -829,8 +759,8 @@ void gpu::monochrome_line_opaque() {
 	v1.y = fifo[1] >> 16;
 	v2.x = fifo[2] & 0xffff;
 	v2.y = fifo[2] >> 16;
-	Color c1 = fifo[0] & 0xffffff;
-	rast.DrawLine(c1, v1.x, v1.y, c1, v2.x, v2.y);
+
+	// TODO: OpenGL implementation
 	return;
 }
 
@@ -841,8 +771,8 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	debug_printf("[GP0] 1x1 Draw Opaque Monochrome Rectangle (coords: %d;%d colour: 0x%x)\n", x, y, colour);
 	if (x >= 640 || y >= 480)
 		return;
-	Color c1(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
-	rast.vram[y * 1024 + x] = c1.ToUInt32();
+
+	// TODO: OpenGL implementation
 	return;
 }
 
@@ -873,4 +803,3 @@ void gpu::vram_to_cpu() {
 	auto height = resolution >> 16;
 	return;
 }
-

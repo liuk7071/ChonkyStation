@@ -26,18 +26,18 @@ public:
 	uint8_t* exp2 = new uint8_t[8000];
 	//uint8_t* regs = new uint8_t[0xffffff];
 	//uint8_t* mem = new uint8_t[0xffffffff];
-	uint32_t RAM_SIZE;
-	uint32_t I_MASK;
-	uint32_t I_STAT;
-	uint32_t CACHE_CONTROL;
+	uint32_t RAM_SIZE = 0;
+	uint32_t I_MASK = 0;
+	uint32_t I_STAT = 0;
+	uint32_t CACHE_CONTROL = 0;
 
-	uint32_t exp2_delay_size;
+	uint32_t exp2_delay_size = 0;
 
-	uint32_t SPUSTAT;
+	uint32_t SPUSTAT = 0;
 
 	// dma
-	uint32_t DCPR;
-	uint32_t DICR;
+	uint32_t DCPR = 0;
+	uint32_t DICR = 0;
 
 
 	typedef struct DMA {
@@ -49,7 +49,7 @@ public:
 	DMA Ch2, Ch3, Ch6;
 
 
-	uint32_t gpuread;
+	uint32_t gpuread = 0;
 public:
 	bool debug;
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);

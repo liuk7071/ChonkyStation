@@ -1,11 +1,7 @@
 #include <iostream>
 #include <windows.h>
-#include <iomanip>
-#include <map>
 #include <sstream>
 #include "TinyFileDialogs/tinyfiledialogs.h"
-#include "Cpu.h"
-#include "SDL.h"
 #include "glad/glad.h"
 #undef main
 #include "imgui/imgui.h"
@@ -14,6 +10,7 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/imgui_memory_editor.h"
 #include "GLFW\glfw3.h"
+#include "Cpu.h"
 
 GLFWwindow* window = nullptr;
 int key, action;
@@ -42,15 +39,15 @@ static void key_callback(GLFWwindow* window, int key_, int scancode, int action_
     action = action_;
 }
 
-void Reset(const char* rom_dir, const char* bios_dir, cpu* Cpu) {
+void Reset(const char* rom_dir, const char* bios_dir, cpu *Cpu) {
     if (!bios_selected) {
         dialog_message = "Please select a bios file at Settings > System";
         show_dialog = true;
     }
     else {
         if (run) {
-            delete Cpu;
-            Cpu = new cpu(sideload ? binary_path : "", bios_path, false);
+            *Cpu = cpu(sideload ? binary_path : "", bios_path, false);
+            Cpu->bus.Gpu.InitGL();
         }
         run = true;
         started = true;
@@ -75,20 +72,12 @@ void InitWindow() {
     ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-void Update(cpu* Cpu) {
-    // glBindTexture(GL_TEXTURE_2D, Cpu->bus.Gpu.id);
-    // glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, 0);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-}
-
 void SystemSettingsMenu() {
     static bool general = true;
     static bool graphics = false;
     ImGui::Begin("System Settings", &show_system_settings);
-    //ImGui::NewLine();
+    ImGui::Text("Note: Changing these settings requires a \nreset of the emulator (Emulation > Reset)");
+    ImGui::NewLine();
     ImGui::Checkbox("Sideload binary", &sideload);
     
     if (!sideload) ImGui::PushDisabled();
@@ -170,9 +159,9 @@ void ImGuiFrame(cpu *Cpu) {
             }
     
             if (ImGui::MenuItem("Reset")) {
+                Reset("", bios_path, Cpu);
                 run = false;
                 started = false;
-                Reset("", bios_path, Cpu);
             }
     
             ImGui::EndMenu();
@@ -203,49 +192,35 @@ int main(int argc, char** argv) {
     {
         exit(1);
     }
-    std::map<int, bool> keyboard;
     printf("\n Executing \n \n");
     // Parse CLI args (TODO: Use a library)
     const auto rom_dir = argc > 1 ? std::string(argv[1]) : "";  // Path of the ROM (Or "" if we just want to run the BIOS)
     const bool running_in_ci = argc > 2 && std::string(argv[2]).compare("--continuous-integration") == 0; // Running in CI makes the system run without SDL 
     const std::string bios_dir = running_in_ci ? "" : "./SCPH1001.bin"; // In CI, don't load a BIOS, otherwise load SCPH1001.bin. TODO: Add a CLI arg for the BIOS path
 
-    cpu* Cpu = new cpu(rom_dir, bios_dir, running_in_ci); // TODO: Have a system class, don't use the CPU as one   
+    cpu Cpu = cpu(rom_dir, bios_dir, running_in_ci); // TODO: Have a system class, don't use the CPU as one   
     if (running_in_ci) { // When executing in CI, run the system headless, without a BIOS.
-        Cpu->sideloadExecutable(rom_dir);
+        Cpu.sideloadExecutable(rom_dir);
         while (true) // The CI tests write to a custom register that force-closes the emulator when they're done, so this will run until that is hit
-            Cpu->step();
+            Cpu.step();
     }
 
     InitWindow();
-    
-    // OpenGL
-    //glGenTextures(1, &Cpu->bus.Gpu.id);
-    //glBindTexture(GL_TEXTURE_2D, Cpu->bus.Gpu.id);
-    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, 0);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    Cpu->bus.Gpu.InitGL();
+    Cpu.bus.Gpu.InitGL();
 
     double prevTime = glfwGetTime();
     int frameCount = 0;
     while (!glfwWindowShouldClose(window)) {
-        if (Cpu->frame_cycles >= 500000 || !run) {
+        if (Cpu.frame_cycles >= 500000 || !run) {
             glfwPollEvents();
-
-            if (keyboard[SDLK_RETURN]) {   // Manually fire a VBLANK IRQ to test some programs (I know)
-                Cpu->bus.mem.I_STAT &= ~1;
-                Cpu->bus.mem.I_STAT |= 1;
-            }
-
-            //Update(Cpu);
-            ImGuiFrame(Cpu);
+            
+            // Update the ImGui frontend
+            ImGuiFrame(&Cpu);
             if (show_system_settings) SystemSettingsMenu();
             if (show_dialog) Dialog();
-            if (show_ram_viewer) MemEditor.DrawWindow("RAM Viewer", Cpu->bus.mem.ram, 0x200000);
+            if (show_ram_viewer) MemEditor.DrawWindow("RAM Viewer", Cpu.bus.mem.ram, 0x200000);
 
+            // Render it
             ImGui::Render();
             int display_w, display_h;
             glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -254,8 +229,10 @@ int main(int argc, char** argv) {
             glClear(GL_COLOR_BUFFER_BIT);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(window);
-            if(run) Cpu->frame_cycles = 0;
+            
+            Cpu.frame_cycles = 0;
 
+            // Update the FPS
             frameCount++;
             double currTime = glfwGetTime();
             if (currTime - prevTime >= 1.0) {
@@ -267,7 +244,7 @@ int main(int argc, char** argv) {
             }
         }
         else {
-            Cpu->step();
+            Cpu.step();
         }   
     }
 
