@@ -17,8 +17,13 @@
 
 GLFWwindow* window = nullptr;
 int key, action;
-bool show_settings, show_system_settings, show_cpu_registers, show_ram_viewer, started, sideload = false;
-bool run = true;
+bool show_settings = false;
+bool show_system_settings = false;
+bool show_cpu_registers = false;
+bool show_ram_viewer = false;
+bool started = false;
+bool sideload = false;
+bool run = false;
 const float aspect_ratio = 640 / 480;
 
 const char* game_path;
@@ -41,12 +46,14 @@ void Reset(const char* rom_dir, const char* bios_dir, cpu* Cpu) {
     if (!bios_selected) {
         dialog_message = "Please select a bios file at Settings > System";
         show_dialog = true;
-        run = false;
-        started = false;
     }
     else {
-        delete Cpu;
-        Cpu = new cpu(sideload ? binary_path : "", bios_path, false);
+        if (run) {
+            delete Cpu;
+            Cpu = new cpu(sideload ? binary_path : "", bios_path, false);
+        }
+        run = true;
+        started = true;
     }
 }
 
@@ -155,8 +162,6 @@ void ImGuiFrame(cpu *Cpu) {
     
         if (ImGui::BeginMenu("Emulation")) {
             if (ImGui::MenuItem("Start", NULL, false, !started)) {
-                run = true;
-                started = true;
                 Reset("", bios_path, Cpu);
             }
     
@@ -249,7 +254,7 @@ int main(int argc, char** argv) {
             glClear(GL_COLOR_BUFFER_BIT);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             glfwSwapBuffers(window);
-            Cpu->frame_cycles = 0;
+            if(run) Cpu->frame_cycles = 0;
 
             frameCount++;
             double currTime = glfwGetTime();

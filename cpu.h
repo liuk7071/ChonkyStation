@@ -51,7 +51,7 @@ public:
 	void do_dma(int channel);
 	void check_CDROM_IRQ();
 	void step();
-	int frame_cycles;
+	int frame_cycles = 0;
 	void sideloadExecutable(std::string directory);
 
 public:

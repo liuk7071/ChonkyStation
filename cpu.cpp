@@ -23,12 +23,12 @@ cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_
 }
 
 cpu::~cpu() {
-
+	
 }
 
 void cpu::reset() {
 	for (auto& i : regs) {
-		regs[i] = 0;
+		i = 0;
 	}
 	pc = 0xbfc00000;
 }

@@ -7,6 +7,6 @@
     <LocalDebuggerEnvironment>PATH=%PATH%;$(ProjectDir)\SDL2\lib\x86
 $(LocalDebuggerEnvironment)</LocalDebuggerEnvironment>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerAttach>true</LocalDebuggerAttach>
+    <LocalDebuggerAttach>false</LocalDebuggerAttach>
   </PropertyGroup>
 </Project>
