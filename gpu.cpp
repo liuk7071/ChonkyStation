@@ -51,41 +51,41 @@ static const GLchar* VertexShaderSource =
 R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 colour;
+out vec3 frag_colour;
 
 void main() {
-	gl_Position = vec4(aPos.x / 320 - 1.0, 1.0 - aPos.y / 240, aPos.z, 1.0);
+	gl_Position = vec4(float(aPos.x) / 320 - 1, -(1 - float(aPos.y) / 240), 0.0, 1.0);
+	frag_colour = vec3(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255);
 }
 )";
 static const GLchar* FragmentShaderSource =
 R"(
 #version 330 core
-layout (location = 0) out vec4 FragColor;
+in vec3 frag_colour;
+out vec3 final_colour;
 
 void main() {
-    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+	final_colour = frag_colour;
 } 
 )";
 
 void gpu::InitGL() {
-	GLint oldFBO;
-	
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO);
-
 	glGenFramebuffers(1, &FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 
 	glGenTextures(1, &id);
 	glBindTexture(GL_TEXTURE_2D, id);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 512, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 640, 480, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, id, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
 	glDrawBuffers(1, DrawBuffers);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-	glViewport(0, 0, 1024, 512);
 
 	VertexShader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(VertexShader, 1, &VertexShaderSource, NULL);
@@ -117,26 +117,21 @@ void gpu::InitGL() {
 	glUseProgram(ShaderProgram);
 
 	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
 	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	float Vertices[]{
-		100, 200, 0.0,
-		300, 200, 0.0,
-		320, 400, 0.0
-	};
-	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
-	glUseProgram(ShaderProgram);
-	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
-
-	// 
+	//
+	//float Vertices[]{
+	//	100, 200, 0.0,
+	//	300, 200, 0.0,
+	//	320, 400, 0.0
+	//};
+	//glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	//glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+	//glUseProgram(ShaderProgram);
+	//glBindVertexArray(VAO);
+	//glDrawArrays(GL_TRIANGLES, 0, 3);
+	//glBindVertexArray(0);
+	//
+	//glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 }
 
 gpu::point calc_tex_coords(int tx, int ty, int x, int y, int bpp) {
@@ -440,7 +435,56 @@ void gpu::monochrome_four_point_opaque_polygon() {
 	v3.y = fifo[3] >> 16;
 	v4.x = fifo[4] & 0xffff;
 	v4.y = fifo[4] >> 16;
-	quad(v1, v2, v3, v4, colour);
+
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0.0,
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+	
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+	
+	uint32_t Vertices2[]{
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+		v4.x, v4.y, 0.0,
+	
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 	return;
 }
 
@@ -478,6 +522,57 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	if (texture_depth == 0) rast.depth = Rasterizer::Depth::BITS4;
 	if (texture_depth == 1) rast.depth = Rasterizer::Depth::BITS8;
 	if (texture_depth == 2) rast.depth = Rasterizer::Depth::BITS16;
+
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0.0,
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
+	uint32_t Vertices2[]{
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+		v4.x, v4.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
 	quad(v1, v2, v3, v4, 0xff);
 	//rast.textured = false;
 	return;
@@ -514,7 +609,31 @@ void gpu::monochrome_three_point_opaque_polygon() {
 	Color c2(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
 	Color c3(colour & 0xff, (colour & 0xff00) >> 8, (colour & 0xff0000) >> 16, 0);
 
-	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0.0,
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	printf("%d, %d, %d, %d, %d, %d\n", v1.x, v1.y, v2.x, v2.y, v3.x, v3.y);
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 	return;
 }
 
@@ -554,16 +673,30 @@ void gpu::shaded_three_point_opaque_polygon() {
 	Color c2(v2.c & 0xff, (v2.c & 0xff00) >> 8, (v2.c & 0xff0000) >> 16);
 	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16);
 
-	float Vertices[]{
-		v1.x, v1.y, 0.0,
-		v2.x, v2.y, 0.0,
-		v3.x, v3.y, 0.0
+	uint32_t Vertices[]{
+		v1.x, v1.y, 0.0, 
+		v2.x, v2.y, 0.0, 
+		v3.x, v3.y, 0.0, 
+
+		(((v1.c) >> 0) & 0xff), (((v1.c) >> 8) & 0xff), (((v1.c) >> 16) & 0xff),
+		(((v2.c) >> 0) & 0xff), (((v2.c) >> 8) & 0xff), (((v2.c) >> 16) & 0xff),
+		(((v3.c) >> 0) & 0xff), (((v3.c) >> 8) & 0xff), (((v3.c) >> 16) & 0xff)
 	};
-	//glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
-	//glUseProgram(ShaderProgram);
-	//glBindVertexArray(VAO);
-	//glDrawArrays(GL_TRIANGLES, 0, 3);
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9*sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 
 	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
 	return;
@@ -611,8 +744,55 @@ void gpu::shaded_four_point_opaque_polygon() {
 	Color c3(v3.c & 0xff, (v3.c & 0xff00) >> 8, (v3.c & 0xff0000) >> 16);
 	Color c4(v4.c & 0xff, (v4.c & 0xff00) >> 8, (v4.c & 0xff0000) >> 16);
 
-	rast.DrawTriangle(c1, v1.x, v1.y, c2, v2.x, v2.y, c3, v3.x, v3.y);
-	rast.DrawTriangle(c2, v2.x, v2.y, c3, v3.x, v3.y, c4, v4.x, v4.y);
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0.0,
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+	
+		(((v1.c) >> 0) & 0xff), (((v1.c) >> 8) & 0xff), (((v1.c) >> 16) & 0xff),
+		(((v2.c) >> 0) & 0xff), (((v2.c) >> 8) & 0xff), (((v2.c) >> 16) & 0xff),
+		(((v3.c) >> 0) & 0xff), (((v3.c) >> 8) & 0xff), (((v3.c) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
+	uint32_t Vertices2[]{
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+		v4.x, v4.y, 0.0,
+
+		(((v2.c) >> 0) & 0xff), (((v2.c) >> 8) & 0xff), (((v2.c) >> 16) & 0xff),
+		(((v3.c) >> 0) & 0xff), (((v3.c) >> 8) & 0xff), (((v3.c) >> 16) & 0xff),
+		(((v4.c) >> 0) & 0xff), (((v4.c) >> 8) & 0xff), (((v4.c) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 	return;
 }
 

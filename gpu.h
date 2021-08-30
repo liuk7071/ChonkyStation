@@ -14,7 +14,8 @@ class gpu
 
 public:		// trongle stuff
 	unsigned int VBO, VAO;
-	GLuint FBO; // it was int before 
+	GLuint FBO; 
+	GLint oldFBO;
 	unsigned int id;
 	unsigned int VertexShader;
 	unsigned int FragmentShader;

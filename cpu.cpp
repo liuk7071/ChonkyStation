@@ -133,7 +133,7 @@ void cpu::do_dma(int channel) {
 				debug = false;
 				return;
 			case(0):
-				debug_log("[DMA] GPU to RAM block copy (unimlpemented)\n");
+				debug_log("[DMA] GPU to RAM block copy (unimplemented)\n");
 				return;
 			default:
 				printf("[DMA] Unhandled Direction (GPU Block Copy)");

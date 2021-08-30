@@ -17,8 +17,9 @@
 
 GLFWwindow* window = nullptr;
 int key, action;
-bool show_settings, show_system_settings, show_cpu_registers, show_ram_viewer, run, started, sideload = false;
-const float aspect_ratio = 1024 / 512;
+bool show_settings, show_system_settings, show_cpu_registers, show_ram_viewer, started, sideload = false;
+bool run = true;
+const float aspect_ratio = 640 / 480;
 
 const char* game_path;
 const char* bios_path;
@@ -145,40 +146,40 @@ void ImGuiFrame(cpu *Cpu) {
                     game_open = true;
                 }
             }
-
+    
             if (ImGui::MenuItem("Exit")) {
                 glfwSetWindowShouldClose(window, GLFW_TRUE);
             }
             ImGui::EndMenu();
         }
-
+    
         if (ImGui::BeginMenu("Emulation")) {
             if (ImGui::MenuItem("Start", NULL, false, !started)) {
                 run = true;
                 started = true;
                 Reset("", bios_path, Cpu);
             }
-
+    
             if (ImGui::MenuItem(run ? "Pause" : "Resume", NULL, false, started)) {
                 run = !run;
             }
-
+    
             if (ImGui::MenuItem("Reset")) {
                 run = false;
                 started = false;
                 Reset("", bios_path, Cpu);
             }
-
+    
             ImGui::EndMenu();
         }
-
+    
         if (ImGui::BeginMenu("Settings")) {
             if (ImGui::MenuItem("System")) {
                 show_system_settings = true;
             }
             ImGui::EndMenu();
         }
-
+    
         if (ImGui::BeginMenu("Debug")) {
             if (ImGui::BeginMenu("Memory Viewer")) {
                 if (ImGui::MenuItem("RAM")) {
@@ -267,6 +268,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-
-
-
