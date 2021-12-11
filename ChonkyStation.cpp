@@ -12,16 +12,20 @@
 #include "GLFW\glfw3.h"
 #include "Cpu.h"
 
+#include "scheduler.h"
+
 GLFWwindow* window = nullptr;
 int key, action;
 bool show_settings = false;
 bool show_system_settings = false;
 bool show_cpu_registers = false;
 bool show_ram_viewer = false;
+bool show_vram = false;
 bool started = false;
 bool sideload = false;
 bool run = false;
 const float aspect_ratio = 640 / 480;
+const float vram_aspect_ratio = 1024 / 512;
 
 const char* game_path;
 const char* bios_path;
@@ -32,9 +36,11 @@ const char* dialog_message;
 const char* FilterPatternsBin[1] = { "*.bin" };
 const char* FilterPatternsExe[1] = { "*.exe" };
 
+unsigned int vram_viewer;
+bool test = false;
+
 static MemoryEditor MemEditor;
-static void key_callback(GLFWwindow* window, int key_, int scancode, int action_, int mods)
-{
+static void key_callback(GLFWwindow* window, int key_, int scancode, int action_, int mods) {
     key = key_;
     action = action_;
 }
@@ -101,6 +107,12 @@ void SystemSettingsMenu() {
     ImGui::End();
 }
 
+void CpuDebugger(cpu *Cpu) {
+    ImGui::Begin("CPU Registers");
+    ImGui::Text("pc: 0x%x", Cpu->pc);
+    ImGui::End();
+}
+
 void Dialog() {
     ImGui::Begin("", &show_dialog);
     ImGui::Text(dialog_message);
@@ -115,7 +127,7 @@ void ImGuiFrame(cpu *Cpu) {
     // Display
     bool show = false;
     ImGui::Begin("Image", &show, ImGuiWindowFlags_NoTitleBar);
-
+    
     float x = ImGui::GetWindowSize().x - 15, y = ImGui::GetWindowSize().y - 15;
     float current_aspect_ratio = x / y;
     if (aspect_ratio > current_aspect_ratio) {
@@ -124,7 +136,7 @@ void ImGuiFrame(cpu *Cpu) {
     else {
         x = y * aspect_ratio;
     }
-
+    
     ImVec2 image_size(x, y);
     ImVec2 centered((ImGui::GetWindowSize().x - image_size.x) * 0.5, (ImGui::GetWindowSize().y - image_size.y) * 0.5);
     ImGui::SetCursorPos(centered);
@@ -175,11 +187,24 @@ void ImGuiFrame(cpu *Cpu) {
         }
     
         if (ImGui::BeginMenu("Debug")) {
+            if (ImGui::MenuItem("CPU")) {
+                show_cpu_registers = !show_cpu_registers;
+            }
+            if (ImGui::MenuItem("VRAM Viewer")) {
+                show_vram = !show_vram;
+            }
             if (ImGui::BeginMenu("Memory Viewer")) {
                 if (ImGui::MenuItem("RAM")) {
                     show_ram_viewer = !show_ram_viewer;
                 }
                 ImGui::EndMenu();
+            }
+            if (ImGui::MenuItem("Dump RAM")) {
+                std::ofstream file("ram.bin", std::ios::binary);
+                file.write((const char*)Cpu->bus.mem.ram, 0x200000);
+            }
+            if (ImGui::MenuItem("test")) {
+                test = !test;
             }
             ImGui::EndMenu();
         }
@@ -187,9 +212,35 @@ void ImGuiFrame(cpu *Cpu) {
     }
 }
 
+void UpdateVRAMViewer(cpu* Cpu) {
+    glBindTexture(GL_TEXTURE_2D, vram_viewer);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, Cpu->bus.Gpu.vram_rgb);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
+void RenderVRAMViewer() {
+    ImGui::Begin("Imagevram", NULL, ImGuiWindowFlags_NoTitleBar);
+
+    float x = ImGui::GetWindowSize().x - 15, y = ImGui::GetWindowSize().y - 15;
+    float current_aspect_ratio = x / y;
+    if (vram_aspect_ratio > current_aspect_ratio) {
+        y = x / vram_aspect_ratio;
+    }
+    else {
+        x = y * vram_aspect_ratio;
+    }
+
+    ImVec2 image_size(x, y);
+    ImVec2 centered((ImGui::GetWindowSize().x - image_size.x) * 0.5, (ImGui::GetWindowSize().y - image_size.y) * 0.5);
+    ImGui::SetCursorPos(centered);
+    ImGui::Image((void*)(intptr_t)(vram_viewer), image_size);
+    ImGui::End();
+}
+
 int main(int argc, char** argv) {
-    if (!glfwInit())
-    {
+    if (!glfwInit()) {
         exit(1);
     }
     printf("\n Executing \n \n");
@@ -206,19 +257,29 @@ int main(int argc, char** argv) {
     }
 
     InitWindow();
+    glGenTextures(1, &vram_viewer);
+    glBindTexture(GL_TEXTURE_2D, vram_viewer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, Cpu.bus.Gpu.vram_rgb);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     Cpu.bus.Gpu.InitGL();
-
+    
     double prevTime = glfwGetTime();
     int frameCount = 0;
     while (!glfwWindowShouldClose(window)) {
-        if (Cpu.frame_cycles >= 500000 || !run) {
+        if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
             glfwPollEvents();
-            
+            //Cpu.bus.mem.I_STAT |= 0b0000001;
             // Update the ImGui frontend
             ImGuiFrame(&Cpu);
             if (show_system_settings) SystemSettingsMenu();
             if (show_dialog) Dialog();
             if (show_ram_viewer) MemEditor.DrawWindow("RAM Viewer", Cpu.bus.mem.ram, 0x200000);
+            if (show_cpu_registers) CpuDebugger(&Cpu);
+            UpdateVRAMViewer(&Cpu);
+            if (show_vram) RenderVRAMViewer();
 
             // Render it
             ImGui::Render();
@@ -244,6 +305,7 @@ int main(int argc, char** argv) {
             }
         }
         else {
+            if (test) printf("%x\n", Cpu.pc);
             Cpu.step();
         }   
     }

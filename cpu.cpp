@@ -48,7 +48,7 @@ void cpu::sideloadExecutable(std::string directory) {
 	regs[30] = r29_30_base + r29_30_offset;
 }
 
-void cpu::debug_log(const char* fmt, ...) {
+inline void cpu::debug_log(const char* fmt, ...) {
 #ifdef log
 	if (debug) {
 		std::va_list args;
@@ -58,7 +58,7 @@ void cpu::debug_log(const char* fmt, ...) {
 	}
 #endif
 }
-void cpu::debug_warn(const char* fmt, ...) {
+inline void cpu::debug_warn(const char* fmt, ...) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
 	std::va_list args;
 	va_start(args, fmt);
@@ -66,7 +66,7 @@ void cpu::debug_warn(const char* fmt, ...) {
 	va_end(args);
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 }
-void cpu::debug_err(const char* fmt, ...) {
+inline void cpu::debug_err(const char* fmt, ...) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
 	std::va_list args;
 	va_start(args, fmt);
@@ -97,12 +97,8 @@ void cpu::exception(exceptions exc) {
 	pc = handler;
 }
 
-uint32_t cpu::fetch(uint32_t addr) {
-	return bus.mem.read32(addr);
-}
-
-
-void cpu::do_dma(int channel) {
+template<int channel>
+void cpu::do_dma() {
 	//debug = true;
 	switch (channel) {		// switch on the channels
 	case(2): {	// GPU
@@ -190,14 +186,15 @@ void cpu::do_dma(int channel) {
 				printf("[DMA] Transfer direction: device to ram\n");
 				printf("[DMA] MADR: 0x%x\n", addr);
 				printf("[DMA] Transfer size: %d words\n", words);
-				while (words >= 1) {
+				bus.mem.CDROM.cd.buff_left = 0;
+				while (words >= 0) {
 					current_addr = addr & 0x1ffffc;
-					if (words == 2) {
+					if (words == 1) {
 						uint8_t b1 = bus.mem.CDROM.cd.ReadDataByte();
 						uint8_t b2 = bus.mem.CDROM.cd.ReadDataByte();
 						uint8_t b3 = bus.mem.CDROM.cd.ReadDataByte();
 						uint8_t b4 = bus.mem.CDROM.cd.ReadDataByte();
-						uint32_t word = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
+						uint32_t word = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
 						bus.mem.write32(current_addr, word);
 						printf("[DMA] CDROM Block Copy completed\n");
 						bus.mem.Ch3.CHCR &= ~(1 << 24);
@@ -205,14 +202,14 @@ void cpu::do_dma(int channel) {
 						debug = false;
 						
 						bus.mem.CDROM.queued_read = true;
-						bus.mem.CDROM.delay = 1000000;
+						//bus.mem.CDROM.delay = 2;
 						return;
 					}
 					uint8_t b1 = bus.mem.CDROM.cd.ReadDataByte();
 					uint8_t b2 = bus.mem.CDROM.cd.ReadDataByte();
 					uint8_t b3 = bus.mem.CDROM.cd.ReadDataByte();
 					uint8_t b4 = bus.mem.CDROM.cd.ReadDataByte();
-					uint32_t word = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
+					uint32_t word = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
 					bus.mem.write32(current_addr, word);
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
@@ -222,13 +219,14 @@ void cpu::do_dma(int channel) {
 				printf("[DMA] Unhandled Direction (CDROM Block Copy)\n");
 				exit(0);
 			}
-		
+			printf("\nc");
 			exit(0);
 		}
 		default:
 			printf("[DMA] Unhandled sync mode (CDROM: %d)", sync_mode);
 			exit(0);
 		}
+		printf("\nd");
 		exit(0);
 		break;
 	}
@@ -267,13 +265,14 @@ void cpu::do_dma(int channel) {
 				printf("[DMA] Unhandled Direction (OTC Block Copy)\n");
 				exit(0);
 			}
-
+			printf("\na");
 			exit(0);
 		}
 		default:
 			printf("[DMA] Unhandled sync mode (OTC)");
 			exit(0);
 		}
+		printf("\nb");
 		exit(0);
 		break;
 	}
@@ -290,21 +289,21 @@ void cpu::check_dma() {
 	auto sync_mode = (bus.mem.Ch2.CHCR >> 9) & 0b11;
 
 	auto triggered = !(sync_mode == 0 && !trigger);
-	if (enabled && triggered) { do_dma(2); return; }
+	if (enabled && triggered) { do_dma<2>(); return; }
 
 	enabled = ((bus.mem.Ch3.CHCR >> 24) & 1) == 1;
 	trigger = ((bus.mem.Ch3.CHCR >> 28) & 1) == 1;
 	sync_mode = (bus.mem.Ch3.CHCR >> 9) & 0b11;
 
 	triggered = !(sync_mode == 0 && !trigger);
-	if (enabled && triggered) { do_dma(3); return; }
+	if (enabled && triggered) { do_dma<3>(); return; }
 
 	enabled = ((bus.mem.Ch6.CHCR >> 24) & 1) == 1;
 	trigger = ((bus.mem.Ch6.CHCR >> 28) & 1) == 1;
 	sync_mode = (bus.mem.Ch6.CHCR >> 9) & 0b11;
 
 	triggered = !(sync_mode == 0 && !trigger);
-	if (enabled && triggered) { do_dma(6); return; }
+	if (enabled && triggered) { do_dma<6>(); return; }
 }
 
 void cpu::execute(uint32_t instr) {
@@ -726,7 +725,7 @@ void cpu::execute(uint32_t instr) {
 		break;
 	}
 	case 0x12: {
-		debug_warn("Unimplemented GTE instruction: 0x%x\n", instr & 0x3f);
+		//debug_warn("Unimplemented GTE instruction: 0x%x\n", instr & 0x3f);
 		break;
 	}
 	case 0x20: {
@@ -939,11 +938,11 @@ void cpu::execute(uint32_t instr) {
 		break;
 	}
 	case 0x32: {
-		debug_warn("Unimplemented lwc2\n");
+		//debug_warn("Unimplemented lwc2\n");
 		break;
 	}
 	case 0x3A: {
-		debug_warn("Unimplemented swc2\n");
+		//debug_warn("Unimplemented swc2\n");
 		break;
 	}
 
@@ -954,16 +953,13 @@ void cpu::execute(uint32_t instr) {
 	pc += 4;
 }
 void cpu::check_CDROM_IRQ() {
-	bus.mem.CDROM.delayedINT();
-	if (bus.mem.CDROM.queued_read) {
-		bus.mem.CDROM.queuedRead();
-	}
+	//bus.mem.CDROM.delayedINT();
+	//if (bus.mem.CDROM.queued_read) {
+	//	bus.mem.CDROM.queuedRead();
+	//}
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag) {
 		//printf("[IRQ] CDROM INT%d, setting I_STAT bit (I_MASK = 0x%x)\n", bus.mem.CDROM.interrupt_flag & 0b111, bus.mem.I_MASK);
 		bus.mem.I_STAT |= (1 << 2);
-		if (bus.mem.CDROM.queued_INT1 || bus.mem.CDROM.queued_INT2 || bus.mem.CDROM.queued_INT5) {
-			bus.mem.CDROM.sendQueuedINT();
-		}
 	}
 }
 void cpu::step() {
@@ -976,14 +972,13 @@ void cpu::step() {
 			exception(exceptions::INT);
 		}
 	}
-	const auto instr = fetch(pc);
+	const auto instr = bus.mem.read32(pc);;
 #ifdef log
 	debug_log("0x%.8X | 0x%.8X: ", pc, instr);
 #endif
 	execute(instr);
 	frame_cycles += 2;
-	bus.mem.CDROM.delay -= 2;
-	if (bus.mem.CDROM.delay == 0) {
-		check_CDROM_IRQ();
-	}
+	bus.mem.CDROM.Scheduler.tick(2);
+	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag)
+		bus.mem.I_STAT |= (1 << 2);
 }

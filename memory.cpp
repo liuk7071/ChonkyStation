@@ -5,7 +5,6 @@ https://wheremyfoodat.github.io/software-fastmem/ */
 #include <iostream>
 #define log
 
-
 #pragma warning(disable : 4996)
 memory::memory() {
 	debug = false;
@@ -129,8 +128,10 @@ uint16_t memory::read16(uint32_t addr) {
 	uint32_t masked_addr = mask_address(addr);
 
 
-	if (masked_addr == 0x1f801120)	// timer 2 stuff
+	if (masked_addr == 0x1f801120) {	// timer 2 stuff
+		printf("timer\n");
 		return 0;
+	}
 
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
@@ -195,8 +196,10 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t masked_addr = mask_address(addr);
 
 
-	if (masked_addr == 0x1f801110)	// timer 1 stuff
+	if (masked_addr == 0x1f801110) {	// timer 1 stuff
+		//printf("timer1\n");
 		return 0;
+	}
 
 	if (masked_addr == 0x1f80101c) {
 		return exp2_delay_size;
@@ -209,9 +212,6 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f801074) { // I_MASK
 		return I_MASK;
 	}
-
-	if (masked_addr >= 0x1F801080 && masked_addr <= 0x1F8010FC) // dma registers
-		return 0;
 
 	if (masked_addr == 0x1f801814) {	// GPUSTAT
 		if (debug) debug_log("\n GPUSTAT read");

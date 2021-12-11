@@ -6,10 +6,11 @@ scheduler::scheduler() {
 		events[i].time = 0;
 	}
 }
-void scheduler::push(void (*ptr)(), int time) {
+void scheduler::push(void (*ptr)(void*), int time, void* classptr) {
 	event Event;
 	Event.function_ptr = ptr;
 	Event.time = time;
+	Event.data = classptr;
 	
 	for (int i = 0; i < MAX_ENTRIES; i++) {
 		if (events[i].time > Event.time) {
@@ -18,7 +19,7 @@ void scheduler::push(void (*ptr)(), int time) {
 			scheduled++; return;
 		}
 	}
-	if(scheduled < 12) events[scheduled++] = Event;
+	if(scheduled < MAX_ENTRIES) events[scheduled++] = Event;
 }
 
 void scheduler::tick(uint64_t cycles) {
@@ -27,7 +28,7 @@ void scheduler::tick(uint64_t cycles) {
 	int executed = 0;
 	for (int i = 0; i < scheduled; i++) {
 		if (time >= events[i].time) {
-			(*events[i].function_ptr)();
+			(*events[i].function_ptr)(events[i].data);
 			executed++;
 		}
 	}

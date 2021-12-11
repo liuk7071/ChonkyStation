@@ -14,11 +14,20 @@ public:		// trongle stuff
 	unsigned int VBO = 0;
 	unsigned int VAO = 0;
 	GLuint FBO = 0; 
+	GLuint VramTexture = 0;
 	GLint oldFBO = 0;
 	unsigned int id = 0;
 	unsigned int VertexShader = 0;
 	unsigned int FragmentShader = 0;
 	unsigned int ShaderProgram = 0;
+	unsigned int TextureShaderProgram = 0;
+
+	uint32_t pbo4, pbo8, pbo16;
+	uint8_t* ptr4;
+	uint8_t* ptr8;
+	uint16_t* ptr16;
+	uint32_t tex4, tex8, tex16;
+	void UpdateTextures();
 	
 	struct point {		// vertex struct
 		uint16_t x = 0, y = 0;	// coordinates
@@ -35,8 +44,10 @@ public:
 	gpu();
 	void InitGL();
 	uint16_t* vram = new uint16_t[1024 * 512];
+	uint32_t* vram_rgb = new uint32_t[1024 * 512];
 
 	uint16_t vram_read(int x, int y);
+	void vram_write(int x, int y, uint16_t data);
 	int xpos = 0;
 	int ypos = 0;	// Used to keep track of memory transfers
 	uint32_t* pixels;

@@ -34,7 +34,6 @@ public:
 
 	uint32_t next_instr = 0;
 public:
-	uint32_t fetch(uint32_t addr);
 	void execute(uint32_t instr);
 public:
 	void exception(exceptions);
@@ -48,10 +47,11 @@ public:
 
 public:
 	void check_dma();
-	void do_dma(int channel);
+	template<int channel> void do_dma();
 	void check_CDROM_IRQ();
 	void step();
 	int frame_cycles = 0;
+	int read_delay = 33868800 / 75;
 	void sideloadExecutable(std::string directory);
 
 public:

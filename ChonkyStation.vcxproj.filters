@@ -48,9 +48,6 @@
     <ClCompile Include="imgui\backends\imgui_impl_opengl3.cpp">
       <Filter>File di origine</Filter>
     </ClCompile>
-    <ClCompile Include="imgui\backends\imgui_impl_sdl.cpp">
-      <Filter>File di origine</Filter>
-    </ClCompile>
     <ClCompile Include="cop0.cpp">
       <Filter>File di origine</Filter>
     </ClCompile>
@@ -76,6 +73,9 @@
       <Filter>File di origine</Filter>
     </ClCompile>
     <ClCompile Include="TinyFileDialogs\tinyfiledialogs.c">
+      <Filter>File di origine</Filter>
+    </ClCompile>
+    <ClCompile Include="scheduler.cpp">
       <Filter>File di origine</Filter>
     </ClCompile>
   </ItemGroup>
@@ -105,9 +105,6 @@
       <Filter>File di intestazione</Filter>
     </ClInclude>
     <ClInclude Include="imgui\backends\imgui_impl_opengl3.h">
-      <Filter>File di origine</Filter>
-    </ClInclude>
-    <ClInclude Include="imgui\backends\imgui_impl_sdl.h">
       <Filter>File di origine</Filter>
     </ClInclude>
     <ClInclude Include="cop0.h">
@@ -141,6 +138,9 @@
       <Filter>File di intestazione</Filter>
     </ClInclude>
     <ClInclude Include="imgui\imgui_internal.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="scheduler.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,11 +4,13 @@
 #include <iostream>
 #include <cstdarg>
 #include "CD.h"
+#include "scheduler.h"
 
 class cdrom
 {
 public:
 	cdrom();
+	scheduler Scheduler;
 	bool irq = false;
 	int delay = 1; // the INT delay in cycles
 public: // fifo
@@ -33,10 +35,11 @@ public:
 	uint32_t seekloc = 0;	// Set by SetLoc
 	uint8_t bcd_dec(uint8_t val);	// Convert BCD to decimal
 
-	void INT1();
-	void INT2();
-	void INT3();
-	void INT5();
+	static void queuedRead(void* dataptr);
+	static void INT1(void* dataptr);
+	static void INT2(void* dataptr);
+	static void INT3(void* dataptr);
+	static void INT5(void* dataptr);
 	bool INT = false; // true if there are INTs to acknowledge
 	bool queued_INT1 = false;
 	bool queued_INT2 = false;
@@ -48,8 +51,7 @@ public:
 	bool delayed_INT3 = false; // INT3 should be delayed
 	bool reading = false;
 	void delayedINT();
-	void sendQueuedINT();
-	void queuedRead();
+	//void sendQueuedINT();
 	// commands
 	void test();
 	void GetStat();
@@ -68,6 +70,7 @@ public:
 	bool CDDA = false;
 	
 public:
-	const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\Crossroad Crisis (USA)\\Crossroad Crisis (USA).bin";
+	//const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\Crossroad Crisis (USA)\\Crossroad Crisis (USA).bin";
+	const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\Bust-a-Move 2 - Arcade Edition [U] [SLUS-00233]\\Bust-a-Move 2 - Arcade Edition [U] [SLUS-00233]\\Bust-a-Move 2 - Arcade Edition [U] [SLUS-00233].bin";
 	CD cd = CD(CD_DIR);
 };

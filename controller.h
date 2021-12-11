@@ -10,7 +10,7 @@ public:
 	void exec();
 public:
 	uint16_t id = 0x5A41; // Digital controller
-	uint16_t buttons = 0b1011111111111111;	// All released
+	uint16_t buttons = 0b1111111111111111;	// All released
 	uint16_t right_joy = 0;	// Right and left joysticks (analog pads only)
 	uint16_t left_joy = 0;	
 
