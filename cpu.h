@@ -4,6 +4,8 @@
 #include <windows.h>
 #include "Bus.h"
 #include "cop0.h"
+#include "gte.h"
+#include "logwindow.h"
 
 class cpu
 {
@@ -11,6 +13,7 @@ public:
 	cpu(std::string rom_directory, std::string bios_directory, bool running_in_ci);
 	void reset();
 	~cpu();
+	Log log;
 	void debug_log(const char* fmt, ...);
 	void debug_warn(const char* fmt, ...);
 	void debug_err(const char* fmt, ...);
@@ -30,6 +33,7 @@ public:
 	};
 
 	cop0 COP0 = cop0();
+	gte GTE;
 	Bus bus = Bus();
 
 	uint32_t next_instr = 0;

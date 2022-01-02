@@ -15,6 +15,8 @@ public:		// trongle stuff
 	unsigned int VAO = 0;
 	GLuint FBO = 0; 
 	GLuint VramTexture = 0;
+	GLuint VramTexture8 = 0;
+	GLuint VramTexture4 = 0;
 	GLint oldFBO = 0;
 	unsigned int id = 0;
 	unsigned int VertexShader = 0;
@@ -44,6 +46,8 @@ public:
 	gpu();
 	void InitGL();
 	uint16_t* vram = new uint16_t[1024 * 512];
+	uint32_t* vram8 = new uint32_t[1024 * 512 * 2];
+	uint32_t* vram4 = new uint32_t[1024 * 512 * 4];
 	uint32_t* vram_rgb = new uint32_t[1024 * 512];
 
 	uint16_t vram_read(int x, int y);

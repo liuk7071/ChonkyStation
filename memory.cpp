@@ -67,7 +67,8 @@ uint8_t memory::read(uint32_t addr) {
 	// controller
 	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
 		debug_warn("[PAD] Read JOY_RX_DATA (0x%x)\n", pad1.joy_rx_data);
-		return pad1.joy_rx_data;
+		return 0;
+		//return pad1.joy_rx_data;
 	}
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
@@ -127,7 +128,6 @@ uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
-
 	if (masked_addr == 0x1f801120) {	// timer 2 stuff
 		printf("timer\n");
 		return 0;
@@ -135,20 +135,23 @@ uint16_t memory::read16(uint32_t addr) {
 
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
-		debug_warn("[PAD] Read JOY_STAT\n");
+		//debug_warn("[PAD] Read JOY_STAT\n");
 		//return pad1.joy_stat;
-		return rand() % 0xffff;
+		//return rand() % 0xffff;
+		return 0;
 	}
 
 	if (masked_addr == 0x1f80104a) {	// JOY_CTRL
 		uint16_t randn = rand() % 0xffff;
-		debug_warn("[PAD] Read JOY_CTRL (0x%x)\n", randn);
-		return pad1.joy_ctrl;
+		//debug_warn("[PAD] Read JOY_CTRL (0x%x)\n", randn);
+		//return pad1.joy_ctrl;
+		return 0;
 	}
 
 	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
-		debug_warn("[PAD] Read JOY_RX_DATA\n");
-		return pad1.joy_rx_data;
+		//debug_warn("[PAD] Read JOY_RX_DATA\n");
+		//return pad1.joy_rx_data;
+		return 0;
 	}
 
 	if (masked_addr >= 0x1F801D80 && masked_addr <= 0x1F801DBC) {	// SPUSTAT
@@ -195,6 +198,7 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	if (masked_addr == 0x1f802080) return 0x58534350; // "Also return 0x58534350 for 32-bit reads from 0x1f802080"  - peach
 
 	if (masked_addr == 0x1f801110) {	// timer 1 stuff
 		//printf("timer1\n");
@@ -284,7 +288,6 @@ uint32_t memory::read32(uint32_t addr) {
 void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-
 
 	// controllers
 	if (masked_addr == 0x1f801040) {
@@ -398,7 +401,6 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
-
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);
 		I_STAT &= data;
@@ -508,7 +510,6 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
-
 
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);

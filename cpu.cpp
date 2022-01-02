@@ -179,13 +179,13 @@ void cpu::do_dma() {
 
 		switch (sync_mode) {	// switch on the sync mode
 		case(0): {			// block dma
-			printf("[DMA] Start CDROM Block Copy\n");
+			debug_log("[DMA] Start CDROM Block Copy\n");
 			uint32_t current_addr = addr & 0x1ffffc;
 			switch (direction) {
 			case(0):
-				printf("[DMA] Transfer direction: device to ram\n");
-				printf("[DMA] MADR: 0x%x\n", addr);
-				printf("[DMA] Transfer size: %d words\n", words);
+				debug_log("[DMA] Transfer direction: device to ram\n");
+				debug_log("[DMA] MADR: 0x%x\n", addr);
+				debug_log("[DMA] Transfer size: %d words\n", words);
 				bus.mem.CDROM.cd.buff_left = 0;
 				while (words >= 0) {
 					current_addr = addr & 0x1ffffc;
@@ -316,7 +316,7 @@ void cpu::execute(uint32_t instr) {
 	if (pc == 0xB0 || pc == 0x800000B0 || pc == 0xA00000B0) {
 		if (log_kernel) printf("\nkernel call B(0x%x)", regs[9]);
 		if (regs[9] == 0x3d)
-			if (tty) printf("%c", regs[4]);
+			if (tty) { printf("%c", regs[4]); log.AddLog("%c", regs[4]); }
 	}
 	if (pc == 0xC0 || pc == 0x800000C0 || pc == 0xA00000C0) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
@@ -725,6 +725,7 @@ void cpu::execute(uint32_t instr) {
 		break;
 	}
 	case 0x12: {
+		GTE.execute(instr, regs);
 		//debug_warn("Unimplemented GTE instruction: 0x%x\n", instr & 0x3f);
 		break;
 	}
@@ -938,11 +939,13 @@ void cpu::execute(uint32_t instr) {
 		break;
 	}
 	case 0x32: {
-		//debug_warn("Unimplemented lwc2\n");
+		uint32_t addr = regs[rs] + sign_extended_imm;
+		GTE.cop2d[rt] = bus.mem.read32(addr);
 		break;
 	}
 	case 0x3A: {
-		//debug_warn("Unimplemented swc2\n");
+		uint32_t addr = regs[rs] + sign_extended_imm;
+		bus.mem.write32(addr, GTE.cop2d[rt]);
 		break;
 	}
 

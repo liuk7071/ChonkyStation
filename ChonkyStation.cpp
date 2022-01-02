@@ -9,6 +9,7 @@
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/imgui_memory_editor.h"
+#include "logwindow.h"
 #include "GLFW\glfw3.h"
 #include "Cpu.h"
 
@@ -21,15 +22,16 @@ bool show_system_settings = false;
 bool show_cpu_registers = false;
 bool show_ram_viewer = false;
 bool show_vram = false;
+bool show_log = false;
 bool started = false;
 bool sideload = false;
 bool run = false;
 const float aspect_ratio = 640 / 480;
 const float vram_aspect_ratio = 1024 / 512;
 
-const char* game_path;
-const char* bios_path;
-const char* binary_path = "";
+char* game_path;
+std::string bios_path = "";
+std::string binary_path = "";
 bool game_open, bios_selected;
 bool show_dialog;
 const char* dialog_message;
@@ -40,6 +42,7 @@ unsigned int vram_viewer;
 bool test = false;
 
 static MemoryEditor MemEditor;
+
 static void key_callback(GLFWwindow* window, int key_, int scancode, int action_, int mods) {
     key = key_;
     action = action_;
@@ -87,20 +90,26 @@ void SystemSettingsMenu() {
     ImGui::Checkbox("Sideload binary", &sideload);
     
     if (!sideload) ImGui::PushDisabled();
-    ImGui::Text("Binary to sideload: \"%s\"", binary_path);
+    ImGui::Text("Binary to sideload: \"%s\"", binary_path.c_str());
     if (ImGui::Button("Select##1")) {
-        if (!(binary_path = tinyfd_openFileDialog("Select a Playstation 1 binary", "", 1, FilterPatternsExe, "PS1 binary", false))) {
-           binary_path = "";
+        const char* path;
+        if (!(path = tinyfd_openFileDialog("Select a Playstation 1 binary", "", 1, FilterPatternsExe, "PS1 binary", false))) {
+            binary_path = "";
+        }
+        else {
+            binary_path = path;
         }
     }
     if (!sideload) ImGui::PopDisabled();
 
-    ImGui::Text("BIOS path: \"%s\"", bios_path);
+    ImGui::Text("BIOS path: \"%s\"", bios_path.c_str());
     if (ImGui::Button("Select##2")) {
-        if (!(bios_path = tinyfd_openFileDialog("Select a Playstation 1 BIOS file", "", 1, FilterPatternsBin, "PS1 BIOS", false))) {
+        const char* path;
+        if (!(path = tinyfd_openFileDialog("Select a Playstation 1 BIOS file", "", 1, FilterPatternsBin, "PS1 BIOS", false))) {
             bios_selected = false;
         }
         else {
+            bios_path = path;
             bios_selected = true;
         }
     }
@@ -109,7 +118,17 @@ void SystemSettingsMenu() {
 
 void CpuDebugger(cpu *Cpu) {
     ImGui::Begin("CPU Registers");
-    ImGui::Text("pc: 0x%x", Cpu->pc);
+    ImGui::Text("pc: 0x%08x", Cpu->pc);
+
+    ImGui::Text("%s: 0x%08x", Cpu->reg[0], Cpu->regs[0]);
+    ImGui::SameLine();
+    ImGui::Text("     %s: 0x%08x", Cpu->reg[1], Cpu->regs[1]);
+    for (int i = 2; i < 32; i++) {
+        ImGui::Text("%s: 0x%08x", Cpu->reg[i], Cpu->regs[i]);
+        ImGui::SameLine();
+        i++;
+        ImGui::Text("       %s: 0x%08x", Cpu->reg[i], Cpu->regs[i]);
+    }
     ImGui::End();
 }
 
@@ -163,7 +182,7 @@ void ImGuiFrame(cpu *Cpu) {
     
         if (ImGui::BeginMenu("Emulation")) {
             if (ImGui::MenuItem("Start", NULL, false, !started)) {
-                Reset("", bios_path, Cpu);
+                Reset("", bios_path.c_str(), Cpu);
             }
     
             if (ImGui::MenuItem(run ? "Pause" : "Resume", NULL, false, started)) {
@@ -171,7 +190,7 @@ void ImGuiFrame(cpu *Cpu) {
             }
     
             if (ImGui::MenuItem("Reset")) {
-                Reset("", bios_path, Cpu);
+                Reset("", bios_path.c_str(), Cpu);
                 run = false;
                 started = false;
             }
@@ -189,6 +208,9 @@ void ImGuiFrame(cpu *Cpu) {
         if (ImGui::BeginMenu("Debug")) {
             if (ImGui::MenuItem("CPU")) {
                 show_cpu_registers = !show_cpu_registers;
+            }
+            if (ImGui::MenuItem("Log")) {
+                show_log = !show_log;
             }
             if (ImGui::MenuItem("VRAM Viewer")) {
                 show_vram = !show_vram;
@@ -280,6 +302,7 @@ int main(int argc, char** argv) {
             if (show_cpu_registers) CpuDebugger(&Cpu);
             UpdateVRAMViewer(&Cpu);
             if (show_vram) RenderVRAMViewer();
+            if (show_log) Cpu.log.Draw("Log");
 
             // Render it
             ImGui::Render();
