@@ -47,7 +47,7 @@ public:
 	void InitGL();
 	uint16_t* vram = new uint16_t[1024 * 512];
 	uint32_t* vram8 = new uint32_t[1024 * 512 * 2];
-	uint32_t* vram4 = new uint32_t[1024 * 512 * 4];
+	uint32_t* vram4 = new uint32_t[1024 * 512];
 	uint32_t* vram_rgb = new uint32_t[1024 * 512];
 
 	uint16_t vram_read(int x, int y);

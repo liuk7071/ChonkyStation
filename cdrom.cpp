@@ -262,10 +262,11 @@ void cdrom::GetID() { // Disk info
 	queued_fifo[1] = 0;
 	queued_fifo[2] = 0;
 	queued_fifo[3] = 0;
-	queued_fifo[4] = 0x53;
-	queued_fifo[5] = 0x43;
-	queued_fifo[6] = 0x45;
-	queued_fifo[7] = 0x41;
+	//queued_fifo[4] = 0x53;
+	//ueued_fifo[5] = 0x43;
+	//queued_fifo[6] = 0x45;
+	//queued_fifo[7] = 0x41;
+	std::memcpy(&queued_fifo[4], "CHNK", 4);
 	queued_response_length = 8;
 	queued_INT2 = true;
 	Scheduler.push(&INT2, Scheduler.time + 50000, this);

@@ -129,15 +129,15 @@ cop2d[14] |= (value)
 #define ZSF3 cop2c[29]
 #define ZSF4 cop2c[30]
 
-
-#define sf(instr) ((instr >> 19) & 1)
-
 class gte
 {
 public:
 	uint32_t cop2c[32];
 	uint32_t cop2d[32];
 	void execute(uint32_t instr, uint32_t* gpr);
+	uint32_t sf(uint32_t instr) {
+		return ((int32_t(instr) >> 19) & 1);
+	}
 	uint32_t instruction = 0;
 	enum Commands {
 		MOVE,

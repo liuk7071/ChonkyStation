@@ -51,70 +51,13 @@ void gte::moveMTC2(uint32_t* gpr) {
 	}
 }
 void gte::moveCFC2(uint32_t* gpr) {
-	switch ((instruction >> 11) & 0x1f) {
-		// S16
-	case 0:
-	case 1:
-	case 2:
-	case 3:
-	case 4:
-	case 8:
-	case 9:
-	case 10:
-	case 11:
-	case 12:
-	case 16:
-	case 17:
-	case 18:
-	case 19:
-	case 20:
-	case 26:
-	case 27:
-	case 29:
-	case 30: {
-		gpr[(instruction >> 16) & 0x1f] = (uint32_t)(int16_t)(cop2c[(instruction >> 11) & 0x1f]);
-		break;
-	}
-		   // 32
-	case 5:
-	case 6:
-	case 7:
-	case 13:
-	case 14:
-	case 15:
-	case 21:
-	case 22:
-	case 23:
-	case 24:
-	case 25:
-	case 28:
-	case 31: {
-		gpr[(instruction >> 16) & 0x1f] = cop2c[(instruction >> 11) & 0x1f];
-		break;
-	}
-
-	default:
-		printf("Unimplemented CFC2 destination: %d\n", (instruction >> 11) & 0x1f);
-		exit(1);
-	}
+	gpr[(instruction >> 16) & 0x1f] = cop2c[(instruction >> 11) & 0x1f];
 }
 void gte::moveCTC2(uint32_t* gpr) {
 	switch ((instruction >> 11) & 0x1f) {
 	// S16
-	case 0:
-	case 1:
-	case 2:
-	case 3:
 	case 4:
-	case 8:
-	case 9:
-	case 10:
-	case 11:
 	case 12:
-	case 16:
-	case 17:
-	case 18:
-	case 19:
 	case 20:
 	case 26:
 	case 27:
@@ -125,12 +68,24 @@ void gte::moveCTC2(uint32_t* gpr) {
 		break;
 	}
 	// 32
+	case 0:
+	case 1:
+	case 2:
+	case 3:
 	case 5:
 	case 6:
 	case 7:
+	case 8:
+	case 9:
+	case 10:
+	case 11:
 	case 13:
 	case 14:
 	case 15:
+	case 16:
+	case 17:
+	case 18:
+	case 19:
 	case 21:
 	case 22:
 	case 23:
@@ -148,11 +103,11 @@ void gte::moveCTC2(uint32_t* gpr) {
 }
 
 void gte::commandRTPS() {
-	MAC1 = (((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
-	MAC2 = (((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
-	MAC3 = (((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
+	MAC1 = int32_t(((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
+	MAC2 = int32_t(((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
+	MAC3 = int32_t(((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	SZ3 = (MAC3 >> ((1 - sf(instruction) * 12)));
+	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction) * 12)));
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
@@ -163,13 +118,13 @@ void gte::commandNCLIP() {
 }
 
 void gte::commandNCDS() {
-	MAC1 = (((L11 * VX0) + (L12 * VY0) + (L13 * VZ0)) >> (sf(instruction) * 12));
-	MAC2 = (((L21 * VX0) + (L22 * VY0) + (L23 * VZ0)) >> (sf(instruction) * 12));
-	MAC3 = (((L31 * VX0) + (L32 * VY0) + (L33 * VZ0)) >> (sf(instruction) * 12));
+	MAC1 = (int32_t((L11 * VX0) + (L12 * VY0) + (L13 * VZ0)) >> (sf(instruction) * 12));
+	MAC2 = (int32_t((L21 * VX0) + (L22 * VY0) + (L23 * VZ0)) >> (sf(instruction) * 12));
+	MAC3 = (int32_t((L31 * VX0) + (L32 * VY0) + (L33 * VZ0)) >> (sf(instruction) * 12));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	MAC1 = (((RBK * 0x1000) + ((LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3))) >> (sf(instruction) * 12));
-	MAC2 = (((GBK * 0x1000) + ((LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3))) >> (sf(instruction) * 12));
-	MAC1 = (((BBK * 0x1000) + ((LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3))) >> (sf(instruction) * 12));
+	MAC1 = (int32_t((RBK * 0x1000) + ((LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3))) >> (sf(instruction) * 12));
+	MAC2 = (int32_t((GBK * 0x1000) + ((LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3))) >> (sf(instruction) * 12));
+	MAC1 = (int32_t((BBK * 0x1000) + ((LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3))) >> (sf(instruction) * 12));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
 	MAC1 = ((R * IR1) << 4);
 	MAC2 = ((G * IR2) << 4);
@@ -177,9 +132,9 @@ void gte::commandNCDS() {
 	MAC1 = (MAC1 + ((RFC - MAC1) * IR0));
 	MAC2 = (MAC2 + ((GFC - MAC2) * IR0));
 	MAC3 = (MAC3 + ((BFC - MAC3) * IR0));
-	MAC1 >>= (sf(instruction) * 12);
-	MAC2 >>= (sf(instruction) * 12);
-	MAC3 >>= (sf(instruction) * 12);
+	MAC1 = int32_t(MAC1) >> (sf(instruction) * 12);
+	MAC2 = int32_t(MAC2) >> (sf(instruction) * 12);
+	MAC3 = int32_t(MAC3) >> (sf(instruction) * 12);
 	uint32_t col = ((((MAC1) / 16) << 0) | (((MAC2) / 16) << 8) | (((MAC3) / 16) << 16) | (CD2 << 24));
 	RGB2 = col;
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
@@ -196,38 +151,29 @@ void gte::commandAVSZ4() {
 }
 
 void gte::commandRTPT() {
-	MAC1 = (((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
-	MAC2 = (((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
-	MAC3 = (((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
+	MAC1 = int32_t(((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
+	MAC2 = int32_t(((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
+	MAC3 = int32_t(((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	SZ0 = SZ1;
-	SZ1 = SZ2;
-	SZ2 = SZ3;
-	SZ3 = (MAC3 >> ((1 - sf(instruction) * 12)));
-	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
-	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
-	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
-	
-	MAC1 = (((TRX * 0x1000) + (RT11 * VX1) + (RT12 * VY1) + (RT13 * VZ2)) >> sf(instruction));
-	MAC2 = (((TRY * 0x1000) + (RT21 * VX1) + (RT22 * VY1) + (RT23 * VZ2)) >> sf(instruction));
-	MAC3 = (((TRZ * 0x1000) + (RT31 * VX1) + (RT32 * VY1) + (RT33 * VZ2)) >> sf(instruction));
-	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	SZ0 = SZ1;
-	SZ1 = SZ2;
-	SZ2 = SZ3;
-	SZ3 = (MAC3 >> ((1 - sf(instruction) * 12)));
+	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction) * 12)));
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
 
-	MAC1 = (((TRX * 0x1000) + (RT11 * VX2) + (RT12 * VY2) + (RT13 * VZ2)) >> sf(instruction));
-	MAC2 = (((TRY * 0x1000) + (RT21 * VX2) + (RT22 * VY2) + (RT23 * VZ2)) >> sf(instruction));
-	MAC3 = (((TRZ * 0x1000) + (RT31 * VX2) + (RT32 * VY2) + (RT33 * VZ2)) >> sf(instruction));
+	MAC1 = int32_t(((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
+	MAC2 = int32_t(((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
+	MAC3 = int32_t(((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	SZ0 = SZ1;
-	SZ1 = SZ2;
-	SZ2 = SZ3;
-	SZ3 = (MAC3 >> ((1 - sf(instruction) * 12)));
+	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction) * 12)));
+	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
+	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
+	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
+
+	MAC1 = int32_t(((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
+	MAC2 = int32_t(((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
+	MAC3 = int32_t(((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
+	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
+	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction) * 12)));
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);

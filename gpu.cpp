@@ -42,20 +42,10 @@ layout (location = 3) in uint clut;
 layout (location = 4) in vec2 texture_uv;
 layout (location = 5) in uint texture_enable;
 out vec4 frag_colour;
-out vec2 frag_texture_uv;
-flat out uint frag_texture_enable;
-flat out uvec2 texture_base;
-out uint texture_mode;
-flat out uint frag_clut;
 
 void main() {
 	gl_Position = vec4(float(pos.x) / 320 - 1, -(1 - float(pos.y) / 240), 0.0, 1.0);
 	frag_colour = vec4(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255, 255f);
-	frag_texture_uv = texture_uv;
-	frag_texture_enable = texture_enable;
-	texture_mode = (texpage >> 7) & 0x3u;
-	texture_base = uvec2((texpage & 0xfu) * 64u, ((texpage >> 4) & 1u) * 256u);
-	frag_clut = clut;
 }
 )";
 static const GLchar* TextureVertexShaderSource =
@@ -69,26 +59,23 @@ layout (location = 4) in vec2 clut;
 
 out vec3 ourColor;
 out vec2 TexCoord;
-out vec2 Clut;
+out vec2 _texCoord;
+//out vec2 Clut;
 
 void main()
 {
     gl_Position = vec4(float(aPos.x) / 320 - 1, -(1 - float(aPos.y) / 240), 0.0, 1.0);
     ourColor = aColor;
 	TexCoord = vec2(float((aTexCoord.x / 4) + texpage.x) / 1024 - 1, -(1 - float(aTexCoord.y + texpage.y) / 512));
-	Clut = clut;
+	_texCoord = aTexCoord;
+	//Clut = clut;
 }
 )";
 static const GLchar* FragmentShaderSource =
 R"(
 #version 330 core
 in vec4 frag_colour;
-in vec2 frag_texture_uv;
-flat in uint texture_enable;
-flat in uvec2 texture_base;
-in uint texture_mode;
-flat in uint frag_clut;
-uniform sampler2D texturesampler;
+
 out vec4 final_colour;
 
 void main() {
@@ -97,13 +84,17 @@ void main() {
 )";
 static const GLchar* TextureFragmentShaderSource =
 R"(
-#version 330 core
+#version 430 core
 out vec4 FragColor;
   
 in vec3 ourColor;
 in vec2 TexCoord;
-in vec2 Clut;
-
+in vec2 _texCoord;
+//in vec2 Clut;
+layout(std430, binding = 10) buffer clutData
+{
+    int Clut[128];
+};
 uniform sampler2D vram;
 uniform sampler2D vram8;
 uniform sampler2D vram4;
@@ -122,11 +113,27 @@ vec4 split_colors(int data)
 
 void main()
 {
-	vec4 pixel = texture(vram, TexCoord);
-	float a = pixel.a;
-	pixel.a = pixel.r;
-	pixel.r = a;
+	vec4 clutIdx = texture(vram4, TexCoord);
+	vec4 pixel;
+	int _pixel;
+	if(int(_texCoord.x) % 4 == 0) {
+		_pixel = Clut[int(clutIdx.r * 255)];
+	}
+	if(int(_texCoord.x) % 4 == 1) {
+		_pixel = Clut[int(clutIdx.g * 255)];
+	}
+	if(int(_texCoord.x) % 4 == 2) {
+		_pixel = Clut[int(clutIdx.b * 255)];
+	}
+	if(int(_texCoord.x) % 4 == 3) {
+		_pixel = Clut[int(clutIdx.a * 255)];
+	}
+	pixel.r = (float(((_pixel >> 24) & 0xff)) / 255.0f);
+	pixel.g = (float(((_pixel >> 16) & 0xff)) / 255.0f);
+	pixel.b = (float(((_pixel >> 8) & 0xff)) / 255.0f);
+	pixel.a = 1.0f;
     if(pixel.r == 0 && pixel.g == 0 && pixel.b == 0) discard;
+	
 	FragColor = pixel;
 }
 )";
@@ -224,7 +231,7 @@ void gpu::InitGL() {
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 4096, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, vram4);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, vram4);
 
 	int vramLocation = glGetUniformLocation(TextureShaderProgram, "vram");
 	int vram8Location = glGetUniformLocation(TextureShaderProgram, "vram8");
@@ -306,7 +313,7 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 2;
 			break;
 		}
-		case(0x20): { // Monochrome three - point polygon, opaque
+		case(0x20): { // Monochrome three-point polygon, opaque
 			fifo[0] = command;
 			cmd_length++;
 			cmd_left = 3;
@@ -449,7 +456,7 @@ void gpu::execute_gp0(uint32_t command) {
 				case(0x40): gpu::monochrome_line_opaque();
 				case(0x68): gpu::monochrome_rectangle_dot_opaque(); break;
 				case(0xA0): gpu::cpu_to_vram(); break;
-				
+				default: printf("\n%d", fifo[0] >> 24); exit(1);
 				}
 			}
 			break;
@@ -484,14 +491,11 @@ void gpu::execute_gp0(uint32_t command) {
 			vram8[index * 2 + 0] = rgba;
 			vram8[index * 2 + 1] = rgba;
 
-			vram4[index * 4 + 0] = (command & 0xf);
-			vram4[index * 4 + 1] = ((command >> 4) & 0xf);
-			vram4[index * 4 + 2] = ((command >> 8) & 0xf);
-			vram4[index * 4 + 3] = ((command >> 12) & 0xf);
-			vram4[index * 4 + 0] = rgba;
-			vram4[index * 4 + 1] = rgba;
-			vram4[index * 4 + 2] = rgba;
-			vram4[index * 4 + 3] = rgba;
+			uint32_t pixel1 = (command & 0xf);
+			uint32_t pixel2 = ((command >> 4) & 0xf);
+			uint32_t pixel3 = ((command >> 8) & 0xf);
+			uint32_t pixel4 = ((command >> 12) & 0xf);
+			vram4[index] = (pixel4 << 24) | (pixel3 << 16) | (pixel2 << 8) | pixel1;
 
 			xpos++;
 
@@ -507,7 +511,7 @@ void gpu::execute_gp0(uint32_t command) {
 					glBindTexture(GL_TEXTURE_2D, VramTexture8);
 					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 2048, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram8);
 					glBindTexture(GL_TEXTURE_2D, VramTexture4);
-					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4096, 512, GL_RED, GL_UNSIGNED_BYTE, vram4);
+					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram4);
 					//glGenerateMipmap(GL_TEXTURE_2D);
 					break;
 				}
@@ -529,14 +533,11 @@ void gpu::execute_gp0(uint32_t command) {
 			vram8[index * 2 + 0] = rgba;
 			vram8[index * 2 + 1] = rgba;
 
-			vram4[index * 4 + 0] = ((command >> 16) & 0xf);
-			vram4[index * 4 + 1] = (((command >> 16) >> 4) & 0xf);
-			vram4[index * 4 + 2] = (((command >> 16) >> 8) & 0xf);
-			vram4[index * 4 + 3] = (((command >> 16) >> 12) & 0xf);
-			vram4[index * 4 + 0] = rgba;
-			vram4[index * 4 + 1] = rgba;
-			vram4[index * 4 + 2] = rgba;
-			vram4[index * 4 + 3] = rgba;
+			pixel1 = ((command >> 16) & 0xf);
+			pixel2 = (((command >> 16) >> 4) & 0xf);
+			pixel3 = (((command >> 16) >> 8) & 0xf);
+			pixel4 = (((command >> 16) >> 12) & 0xf);
+			vram4[index] = (pixel4 << 24) | (pixel2 << 16) | (pixel3 << 8) | pixel1;
 			xpos++;
 
 			if (xpos == width) {
@@ -551,7 +552,7 @@ void gpu::execute_gp0(uint32_t command) {
 					glBindTexture(GL_TEXTURE_2D, VramTexture8);
 					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 2048, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram8);
 					glBindTexture(GL_TEXTURE_2D, VramTexture4);
-					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 4096, 512, GL_RED, GL_UNSIGNED_BYTE, vram4);
+					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram4);
 					//glGenerateMipmap(GL_TEXTURE_2D);
 					break;
 				}
@@ -606,7 +607,7 @@ void gpu::monochrome_four_point_opaque_polygon() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
-	printf("%d, %d\n", v1.x, v1.y);
+	
 	glViewport(0, 0, 640, 480);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -662,10 +663,19 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
+	int Clut[128];
+	for (int i = 0; i < 128; i++) {
+		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
+	}
+	GLuint ssbo;
+	GLuint binding = 10;
+	glGenBuffers(1, &ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 128 * sizeof(int), Clut, GL_STATIC_READ);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
 	texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
-	printf("%d, %d\n", texpageX, texpageY);
 	v2.x = fifo[3] & 0xffff;
 	v2.y = fifo[3] >> 16;
 	v3.x = fifo[5] & 0xffff;
@@ -785,7 +795,7 @@ void gpu::monochrome_four_point_semi_transparent_polygon() {
 }
 
 void gpu::monochrome_three_point_opaque_polygon() {
-	debug_printf("[GP0] Monochrome three-point polygon, opaque\n");
+	printf("[GP0] Monochrome three-point polygon, opaque\n");
 	point v1, v2, v3;
 	uint32_t colour = fifo[0] & 0xffffff;
 	v1.x = fifo[1] & 0xffff;
