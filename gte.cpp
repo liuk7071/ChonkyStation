@@ -103,11 +103,11 @@ void gte::moveCTC2(uint32_t* gpr) {
 }
 
 void gte::commandRTPS() {
-	MAC1 = int32_t(((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
-	MAC2 = int32_t(((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
-	MAC3 = int32_t(((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
+	MAC1 = (int32_t((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
+	MAC2 = (int32_t((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
+	MAC3 = (int32_t((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction) * 12)));
+	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction)) * 12));
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
@@ -151,29 +151,29 @@ void gte::commandAVSZ4() {
 }
 
 void gte::commandRTPT() {
-	MAC1 = int32_t(((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
-	MAC2 = int32_t(((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
-	MAC3 = int32_t(((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
+	MAC1 = (int32_t((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
+	MAC2 = (int32_t((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
+	MAC3 = (int32_t((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction) * 12)));
+	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction)) * 12));
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
 
-	MAC1 = int32_t(((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
-	MAC2 = int32_t(((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
-	MAC3 = int32_t(((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
+	MAC1 = (int32_t((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
+	MAC2 = (int32_t((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
+	MAC3 = (int32_t((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction) * 12)));
+	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction)) * 12));
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
 
-	MAC1 = int32_t(((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
-	MAC2 = int32_t(((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
-	MAC3 = int32_t(((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
+	MAC1 = (int32_t((TRX * 0x1000) + (RT11 * VX0) + (RT12 * VY0) + (RT13 * VZ0)) >> sf(instruction));
+	MAC2 = (int32_t((TRY * 0x1000) + (RT21 * VX0) + (RT22 * VY0) + (RT23 * VZ0)) >> sf(instruction));
+	MAC3 = (int32_t((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> sf(instruction));
 	IR1 = MAC1; IR2 = MAC2; IR3 = MAC3;
-	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction) * 12)));
+	SZ3 = (int32_t(MAC3) >> ((1 - sf(instruction)) * 12));
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);

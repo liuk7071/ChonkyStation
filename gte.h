@@ -136,7 +136,7 @@ public:
 	uint32_t cop2d[32];
 	void execute(uint32_t instr, uint32_t* gpr);
 	uint32_t sf(uint32_t instr) {
-		return ((int32_t(instr) >> 19) & 1);
+		return ((instr >> 19) & 1);
 	}
 	uint32_t instruction = 0;
 	enum Commands {
