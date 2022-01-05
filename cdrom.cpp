@@ -86,7 +86,7 @@ void cdrom::queuedRead(void* dataptr) {
 		cdromptr->queued_fifo[0] = cdromptr->get_stat();
 		cdromptr->queued_response_length = 1;
 
-		cdromptr->Scheduler.push(&INT1, cdromptr->Scheduler.time + 100000, cdromptr);
+		cdromptr->Scheduler.push(&INT1, cdromptr->Scheduler.time + 105000, cdromptr);
 	}
 }
 void cdrom::INT1(void* dataptr) {
@@ -266,7 +266,7 @@ void cdrom::GetID() { // Disk info
 	//ueued_fifo[5] = 0x43;
 	//queued_fifo[6] = 0x45;
 	//queued_fifo[7] = 0x41;
-	std::memcpy(&queued_fifo[4], "CHNK", 4);
+	std::memcpy(&queued_fifo[4], "CHST", 4);
 	queued_response_length = 8;
 	queued_INT2 = true;
 	Scheduler.push(&INT2, Scheduler.time + 50000, this);

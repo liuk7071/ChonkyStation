@@ -153,12 +153,4 @@
       <Filter>File di intestazione</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\Downloads\SCPH7003\SCPH7003.bin">
-      <Filter>File di risorse</Filter>
-    </None>
-    <None Include="Shaders\shader.vert">
-      <Filter>File di risorse</Filter>
-    </None>
-  </ItemGroup>
 </Project>

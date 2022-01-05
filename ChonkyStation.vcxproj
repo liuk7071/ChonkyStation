@@ -202,10 +202,6 @@
     <ClInclude Include="scheduler.h" />
     <ClInclude Include="TinyFileDialogs\tinyfiledialogs.h" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\Downloads\SCPH7003\SCPH7003.bin" />
-    <None Include="Shaders\shader.vert" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
