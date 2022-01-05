@@ -112,7 +112,7 @@ cop2d[14] |= (value)
 #define LG3 (cop2c[18] >> 16)
 #define LB1 (cop2c[19] & 0xffff)
 #define LB2 (cop2c[19] >> 16)
-#define LB3 (cop2c[16] & 0xffff)
+#define LB3 (cop2c[20] & 0xffff)
 
 #define RFC cop2c[21]
 #define GFC cop2c[22]
@@ -166,5 +166,21 @@ public:
 	void commandAVSZ3();
 	void commandAVSZ4();
 	void commandRTPT();
+	
+	void pushZ(uint16_t value);
+	void pushColour();
+	void setIRFromMAC();
+	
+	static int32_t saturate(int32_t val, int32_t min, int32_t max) {
+		if (val > max) {
+			return max;
+		}
+		else if (val < min) {
+			return min;
+		}
+		else {
+			return val;
+		}
+	}
 };
 
