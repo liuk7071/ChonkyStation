@@ -70,7 +70,6 @@ public:
 	bool CDDA = false;
 	
 public:
-	//const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\Crossroad Crisis (USA)\\Crossroad Crisis (USA).bin";
-	const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\Bust-a-Move 2 - Arcade Edition [U] [SLUS-00233]\\Bust-a-Move 2 - Arcade Edition [U] [SLUS-00233]\\Bust-a-Move 2 - Arcade Edition [U] [SLUS-00233].bin";
+	const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\doukutsu_test5_2.iso";
 	CD cd = CD(CD_DIR);
 };

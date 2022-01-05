@@ -23,13 +23,7 @@ public:		// trongle stuff
 	unsigned int FragmentShader = 0;
 	unsigned int ShaderProgram = 0;
 	unsigned int TextureShaderProgram = 0;
-
-	uint32_t pbo4, pbo8, pbo16;
-	uint8_t* ptr4;
-	uint8_t* ptr8;
-	uint16_t* ptr16;
-	uint32_t tex4, tex8, tex16;
-	void UpdateTextures();
+	unsigned int colourDepthUniform = 0;
 	
 	struct point {		// vertex struct
 		uint16_t x = 0, y = 0;	// coordinates
@@ -38,7 +32,6 @@ public:		// trongle stuff
 		uint8_t g = (c >> 8) & 0xff;
 		uint8_t b = (c >> 16) & 0xff;
 	};
-	point calc_tex_coords(int tx, int ty, int x, int y, int bpp);
 
 	void putpixel(point v1, uint32_t colour);
 
@@ -46,12 +39,10 @@ public:
 	gpu();
 	void InitGL();
 	uint16_t* vram = new uint16_t[1024 * 512];
-	uint32_t* vram8 = new uint32_t[1024 * 512 * 2];
+	uint32_t* vram8 = new uint32_t[1024 * 512];
 	uint32_t* vram4 = new uint32_t[1024 * 512];
 	uint32_t* vram_rgb = new uint32_t[1024 * 512];
 
-	uint16_t vram_read(int x, int y);
-	void vram_write(int x, int y, uint16_t data);
 	int xpos = 0;
 	int ypos = 0;	// Used to keep track of memory transfers
 	uint32_t* pixels;
@@ -97,8 +88,6 @@ public:	// commands
 	void fill_rectangle();
 	void cpu_to_vram();
 	void vram_to_cpu();
-public:
-	void write32(uint32_t addrX, uint32_t addrY, uint32_t data);
 public:
 	bool debug = false;
 	void debug_printf(const char* fmt, ...);
