@@ -61,6 +61,10 @@ cop2d[14] |= (value)
 #define SYP (cop2d[15] >> 16)
 #define SXP (cop2d[15] & 0xffff)
 
+#define SXY0 (cop2d[12])
+#define SXY1 (cop2d[13])
+#define SXY2 (cop2d[14])
+
 #define SZ0 cop2d[16]
 #define SZ1 cop2d[17]
 #define SZ2 cop2d[18]

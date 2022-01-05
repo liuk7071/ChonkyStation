@@ -134,6 +134,8 @@ void gte::commandRTPS() {
 	const auto newZ = int32_t(MAC3) >> ((1 - sf(instruction)) * 12);
 	pushZ(newZ);
 
+	SXY0 = SXY1;
+	SXY1 = SXY2;
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
@@ -185,6 +187,8 @@ void gte::commandRTPT() {
 	MAC3 = int32_t((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> shift;
 	setIRFromMAC();
 	pushZ(int32_t(MAC3) >> ((1 - sf(instruction)) * 12));
+	SXY0 = SXY1;
+	SXY1 = SXY2;
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
@@ -194,6 +198,8 @@ void gte::commandRTPT() {
 	MAC3 = int32_t((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> shift;
 	setIRFromMAC();
 	pushZ(int32_t(MAC3) >> ((1 - sf(instruction)) * 12));
+	SXY0 = SXY1;
+	SXY1 = SXY2;
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = (MAC0 / 0x1000);
@@ -203,6 +209,8 @@ void gte::commandRTPT() {
 	MAC3 = int32_t((TRZ * 0x1000) + (RT31 * VX0) + (RT32 * VY0) + (RT33 * VZ0)) >> shift;
 	setIRFromMAC();
 	pushZ(int32_t(MAC3) >> ((1 - sf(instruction)) * 12));
+	SXY0 = SXY1;
+	SXY1 = SXY2;
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR1) + OFX; SETSX2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * IR2) + OFY; SETSY2(MAC0 / 0x10000);
 	MAC0 = (((((H * 0x20000) / SZ3) + 1) / 2) * DQA) + DQB; IR0 = MAC0 / 0x1000;
