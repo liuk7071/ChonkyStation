@@ -1,7 +1,10 @@
 #include "cpu.h"
+#ifdef TEST_GTE
+#include "tests.h"
+#endif TEST_GTE
 #include <iostream>
-#define log
-#undef log
+#define log_cpu
+
 #define log_kernel_tty
 
 
@@ -20,6 +23,14 @@ cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_
 	tty = true;
 
 	delay = false;
+
+	// tests
+#ifdef TEST_GTE
+	testRTPS test1;
+	test1.doTest();
+	testRTPT test2;
+	test2.doTest();
+#endif
 }
 
 cpu::~cpu() {
@@ -46,10 +57,11 @@ void cpu::sideloadExecutable(std::string directory) {
 	memcpy(&r29_30_offset, &bus.mem.file[0x34], sizeof(uint32_t));
 	regs[29] = r29_30_base + r29_30_offset;
 	regs[30] = r29_30_base + r29_30_offset;
+	if (regs[29] == 0) regs[29] = 0x801fff00;
 }
 
 inline void cpu::debug_log(const char* fmt, ...) {
-#ifdef log
+#ifdef log_cpu
 	if (debug) {
 		std::va_list args;
 		va_start(args, fmt);
@@ -101,7 +113,7 @@ template<int channel>
 void cpu::do_dma() {
 	//debug = true;
 	switch (channel) {		// switch on the channels
-	case(2): {	// GPU
+	case 2: {	// GPU
 		auto sync_mode = (bus.mem.Ch2.CHCR >> 9) & 0b11;
 		bool incrementing = ((bus.mem.Ch2.CHCR >> 1) & 1) == 0;
 		auto direction = (bus.mem.Ch2.CHCR) & 1;
@@ -110,11 +122,11 @@ void cpu::do_dma() {
 		uint32_t header = bus.mem.read32(addr);
 
 		switch (sync_mode) {
-		case(1): {	// Block Copy
+		case 1: {	// Block Copy
 			words *= (bus.mem.Ch2.BCR >> 16);
 			debug_log("[DMA] Start GPU Block Copy\n");
 			switch (direction) {
-			case(1):
+			case 1:
 				debug_log("[DMA] Transfer direction: ram to device\n");
 				debug_log("[DMA] Transfer size: %d words\n", words);
 				while (words > 0) {
@@ -128,7 +140,7 @@ void cpu::do_dma() {
 				bus.mem.Ch2.CHCR &= ~(1 << 28);
 				debug = false;
 				return;
-			case(0):
+			case 0:
 				debug_log("[DMA] GPU to RAM block copy (unimplemented)\n");
 				return;
 			default:
@@ -137,12 +149,12 @@ void cpu::do_dma() {
 			}
 		}
 
-		case(2):	// Linked List
+		case 2:	// Linked List
 			debug_log("[DMA] Start GPU Linked List\n");
 			switch (direction) {
-			case(1):
+			case 1:
 				debug_log("[DMA] Transfer direction: ram to device\n");
-				while (1) {
+				while(1) {
 					uint32_t _header = bus.mem.read32(addr);
 					auto _words = _header >> 24;
 					while (_words > 0) {
@@ -170,7 +182,7 @@ void cpu::do_dma() {
 		}
 	}
 
-	case(3): {			// CDROM
+	case 3: {			// CDROM
 		auto sync_mode = (bus.mem.Ch3.CHCR >> 9) & 0b11;
 		bool incrementing = ((bus.mem.Ch3.CHCR >> 1) & 1) == 0;
 		uint16_t words = (bus.mem.Ch3.BCR) & 0xffff;
@@ -178,11 +190,11 @@ void cpu::do_dma() {
 		uint32_t addr = bus.mem.Ch3.MADR;
 
 		switch (sync_mode) {	// switch on the sync mode
-		case(0): {			// block dma
+		case 0: {			// block dma
 			debug_log("[DMA] Start CDROM Block Copy\n");
 			uint32_t current_addr = addr & 0x1ffffc;
 			switch (direction) {
-			case(0):
+			case 0:
 				debug_log("[DMA] Transfer direction: device to ram\n");
 				debug_log("[DMA] MADR: 0x%x\n", addr);
 				debug_log("[DMA] Transfer size: %d words\n", words);
@@ -231,7 +243,7 @@ void cpu::do_dma() {
 		break;
 	}
 
-	case(6): {			// OTC
+	case 6: {			// OTC
 		auto sync_mode = (bus.mem.Ch6.CHCR >> 9) & 0b11;
 		bool incrementing = ((bus.mem.Ch6.CHCR >> 1) & 1) == 0;
 		uint16_t words = (bus.mem.Ch6.BCR) & 0xffff;
@@ -239,11 +251,11 @@ void cpu::do_dma() {
 		uint32_t addr = bus.mem.Ch6.MADR;
 
 		switch (sync_mode) {	// switch on the sync mode
-		case(0): {			// block dma
+		case 0: {			// block dma
 			debug_log("[DMA] Start OTC Block Copy\n");
 			uint32_t current_addr = addr & 0x1ffffc;
 			switch (direction) {
-			case(0):
+			case 0:
 				debug_log("[DMA] Transfer direction: device to ram\n");
 				debug_log("[DMA] Transfer size: %d words\n", words);
 				while (words >= 0) {
@@ -392,12 +404,12 @@ void cpu::execute(uint32_t instr) {
 		}
 		case 0x09: {
 			uint32_t addr = regs[rs];
+			regs[rd] = pc + 8;
 			if (addr & 3) {
 				exception(exceptions::BadFetchAddr);
 				return;
 			}
 			jump = addr;
-			regs[rd] = pc + 8;
 			debug_log("jalr %s\n", reg[rs].c_str());
 			delay = true;
 			break;
@@ -726,7 +738,6 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x12: {
 		GTE.execute(instr, regs);
-		//debug_warn("Unimplemented GTE instruction: 0x%x\n", instr & 0x3f);
 		break;
 	}
 	case 0x20: {
@@ -890,7 +901,7 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x2B: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_log("sw %s, 0x%.4x(%s)\n", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("sw %s, 0x%.4x(%s) ; %s = 0x%.8x\n", reg[rt].c_str(), imm, reg[rs].c_str(), reg[rs].c_str(), regs[rs]);
 		if (addr & 3) {
 			exception(exceptions::BadStoreAddr);
 			return;
@@ -940,12 +951,12 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x32: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		GTE.cop2d[rt] = bus.mem.read32(addr);
+		GTE.writeCop2d(rt, bus.mem.read32(addr));
 		break;
 	}
 	case 0x3A: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		bus.mem.write32(addr, GTE.cop2d[rt]);
+		bus.mem.write32(addr, GTE.readCop2d(rt));
 		break;
 	}
 
@@ -976,7 +987,7 @@ void cpu::step() {
 		}
 	}
 	const auto instr = bus.mem.read32(pc);;
-#ifdef log
+#ifdef log_cpu
 	debug_log("0x%.8X | 0x%.8X: ", pc, instr);
 #endif
 	execute(instr);

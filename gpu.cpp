@@ -397,8 +397,8 @@ void gpu::execute_gp0(uint32_t command) {
 			disallow_masked_pixels_drawing = (command & 2) != 0;
 			break;
 		}
-		default:
-			printf("\n[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
+		//default:
+			//printf("\n[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
 			//exit(0);
 		}
 	}
@@ -766,7 +766,7 @@ void gpu::monochrome_four_point_semi_transparent_polygon() {
 }
 
 void gpu::monochrome_three_point_opaque_polygon() {
-	printf("[GP0] Monochrome three-point polygon, opaque\n");
+	debug_printf("[GP0] Monochrome three-point polygon, opaque\n");
 	point v1, v2, v3;
 	uint32_t colour = fifo[0] & 0xffffff;
 	v1.x = fifo[1] & 0xffff;

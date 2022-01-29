@@ -144,6 +144,7 @@
       <DebugInformationFormat>None</DebugInformationFormat>
       <SupportJustMyCode>false</SupportJustMyCode>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -200,6 +201,7 @@
     <ClInclude Include="memory.h" />
     <ClInclude Include="Rasterizer.h" />
     <ClInclude Include="scheduler.h" />
+    <ClInclude Include="tests.h" />
     <ClInclude Include="TinyFileDialogs\tinyfiledialogs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
