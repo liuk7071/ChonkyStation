@@ -152,5 +152,8 @@
     <ClInclude Include="gte.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
+    <ClInclude Include="tests.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
