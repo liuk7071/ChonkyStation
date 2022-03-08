@@ -70,6 +70,7 @@ public:
 	uint8_t hres1 = 0;
 	uint8_t vres = 0;
 	uint8_t dma_direction = 0;
+	uint16_t texpage_raw = 0;
 
 	uint32_t get_status();
 
@@ -84,6 +85,8 @@ public:	// commands
 	void shaded_three_point_semi_transparent_polygon();
 	void shaded_four_point_opaque_polygon();
 	void shaded_four_point_semi_transparent_polygon();
+	void monochrome_rectangle_variable_size_opaque();
+	void texture_blending_rectangle_variable_size_opaque();
 	void monochrome_rectangle_dot_opaque();
 	void fill_rectangle();
 	void cpu_to_vram();

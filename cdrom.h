@@ -55,6 +55,7 @@ public:
 	// commands
 	void test();
 	void GetStat();
+	void GetTN();
 	void GetID();
 	void SetLoc();
 	void SeekL();

@@ -15,12 +15,12 @@ public:
     virtual void checkResult(uint32_t* resCop2c, uint32_t* resCop2d) {
         for (int i = 0; i < 32; i++) {
             if (GTE.cop2c[i] != resCop2c[i]) {
-                printf("cnt%d register mismatch: got 0x%08x expected 0x%08x\n", i, GTE.cop2c[i], resCop2c[i]);
+                printf("%s register mismatch: got 0x%08x expected 0x%08x\n", GTE.cop2cNames[i].c_str(), GTE.cop2c[i], resCop2c[i]);
             }
         }
         for (int i = 0; i < 32; i++) {
             if (GTE.cop2d[i] != resCop2d[i]) {
-                printf("cop2r%d register mismatch: got 0x%08x expected 0x%08x\n", i, GTE.cop2d[i], resCop2d[i]);
+                printf("%s register mismatch: got 0x%08x expected 0x%08x\n", GTE.cop2dNames[i].c_str(), GTE.cop2d[i], resCop2d[i]);
             }
         }
     }

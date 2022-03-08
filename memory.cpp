@@ -58,7 +58,6 @@ uint8_t memory::read(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
-
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Status 8bit read\n");
 		return I_STAT;
@@ -78,6 +77,7 @@ uint8_t memory::read(uint32_t addr) {
 
 	if (masked_addr == 0x1f801801) {
 		switch (CDROM.status & 0b11) {
+		case 0:
 		case 1:
 			debug_log("[CDROM] Read response fifo\n");
 			return CDROM.read_fifo();
@@ -120,13 +120,22 @@ uint8_t memory::read(uint32_t addr) {
 		return 0xff;
 	}
 
-	debug_log("\nUnhandled read 0x%.8x", addr);
+	debug_log("\nUnhandled read 0x%.8x", masked_addr);
 	exit(0);
 }
 
 uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+
+	// Timer 1 current value
+	if (masked_addr == 0x1f801110) {
+		return 0;
+	}
+	// Timer 1 counter mode
+	if (masked_addr == 0x1f801114) {
+		return 0;
+	}
 
 	if (masked_addr == 0x1f801120) {	// timer 2 stuff
 		printf("timer\n");
@@ -135,21 +144,20 @@ uint16_t memory::read16(uint32_t addr) {
 
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
-		//debug_warn("[PAD] Read JOY_STAT\n");
+		debug_warn("[PAD] Read JOY_STAT\n");
 		//return pad1.joy_stat;
 		//return rand() % 0xffff;
-		return 0;
+		return 0b111;
 	}
 
 	if (masked_addr == 0x1f80104a) {	// JOY_CTRL
-		uint16_t randn = rand() % 0xffff;
-		//debug_warn("[PAD] Read JOY_CTRL (0x%x)\n", randn);
+		debug_warn("[PAD] Read JOY_CTRL\n");
 		//return pad1.joy_ctrl;
 		return 0;
 	}
 
 	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
-		//debug_warn("[PAD] Read JOY_RX_DATA\n");
+		debug_warn("[PAD] Read JOY_RX_DATA\n");
 		//return pad1.joy_rx_data;
 		return 0;
 	}
@@ -190,13 +198,18 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0xffff;
 	}
 
-	debug_log("\nUnhandled read 0x%.8x", addr);
+	debug_log("\nUnhandled read 0x%.8x", masked_addr);
 	exit(0);
 }
 
 uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+
+	// Timer 1 counter mode
+	if (masked_addr == 0x1f801114) {
+		return 0;
+	}
 
 	if (masked_addr == 0x1f802080) return 0x58534350; // "Also return 0x58534350 for 32-bit reads from 0x1f802080"  - peach
 
@@ -281,7 +294,7 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0xffffffff;
 	}
 
-	debug_log("\nUnhandled read 0x%.8x", addr);
+	debug_log("\nUnhandled read 0x%.8x", masked_addr);
 	exit(0);
 }
 
@@ -528,13 +541,13 @@ void memory::write16(uint32_t addr, uint16_t data) {
 
 	// controller
 	if (masked_addr == 0x1f801048) {
-		debug_warn("[PAD] Write 0x%x to JOY_MODE\n");
+		debug_warn("[PAD] Write 0x%x to JOY_MODE\n", data);
 		pad1.joy_mode = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f80104e) {
-		debug_warn("[PAD] Write 0x%x to JOY_BAUD\n");
+		debug_warn("[PAD] Write 0x%x to JOY_BAUD\n", data);
 		pad1.joy_baud = data;
 		return;
 	}

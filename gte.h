@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <iostream>
 #include <bit>
+#include <iterator>
 
 #define TEST_GTE
 
@@ -145,6 +146,18 @@ public:
 
 	uint32_t cop2c[32];
 	uint32_t cop2d[32];
+	std::string cop2cNames[32] = {
+	"r11r12", "r13r21", "r22r23", "r31r32", "r33", "trx",  "try",  "trz",   // 00
+	"l11l12", "l13l21", "l22l23", "l31l32", "l33", "rbk",  "gbk",  "bbk",   // 08
+	"lr1lr2", "lr3lg1", "lg2lg3", "lb1lb2", "lb3", "rfc",  "gfc",  "bfc",   // 10
+	"ofx",    "ofy",    "h",      "dqa",    "dqb", "zsf3", "zsf4", "flag",  // 18
+	};
+	std::string cop2dNames[32] = {
+	"vxy0", "vz0",  "vxy1", "vz1",  "vxy2", "vz2",  "rgb",  "otz",   // 00
+	"ir0",  "ir1",  "ir2",  "ir3",  "sxy0", "sxy1", "sxy2", "sxyp",  // 08
+	"sz0",  "sz1",  "sz2",  "sz3",  "rgb0", "rgb1", "rgb2", "res1",  // 10
+	"mac0", "mac1", "mac2", "mac3", "irgb", "orgb", "lzcs", "lzcr",  // 18
+	};
 	void execute(uint32_t instr, uint32_t* gpr);
 	uint32_t sf(uint32_t instr) {
 		return ((instr >> 19) & 1);
@@ -179,9 +192,9 @@ public:
 	void commandRTPT();
 	
 	// Helpers
-	static uint32_t countLeadingZeros16(uint16_t value) {
+	/*static uint32_t countLeadingZeros16(uint16_t value) {
 		// Use a 32-bit CLZ as it's what's most commonly available and Clang/GCC fail to optimize 16-bit CLZ
-		const auto count = std::countl_zero<uint32_t>((uint32_t)value);
+		
 		return count - 16;
 	}
 	static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
@@ -218,7 +231,7 @@ public:
 
 		// Some divisions like 0xF015/0x780B result in 0x20000, but are saturated to 0x1ffff without setting FLAG
 		return std::min<uint32_t>(0x1ffff, res);
-	}
+	}*/
 	uint32_t readCop2d(uint32_t reg);
 	void writeCop2d(uint32_t reg, uint32_t val);
 	void pushZ(uint16_t value);

@@ -41,6 +41,7 @@ void cdrom::execute(uint8_t command) {
 	case 0x09: Pause(); break;
 	case 0x0A: init(); break;
 	case 0x0E: Setmode(); break;
+	case 0x13: GetTN(); break;
 	case 0x15: SeekL(); break;
 	case 0x19: test(); break;
 	case 0x1A: GetID(); break;
@@ -90,18 +91,20 @@ void cdrom::queuedRead(void* dataptr) {
 	}
 }
 void cdrom::INT1(void* dataptr) {
-	printf("[IRQ] INT1 dispatched\n");
 	cdrom* cdromptr = (cdrom*)(dataptr);
-	cdromptr->interrupt_flag &= ~0b111;
-	cdromptr->interrupt_flag |= 0b001;
+	if (cdromptr->reading) {
+		printf("[IRQ] INT1 dispatched\n");
+		cdromptr->interrupt_flag &= ~0b111;
+		cdromptr->interrupt_flag |= 0b001;
 
-	for (int i = 0; i < 16; i++) {
-		cdromptr->response_fifo[i] = cdromptr->queued_fifo[i];
+		for (int i = 0; i < 16; i++) {
+			cdromptr->response_fifo[i] = cdromptr->queued_fifo[i];
+		}
+		cdromptr->response_length = cdromptr->queued_response_length;
+		cdromptr->status |= 0b00100000;
+
+		cdromptr->Scheduler.push(&queuedRead, cdromptr->Scheduler.time + 300000, cdromptr);
 	}
-	cdromptr->response_length = cdromptr->queued_response_length;
-	cdromptr->status |= 0b00100000;
-
-	cdromptr->Scheduler.push(&queuedRead, cdromptr->Scheduler.time + 300000, cdromptr);
 	return;
 }
 void cdrom::INT2(void* dataptr) {
@@ -235,6 +238,15 @@ void cdrom::GetStat() {	// Return status byte
 	status |= 0b00100000;
 	Scheduler.push(&INT3, Scheduler.time + 15000, this);
 }
+void cdrom::GetTN() { // Get first track number, and last track number in the TOC of the current Session.
+	debug_log("[CDROM] GetTN (stubbed)\n");
+	response_fifo[0] = get_stat();
+	response_fifo[1] = 0x01;
+	response_fifo[2] = 0x10;
+	response_length = 3;
+	status |= 0b00100000;
+	Scheduler.push(&INT3, Scheduler.time + 15000, this);
+}
 void cdrom::Setmode() {	// Set mode 
 	status |= 0b00001000;
 	debug_log("[CDROM] Setmode (0x%x)\n", fifo[0]);
@@ -355,7 +367,7 @@ void cdrom::Pause() {
 	queued_INT2 = true;
 
 	Scheduler.push(&INT3, Scheduler.time + 400, this);
-	Scheduler.push(&INT2, Scheduler.time + 45000, this);
+	Scheduler.push(&INT2, Scheduler.time + 35000, this);
 	//queued_delay = 50000;
 	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
 }

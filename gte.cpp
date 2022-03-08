@@ -185,7 +185,7 @@ void gte::commandRTPS() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	int32_t _proj_factor = gte_divide(H, SZ3);
+	int32_t _proj_factor = ((H * 0x20000) / SZ3);
 	int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
@@ -259,7 +259,7 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	int32_t _proj_factor = gte_divide(H, SZ3);
+	int32_t _proj_factor = ((H * 0x20000) / SZ3);
 	int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
@@ -286,7 +286,7 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	_proj_factor = gte_divide(H, SZ3);
+	_proj_factor = ((H * 0x20000) / SZ3);
 	proj_factor = (int64_t)(_proj_factor);
 	_x = (int64_t)(int16_t)(IR1);
 	_y = (int64_t)(int16_t)(IR2);
@@ -312,7 +312,7 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	_proj_factor = gte_divide(H, SZ3);
+	_proj_factor = ((H * 0x20000) / SZ3);
 	proj_factor = (int64_t)(_proj_factor);
 	_x = (int64_t)(int16_t)(IR1);
 	_y = (int64_t)(int16_t)(IR2);
