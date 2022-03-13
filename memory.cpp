@@ -79,7 +79,7 @@ uint8_t memory::read(uint32_t addr) {
 
 	// controller
 	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
-		debug_warn("[PAD] Read JOY_RX_DATA (0x%x)\n", pad1.joy_rx_data);
+		//debug_warn("[PAD] Read JOY_RX_DATA (0x%x)\n", pad1.joy_rx_data);
 		return 0;
 		//return pad1.joy_rx_data;
 	}
@@ -319,8 +319,8 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	// controllers
 	if (masked_addr == 0x1f801040) {
 		debug_warn("[PAD] Write 0x%x to JOY_TX_DATA\n", data);
-		pad1.joy_tx_data = data;
-		pad1.exec();
+		//pad1.joy_tx_data = data;
+		//pad1.exec();
 		return;
 	}
 
@@ -561,13 +561,13 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	// controller
 	if (masked_addr == 0x1f801048) {
 		debug_warn("[PAD] Write 0x%x to JOY_MODE\n", data);
-		pad1.joy_mode = data;
+		//pad1.joy_mode = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f80104e) {
 		debug_warn("[PAD] Write 0x%x to JOY_BAUD\n", data);
-		pad1.joy_baud = data;
+		//pad1.joy_baud = data;
 		return;
 	}
 

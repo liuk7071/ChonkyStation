@@ -6,7 +6,6 @@
 #include <vector>
 #include "cdrom.h"
 #include <fstream>
-#include "controller.h"
 #include "logwindow.h"
 
 class memory
@@ -18,7 +17,6 @@ public:
 	Log* logwnd;
 
 	cdrom CDROM = cdrom();
-	controller pad1 = controller();
 	std::vector<uint8_t> file;
 	std::vector <uint8_t> bios;
 
