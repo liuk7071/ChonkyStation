@@ -1,7 +1,7 @@
 #include "cdrom.h"
 #define disk
+#undef disk
 #define log
-
 
 void debug_log(const char* fmt, ...) {
 #ifdef log
@@ -84,6 +84,7 @@ void cdrom::queuedRead(void* dataptr) {
 	if (cdromptr->reading) {
 		cdromptr->seekloc++;
 		cdromptr->cd.read(cdromptr->seekloc);
+		cdromptr->status |= 0b10000000; // DRQSTS
 		cdromptr->queued_fifo[0] = cdromptr->get_stat();
 		cdromptr->queued_response_length = 1;
 
@@ -242,7 +243,7 @@ void cdrom::GetTN() { // Get first track number, and last track number in the TO
 	debug_log("[CDROM] GetTN (stubbed)\n");
 	response_fifo[0] = get_stat();
 	response_fifo[1] = 0x01;
-	response_fifo[2] = 0x10;
+	response_fifo[2] = 0x01;
 	response_length = 3;
 	status |= 0b00100000;
 	Scheduler.push(&INT3, Scheduler.time + 15000, this);

@@ -4,6 +4,7 @@ https://wheremyfoodat.github.io/software-fastmem/ */
 #include "memory.h"
 #include <iostream>
 #define log
+#undef log
 
 #pragma warning(disable : 4996)
 memory::memory() {
@@ -57,6 +58,19 @@ uint32_t memory::mask_address(const uint32_t addr)
 uint8_t memory::read(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+
+	if (masked_addr == 0xf1000001) {
+		return 0;
+	}
+	if (masked_addr == 0xf1000002) {
+		return 0;
+	}
+	if (masked_addr == 0xf1000003) {
+		return 0;
+	}
+	if (masked_addr >= 0xf1000004 && masked_addr <= 0xf10000ff) {
+		return 0;
+	}
 
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Status 8bit read\n");
@@ -371,7 +385,8 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		return;
 
 	if (masked_addr == 0x1f802080) {
-		debug_log("%c", data);
+		printf("%c", data);
+		logwnd->AddLog("%c", data);
 		return;
 	}
 
@@ -413,6 +428,10 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+
+	if (masked_addr == 0x1f802084) {	// Openbios stuff
+		return;
+	}
 
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);

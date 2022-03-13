@@ -209,6 +209,11 @@ void ImGuiFrame(cpu *Cpu) {
             if (ImGui::MenuItem("CPU")) {
                 show_cpu_registers = !show_cpu_registers;
             }
+#ifdef log_cpu
+            if (ImGui::MenuItem("CPU Trace")) {
+                Cpu->debug = !Cpu->debug;
+            }
+#endif
             if (ImGui::MenuItem("Log")) {
                 show_log = !show_log;
             }
@@ -269,7 +274,7 @@ int main(int argc, char** argv) {
     // Parse CLI args (TODO: Use a library)
     const auto rom_dir = argc > 1 ? std::string(argv[1]) : "";  // Path of the ROM (Or "" if we just want to run the BIOS)
     const bool running_in_ci = argc > 2 && std::string(argv[2]).compare("--continuous-integration") == 0; // Running in CI makes the system run without SDL 
-    const std::string bios_dir = running_in_ci ? "" : "./SCPH1001.bin"; // In CI, don't load a BIOS, otherwise load SCPH1001.bin. TODO: Add a CLI arg for the BIOS path
+    const std::string bios_dir = running_in_ci ? "" : "C:\\Users\\zacse\\Downloads\\pcsx-redux-main\\pcsx-redux-main\\src\\mips\\openbios\\openbios.bin"; // In CI, don't load a BIOS, otherwise load SCPH1001.bin. TODO: Add a CLI arg for the BIOS path
 
     cpu Cpu = cpu(rom_dir, bios_dir, running_in_ci); // TODO: Have a system class, don't use the CPU as one   
     if (running_in_ci) { // When executing in CI, run the system headless, without a BIOS.
@@ -293,7 +298,7 @@ int main(int argc, char** argv) {
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
             glfwPollEvents();
-            //Cpu.bus.mem.I_STAT |= 0b0000001;
+            Cpu.bus.mem.I_STAT |= 0b0000001;
             // Update the ImGui frontend
             ImGuiFrame(&Cpu);
             if (show_system_settings) SystemSettingsMenu();
@@ -326,6 +331,7 @@ int main(int argc, char** argv) {
                 frameCount = 0;
                 prevTime = currTime;
             }
+            //Cpu.bus.Gpu.ClearScreen();
         }
         else {
             if (test) printf("%x\n", Cpu.pc);

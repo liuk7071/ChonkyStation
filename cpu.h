@@ -7,6 +7,9 @@
 #include "gte.h"
 #include "logwindow.h"
 
+#define log_cpu
+#define log_kernel_tty
+
 class cpu
 {
 public:

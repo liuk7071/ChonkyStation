@@ -3,10 +3,6 @@
 #include "tests.h"
 #endif TEST_GTE
 #include <iostream>
-#define log_cpu
-
-#define log_kernel_tty
-
 
 cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_ci) : rom_directory(rom_directory) {
 	if (!running_in_ci) // Do not load a BIOS if we're in CI
@@ -23,6 +19,8 @@ cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_
 	tty = true;
 
 	delay = false;
+
+	bus.mem.logwnd = &log;
 
 	// tests
 #ifdef TEST_GTE
@@ -209,6 +207,7 @@ void cpu::do_dma() {
 						uint32_t word = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
 						bus.mem.write32(current_addr, word);
 						printf("[DMA] CDROM Block Copy completed\n");
+						bus.mem.CDROM.status &= ~(0b10000000); // DRQSTS
 						bus.mem.Ch3.CHCR &= ~(1 << 24);
 						bus.mem.Ch3.CHCR &= ~(1 << 28);
 						debug = false;
@@ -226,12 +225,12 @@ void cpu::do_dma() {
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
 				}
-		
+				break;
 			default:
 				printf("[DMA] Unhandled Direction (CDROM Block Copy)\n");
 				exit(0);
 			}
-			printf("\nc");
+			printf("\n");
 			exit(0);
 		}
 		default:
@@ -500,7 +499,7 @@ void cpu::execute(uint32_t instr) {
 			break;
 		}
 		case 0x20: {
-			debug_log("add %s, %s, 0x%.4x", reg[rs].c_str(), reg[rt].c_str(), imm);
+			debug_log("add %s, %s, %s", reg[rd].c_str(), reg[rs].c_str(), reg[rt].c_str());
 			uint32_t result = regs[rs] + regs[rt];
 
 			if (((regs[rs] >> 31) == (regs[rt] >> 31)) && ((regs[rs] >> 31) != (result >> 31))) {
@@ -564,7 +563,7 @@ void cpu::execute(uint32_t instr) {
 		}
 
 		default:
-			debug_err("\nUnimplemented subinstruction: 0x%x", primary);
+			debug_err("\nUnimplemented subinstruction: 0x%x", secondary);
 			exit(0);
 
 		}
@@ -788,7 +787,7 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x23: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_log("lw %s, 0x%.4x(%s)", reg[rt].c_str(), imm, reg[rs].c_str());
+		debug_log("lw %s, 0x%.4x(%s) ; addr = 0x%08x", reg[rt].c_str(), imm, reg[rs].c_str(), addr);
 		if ((COP0.regs[12] & 0x10000) == 0) {
 			regs[rt] = bus.mem.read32(addr);
 			debug_log("\n");

@@ -6,7 +6,7 @@ Bus* bus;
 gpu::gpu() {
 	// Initialize pixel array
 	pixels = new uint32_t[480 * 640];
-	debug = true;
+	debug = !true;
 }
 
 void connectBus(Bus *_bus) {
@@ -264,6 +264,15 @@ void gpu::putpixel(point v1, uint32_t colour) {
 	vram_rgb[(v1.y + ypos) * 1024 + (v1.x + xpos)] = rgba;
 }
 
+void gpu::ClearScreen() {
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glClearColor(0, 0, 0, 1);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
+}
+
 void gpu::execute_gp0(uint32_t command) {
 	uint8_t instr = (command >> 24) & 0xff;
 	if (cmd_left == 0) {
@@ -340,6 +349,13 @@ void gpu::execute_gp0(uint32_t command) {
 			fifo[0] = command;
 			cmd_length++;
 			cmd_left = 7;
+			break;
+		}
+		case 0x48: { // Monochrome Poly-line, opaque
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 1;
+			gp0_mode = 2;
 			break;
 		}
 		case 0x60: { // Monochrome Rectangle (variable size) (opaque)
@@ -535,7 +551,19 @@ void gpu::execute_gp0(uint32_t command) {
 					break;
 				}
 			}
-
+			break;
+		}
+		case 2: {	// polyline mode
+			if (command == 0x50005000 || command == 0x55555555) {
+				monochrome_polyline_opaque();
+				cmd_length = 0;
+				gp0_mode = 0;
+				cmd_left = 0;
+				return;
+			}
+			cmd_left += 2;
+			fifo[cmd_length++] = command;
+			break;
 		}
 		}
 	}
@@ -988,6 +1016,110 @@ void gpu::monochrome_line_opaque() {
 	v2.y = fifo[2] >> 16;
 
 	// TODO: OpenGL implementation
+	return;
+}
+
+void gpu::monochrome_polyline_opaque() {
+	uint32_t colour = fifo[0] & 0xffffff;
+	debug_printf("[GP0] Monochrome four-point polygon, opaque (colour: 0x%x)\n", colour);
+	point v1, v2, v3, v4, v5, v6;
+	/*for (int i = 1; i < cmd_length; i++) {
+		v1.x = fifo[i] & 0xffff;
+		v1.y = fifo[i] >> 16;
+		v2.x = fifo[i+1] & 0xffff;
+		v2.y = fifo[i+1] >> 16;
+
+		uint32_t Vertices1[]{
+		v1.x, v1.y, 0,
+		v2.x, v2.y, 0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+		};
+
+		glViewport(0, 0, 640, 480);
+		glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+		glBindVertexArray(VAO);
+		glVertexAttribPointer(0, 2, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+		glEnableVertexAttribArray(0);
+		glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(6 * sizeof(uint32_t)));
+		glEnableVertexAttribArray(1);
+		glUseProgram(ShaderProgram);
+		glBindVertexArray(VAO);
+		glDrawArrays(GL_LINE, 0, 3);
+		glBindVertexArray(0);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+	}*/
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = fifo[2] & 0xffff;
+	v2.y = fifo[2] >> 16;
+	v3.x = fifo[3] & 0xffff;
+	v3.y = fifo[3] >> 16;
+	v4.x = fifo[4] & 0xffff;
+	v4.y = fifo[4] >> 16;
+	v5.x = fifo[5] & 0xffff;
+	v5.y = fifo[5] >> 16;
+
+	//printf("%d\n", cmd_length);
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0,
+		v2.x, v2.y, 0,
+		v3.x, v3.y, 0,
+		v4.x, v4.y, 0,
+		v5.x, v5.y, 0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+	};
+
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(15 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_LINE_STRIP, 0, 5);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
+	/*uint32_t Vertices2[]{
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+		v4.x, v4.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_LINE_STRIP, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);*/
 	return;
 }
 

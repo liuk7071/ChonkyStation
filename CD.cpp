@@ -11,7 +11,7 @@ uint8_t CD::ReadDataByte() {
 }
 
 void CD::read(uint32_t loc) {
-	printf("[CD] Read sector %d\n", loc);
+	//printf("[CD] Read sector %d\n", loc);
 	fseek(iso, (loc - 150) * SECTOR_SIZE, SEEK_SET);
 	fread(SectorBuffer, sizeof(uint8_t), SECTOR_SIZE, iso);
 	memcpy(&DataBuffer, &SectorBuffer[0x18], 0x800);

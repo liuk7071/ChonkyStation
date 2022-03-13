@@ -38,6 +38,7 @@ public:		// trongle stuff
 public:
 	gpu();
 	void InitGL();
+	void ClearScreen();
 	uint16_t* vram = new uint16_t[1024 * 512];
 	uint32_t* vram8 = new uint32_t[1024 * 512];
 	uint32_t* vram4 = new uint32_t[1024 * 512];
@@ -76,6 +77,7 @@ public:
 
 public:	// commands
 	void monochrome_line_opaque();
+	void monochrome_polyline_opaque();
 	void monochrome_four_point_opaque_polygon();
 	void monochrome_four_point_semi_transparent_polygon();
 	void monochrome_three_point_opaque_polygon();

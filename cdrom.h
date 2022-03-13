@@ -72,5 +72,6 @@ public:
 	
 public:
 	const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\doukutsu_test5_2.iso";
+	//const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\doukutsupsx_test1.iso";
 	CD cd = CD(CD_DIR);
 };

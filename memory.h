@@ -7,12 +7,15 @@
 #include "cdrom.h"
 #include <fstream>
 #include "controller.h"
+#include "logwindow.h"
 
 class memory
 {
 public:
 	memory();
 	~memory();
+
+	Log* logwnd;
 
 	cdrom CDROM = cdrom();
 	controller pad1 = controller();
