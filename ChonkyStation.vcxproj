@@ -172,6 +172,7 @@
     <ClCompile Include="imgui\imgui_tables.cpp" />
     <ClCompile Include="imgui\imgui_widgets.cpp" />
     <ClCompile Include="memory.cpp" />
+    <ClCompile Include="pad.cpp" />
     <ClCompile Include="scheduler.cpp" />
     <ClCompile Include="TinyFileDialogs\tinyfiledialogs.c" />
   </ItemGroup>
@@ -194,6 +195,7 @@
     <ClInclude Include="imgui\imstb_truetype.h" />
     <ClInclude Include="logwindow.h" />
     <ClInclude Include="memory.h" />
+    <ClInclude Include="pad.h" />
     <ClInclude Include="scheduler.h" />
     <ClInclude Include="tests.h" />
     <ClInclude Include="TinyFileDialogs\tinyfiledialogs.h" />

@@ -72,6 +72,9 @@
     <ClCompile Include="gte.cpp">
       <Filter>File di origine</Filter>
     </ClCompile>
+    <ClCompile Include="pad.cpp">
+      <Filter>File di origine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h">
@@ -135,6 +138,9 @@
       <Filter>File di intestazione</Filter>
     </ClInclude>
     <ClInclude Include="tests.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="pad.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
   </ItemGroup>

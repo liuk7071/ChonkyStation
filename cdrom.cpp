@@ -1,6 +1,5 @@
 #include "cdrom.h"
 #define disk
-#undef disk
 #define log
 
 void debug_log(const char* fmt, ...) {
@@ -15,10 +14,10 @@ cdrom::cdrom() {
 }
 
 uint8_t cdrom::get_stat() {
-	uint8_t stat = 0b10;
+	uint8_t stat = 0b10;	// Pretend that the motor is always on
 	if (reading)
 		stat |= (1 << 5);
-	return stat;	// Pretend that the motor is always on
+	return stat;
 }
 
 uint8_t cdrom::bcd_dec(uint8_t val) {
@@ -155,64 +154,7 @@ void cdrom::delayedINT() {
 		//INT3();
 	}
 }
-/*void cdrom::queuedRead() {
-	if (queued_read) {
-		if (reading) {
-			seekloc += 0x930;
-			cd.read(seekloc);
-			response_fifo[0] = get_stat();
-			response_length = 1;
-			//INT1();
-			delay = 2;
-		}
-		queued_read = false;
-	}
-}*/
-/*void cdrom::sendQueuedINT() {
-	delay = queued_delay;
-	if (queued_INT1) {
-		//debug_log("[CDROM] Sending delayed INT1\n");
-		for (int i = 0; i < 16; i++) {
-			response_fifo[i] = queued_fifo[i];
-		}
-		response_length = queued_response_length;
-		delayed_INT1 = true;
-		status |= 0b00100000;
-		queued_INT1 = false;
 
-	}
-	if (queued_INT2) {
-		//debug_log("[CDROM] Sending delayed INT2\n");
-		for (int i = 0; i < 16; i++) {
-			response_fifo[i] = queued_fifo[i];
-		}
-		response_length = queued_response_length;
-		delayed_INT2 = true;
-		status |= 0b00100000;
-		queued_INT2 = false;
-	}
-	if (queued_INT3) {
-		//debug_log("[CDROM] Sending delayed INT3\n");
-		for (int i = 0; i < 16; i++) {
-			response_fifo[i] = queued_fifo[i];
-		}
-		response_length = queued_response_length;
-		//INT3();
-		status |= 0b00100000;
-		queued_INT3 = false;
-	}
-	if (queued_INT5) {
-		//debug_log("[CDROM] Sending delayed INT5\n");
-		for (int i = 0; i < 16; i++) {
-			response_fifo[i] = queued_fifo[i];
-		}
-		response_length = queued_response_length;
-		//INT5();
-		status |= 0b00100000;
-		queued_INT5 = false;
-	}
-	return;
-}*/
 // commands
 void cdrom::test() {
 	status |= 0b00001000;
@@ -237,7 +179,7 @@ void cdrom::GetStat() {	// Return status byte
 	response_fifo[0] = get_stat();
 	response_length = 1;
 	status |= 0b00100000;
-	Scheduler.push(&INT3, Scheduler.time + 15000, this);
+	Scheduler.push(&INT3, Scheduler.time + 5000, this);
 }
 void cdrom::GetTN() { // Get first track number, and last track number in the TOC of the current Session.
 	debug_log("[CDROM] GetTN (stubbed)\n");

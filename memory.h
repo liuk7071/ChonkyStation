@@ -7,6 +7,7 @@
 #include "cdrom.h"
 #include <fstream>
 #include "logwindow.h"
+#include "pad.h"
 
 class memory
 {
@@ -17,6 +18,7 @@ public:
 	Log* logwnd;
 
 	cdrom CDROM = cdrom();
+	pad pads;
 	std::vector<uint8_t> file;
 	std::vector <uint8_t> bios;
 
@@ -39,6 +41,9 @@ public:
 	// dma
 	uint32_t DCPR = 0;
 	uint32_t DICR = 0;
+
+	// timer
+	uint16_t tmr1_stub = 0;
 
 
 	typedef struct DMA {

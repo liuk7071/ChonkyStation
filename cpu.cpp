@@ -88,7 +88,8 @@ inline void cpu::debug_err(const char* fmt, ...) {
 
 void cpu::exception(exceptions exc) {
 	uint32_t handler = 0;
-	bool bd = (COP0.regs[13] >> 31) & 1;
+	//if (delay) return;
+	if (delay) COP0.regs[13] |= (1 << 31); else COP0.regs[13] &= ~(1 << 31);
 	
 	if (exc == 0x4 || exc == 0x5) {		// BadVAddr
 		COP0.regs[8] = pc;
@@ -101,10 +102,15 @@ void cpu::exception(exceptions exc) {
 		handler = 0x80000080;
 	}
 
-	COP0.regs[12] = (COP0.regs[12] & ~0x3f) | ((COP0.regs[12] & 0xf) << 2);
-	COP0.regs[13] = uint32_t(exc) << 2;
+	uint32_t temp = COP0.regs[12] & 0x3f;
+	COP0.regs[12] &= ~0x3f;
+	COP0.regs[12] |= ((temp << 2) & 0x3f);
+	COP0.regs[13] &= ~0xff;
+	COP0.regs[13] |= (uint32_t(exc) << 2);
 	COP0.regs[14] = pc;
+	if (delay) COP0.regs[14] -= 4;
 	pc = handler;
+	delay = false;
 }
 
 template<int channel>
@@ -341,6 +347,7 @@ void cpu::execute(uint32_t instr) {
 
 	uint8_t primary = instr >> 26;
 	uint8_t secondary = instr & 0x3f;
+	
 	if (delay) {	// branch delay slot
 		pc = jump - 4;
 		delay = false;
@@ -979,7 +986,6 @@ void cpu::step() {
 	check_dma(); // TODO: Only check DMA when control registers are written to   
 	if (bus.mem.I_STAT & bus.mem.I_MASK) {
 		COP0.regs[13] |= (1 << 10);
-
 		if ((COP0.regs[12] & 1) && (COP0.regs[12] & (1 << 10))) {
 			printf("[IRQ] Interrupt fired\n");
 			exception(exceptions::INT);

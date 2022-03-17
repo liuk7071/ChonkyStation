@@ -1333,9 +1333,9 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	uint32_t colour = fifo[0] & 0xffffff;
 	debug_printf("[GP0] 1x1 Draw Opaque Monochrome Rectangle (coords: %d;%d colour: 0x%x)\n", x, y, colour);
 	uint32_t a = (colour >> 15) & 1;
-	uint32_t b = (colour >> 10) & 0b11111;
-	uint32_t g = (colour >> 5) & 0b11111;
-	uint32_t r = colour & 0b11111;
+	uint32_t b = (((colour) >> 16) & 0xff);
+	uint32_t g = (((colour) >> 8) & 0xff);
+	uint32_t r = (((colour) >> 0) & 0xff);
 	uint32_t rgba = ((r << 3) << 24) | ((g << 3) << 16) | ((b << 3) << 8) | 0xff;
 	vram_rgb[(y * 1024) + x] = rgba;
 
