@@ -12,8 +12,10 @@
 class CD
 {
 public:
-	CD(const char* directory);
+	CD();
+	void OpenFile(const char* directory);
 	const char* dir;
+	bool IsCDInserted = false;
 public:
 	void read(uint32_t loc);
 	uint8_t ReadDataByte();

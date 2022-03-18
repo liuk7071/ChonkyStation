@@ -358,7 +358,7 @@ void cpu::execute(uint32_t instr) {
 	uint8_t rt = (instr >> 16) & 0x1f;
 	int32_t signed_rs = int32_t(regs[rs]);
 	uint16_t imm = instr & 0xffff;
-	uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+	uint32_t sign_extended_imm = uint32_t(int16_t(imm));
 	int32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));	// ??????????? is this even needed
 	uint8_t shift_imm = (instr >> 6) & 0x1f;
 	uint32_t jump_imm = instr & 0x3ffffff;
@@ -578,9 +578,9 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x01: {
 		auto bit16 = (instr >> 16) & 1;
-		auto bit20 = (instr >> 20) & 1;
+		bool link = ((instr >> 17) & 0xF) == 8;
 		if (bit16 == 0) {		// bltz
-			if (bit20 == 1) regs[0x1f] = pc + 8; // check if link (bltzal)
+			if (link) regs[0x1f] = pc + 8; // check if link (bltzal)
 			debug_log("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 			if (signed_rs < 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
@@ -589,11 +589,9 @@ void cpu::execute(uint32_t instr) {
 			}
 			else { debug_log("\n"); }
 			break;
-		}
-
-		if (bit16 == 1) {		// bgez
+		} else {		// bgez
 			debug_log("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
-			if (bit20 == 1) regs[0x1f] = pc + 8; // check if link (bgezal)
+			if (link) regs[0x1f] = pc + 8; // check if link (bgezal)
 			if (signed_rs >= 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
 				delay = true;
@@ -602,6 +600,7 @@ void cpu::execute(uint32_t instr) {
 			else { debug_log("\n"); }
 			break;
 		}
+		break;
 	}
 	case 0x02: {
 		jump = (pc & 0xf0000000) | (jump_imm << 2);

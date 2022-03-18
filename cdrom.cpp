@@ -1,5 +1,4 @@
 #include "cdrom.h"
-#define disk
 #define log
 
 void debug_log(const char* fmt, ...) {
@@ -209,38 +208,39 @@ void cdrom::Setmode() {	// Set mode
 }
 void cdrom::GetID() { // Disk info
 	debug_log("[CDROM] GetID\n");
-#ifdef disk
-	response_fifo[0] = get_stat();
-	response_length = 1;
-	//INT3();
-	queued_fifo[0] = 0x02;
-	queued_fifo[1] = 0;
-	queued_fifo[2] = 0;
-	queued_fifo[3] = 0;
-	//queued_fifo[4] = 0x53;
-	//ueued_fifo[5] = 0x43;
-	//queued_fifo[6] = 0x45;
-	//queued_fifo[7] = 0x41;
-	std::memcpy(&queued_fifo[4], "CHST", 4);
-	queued_response_length = 8;
-	queued_INT2 = true;
-	Scheduler.push(&INT2, Scheduler.time + 50000, this);
-#else
-	response_fifo[0] = get_stat();
-	response_length = 1;
-	//INT3();
-	queued_fifo[0] = 0x08;
-	queued_fifo[1] = 0x40;
-	queued_fifo[2] = 0;
-	queued_fifo[3] = 0;
-	queued_fifo[4] = 0;
-	queued_fifo[5] = 0;
-	queued_fifo[6] = 0;
-	queued_fifo[7] = 0;
-	queued_response_length = 8;
-	queued_INT5 = true;
-	Scheduler.push(&INT5, Scheduler.time + 50000, this);
-#endif
+	if (cd.IsCDInserted) {
+		response_fifo[0] = get_stat();
+		response_length = 1;
+		//INT3();
+		queued_fifo[0] = 0x02;
+		queued_fifo[1] = 0;
+		queued_fifo[2] = 0;
+		queued_fifo[3] = 0;
+		//queued_fifo[4] = 0x53;
+		//ueued_fifo[5] = 0x43;
+		//queued_fifo[6] = 0x45;
+		//queued_fifo[7] = 0x41;
+		std::memcpy(&queued_fifo[4], "CHST", 4);
+		queued_response_length = 8;
+		queued_INT2 = true;
+		Scheduler.push(&INT2, Scheduler.time + 50000, this);
+	}
+	else {
+		response_fifo[0] = get_stat();
+		response_length = 1;
+		//INT3();
+		queued_fifo[0] = 0x08;
+		queued_fifo[1] = 0x40;
+		queued_fifo[2] = 0;
+		queued_fifo[3] = 0;
+		queued_fifo[4] = 0;
+		queued_fifo[5] = 0;
+		queued_fifo[6] = 0;
+		queued_fifo[7] = 0;
+		queued_response_length = 8;
+		queued_INT5 = true;
+		Scheduler.push(&INT5, Scheduler.time + 50000, this);
+	}
 	Scheduler.push(&INT3, Scheduler.time + 4, this);
 
 	//delay = 40000;

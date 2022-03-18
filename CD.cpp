@@ -1,7 +1,10 @@
 #include "CD.h"
-CD::CD(const char* directory) {
+
+CD::CD() {}
+void CD::OpenFile(const char* directory) {
 	iso = fopen(directory, "r");
 	dir = directory;
+	IsCDInserted = true;
 }
 
 uint8_t CD::ReadDataByte() {

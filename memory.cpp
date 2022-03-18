@@ -254,7 +254,7 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f802080) return 0x58534350; // "Also return 0x58534350 for 32-bit reads from 0x1f802080"  - peach
 
 	if (masked_addr == 0x1f801110) {	// timer 1 stuff
-		//printf("[TIMER] Read timer 1 current value\n");
+		printf("[TIMER] Read timer 1 current value\n");
 		return tmr1_stub++;
 	}
 
@@ -416,6 +416,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
+		printf("[TIMERS] Write timer 0/1 regs\n");
 		return;
 	}
 
@@ -481,9 +482,6 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		exp2_delay_size = data;
 		return;
 	}
-
-	if (masked_addr == 0x1f801800)
-		return;
 
 	if (masked_addr == 0x1f8010f0) { // DCPR
 		DCPR = data;
@@ -554,18 +552,23 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
+		printf("[TIMER] Write timer 0/1 regs\n");
 		return;
 	}
 
-	if (masked_addr >= 0x1f800000 && masked_addr <= 0x1f801020) {
-		return;
-	}
+	if (masked_addr == 0x1f801000) return; // Expansion 1 Base Address
+	if (masked_addr == 0x1f801004) return; // Expansion 2 Base Address
+	if (masked_addr == 0x1f801008) return; // Expansion 1 Delay/Size
+	if (masked_addr == 0x1f80100c) return; // Expansion 3 Delay/Size
+	if (masked_addr == 0x1f801010) return; // BIOS ROM Delay/Size
+	if (masked_addr == 0x1f801014) return; // SPU Delay/Size
+	if (masked_addr == 0x1f801018) return; // CDROM Delay/Size
+	if (masked_addr == 0x1f801020) return; // COM_DELAY / COMMON_DELAY
 
 	if (masked_addr >= 0xfffe0130 && masked_addr < 0xfffe0130 + sizeof(uint32_t)) {	// CACHE_CONTROL
 		CACHE_CONTROL = data;
 		return;
 	}
-
 	write(addr, uint8_t(data & 0x000000ff), false);
 	write(addr + 3, uint8_t((data & 0xff000000) >> 24), false);
 	write(addr + 2, uint8_t((data & 0x00ff0000) >> 16), false);
@@ -616,6 +619,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
+		printf("[TIMER] Write timer regs\n");
 		return;
 	}
 

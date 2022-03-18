@@ -1001,7 +1001,6 @@ void gpu::shaded_four_point_semi_transparent_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 	debug_printf("[GP0] Shaded four-point polygon, semi-transparent\n");
-
 	// TODO: OpenGL implementation
 	return;
 }
@@ -1336,7 +1335,7 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	uint32_t b = (((colour) >> 16) & 0xff);
 	uint32_t g = (((colour) >> 8) & 0xff);
 	uint32_t r = (((colour) >> 0) & 0xff);
-	uint32_t rgba = ((r << 3) << 24) | ((g << 3) << 16) | ((b << 3) << 8) | 0xff;
+	uint32_t rgba = (r << 24) | (g << 16) | (b << 8) | 0xff;
 	vram_rgb[(y * 1024) + x] = rgba;
 
 	// TODO: OpenGL implementation
@@ -1345,6 +1344,7 @@ void gpu::monochrome_rectangle_dot_opaque() {
 
 void gpu::fill_rectangle() {
 	debug_printf("[GP0] Fill Rectangle\n");
+	//exit(1);
 	return;
 }
 

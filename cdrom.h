@@ -80,5 +80,5 @@ public:
 	//const char* CD_DIR = "H:\\Games\\roms\\PS1\\Crossroad Crisis (USA)\\Crossroad Crisis (USA).bin";
 	//const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\pawlov\\Pawlov\\Pawlov.bin";
 	//const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\PadTest.1.0\\PadTest 1.0\\CD image\\padtest.bin";
-	CD cd = CD(CD_DIR);
+	CD cd = CD();
 };

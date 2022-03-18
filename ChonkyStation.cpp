@@ -137,12 +137,14 @@ void Reset(const char* rom_dir, const char* bios_dir, cpu *Cpu) {
         if (run) {
             *Cpu = cpu(sideload ? binary_path : "", bios_path, false);
             Cpu->bus.Gpu.InitGL();
+            if (game_path) Cpu->bus.mem.CDROM.cd.OpenFile(game_path);
         }
         else {
             if (sideload) {
                 Cpu->exe = true;
                 Cpu->rom_directory = binary_path;
             }
+            if(game_path) Cpu->bus.mem.CDROM.cd.OpenFile(game_path);
             run = true;
             started = true;
         }
@@ -261,6 +263,7 @@ void InterruptDebugger(cpu* Cpu) {
     ImGui::Text("SPU   ");
     ImGui::SameLine();
     ImGui::Checkbox("", &SPU);
+    ImGui::End();
 }
 
 void Dialog() {
@@ -302,6 +305,7 @@ void ImGuiFrame(cpu *Cpu) {
                 }
                 else {
                     game_open = true;
+                    Cpu->bus.mem.CDROM.cd.OpenFile(game_path);
                 }
             }
     
