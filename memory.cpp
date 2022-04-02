@@ -7,8 +7,22 @@ https://wheremyfoodat.github.io/software-fastmem/ */
 #undef log
 
 #pragma warning(disable : 4996)
+
+void ScheduleVBLANK_(void* dataptr) {
+	memory* memoryptr = (memory*)dataptr;
+	printf("fuck\n");
+	memoryptr->I_STAT |= 1;
+}
+void DMAIRQ(void* dataptr) {
+	memory* memoryptr = (memory*)dataptr;
+	memoryptr->I_STAT |= 0b1000;
+}
+void TMR2IRQ(void* dataptr) { 
+	memory* memoryptr = (memory*)dataptr;
+	memoryptr->I_STAT |= 0b1000000;
+}
 memory::memory() {
-	debug = false;
+	debug = true;
 }
 
 memory::~memory() {
@@ -24,12 +38,14 @@ void memory::debug_log(const char* fmt, ...) {
 #endif
 }
 void memory::debug_warn(const char* fmt, ...) {
-	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
-	std::va_list args;
-	va_start(args, fmt);
-	std::vprintf(fmt, args);
-	va_end(args);
-	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+	if (debug) {
+		SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
+		std::va_list args;
+		va_start(args, fmt);
+		std::vprintf(fmt, args);
+		va_end(args);
+		SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+	}
 }
 void memory::debug_err(const char* fmt, ...) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
@@ -79,13 +95,13 @@ uint8_t memory::read(uint32_t addr) {
 
 	// controller
 	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
-		//debug_warn("[PAD] Read JOY_RX_DATA (0x%x)\n", pad1.joy_rx_data);
-		return 0;
-		//return pad1.joy_rx_data;
+		uint8_t data = pads.ReadRXFIFO();
+		debug_warn("[PAD] Read JOY_RX_DATA (0x%x)\n", data);
+		return data;
 	}
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
-		debug_log("[CDROM] Status register read\n");
+		printf("[CDROM] Status register read\n");
 		return CDROM.status;
 	}
 
@@ -96,7 +112,7 @@ uint8_t memory::read(uint32_t addr) {
 			debug_log("[CDROM] Read response fifo\n");
 			return CDROM.read_fifo();
 		default:
-			debug_log("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
+			printf("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 	}
@@ -110,7 +126,7 @@ uint8_t memory::read(uint32_t addr) {
 			debug_log("[CDROM] Read IF\n");
 			return CDROM.interrupt_flag;
 		default:
-			debug_log("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
+			printf("Unhandled CDROM read 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 	}
@@ -134,7 +150,7 @@ uint8_t memory::read(uint32_t addr) {
 		return 0xff;
 	}
 
-	debug_log("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x", masked_addr);
 	exit(0);
 }
 
@@ -144,39 +160,39 @@ uint16_t memory::read16(uint32_t addr) {
 
 	// Timer 1 current value
 	if (masked_addr == 0x1f801110) {
+		printf("[TIMER] Read timer 1 current value (stubbed)\n");
 		return 0;
 	}
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
+		printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
 		return 0;
 	}
 
 	if (masked_addr == 0x1f801120) {	// timer 2 stuff
 		printf("timer\n");
-		return 0;
+		return tmr1_stub++;
 	}
 
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
-		debug_warn("[PAD] Read JOY_STAT\n");
-		//return pad1.joy_stat;
-		//return rand() % 0xffff;
-		return 0b111;
+		debug_warn("[PAD] Read JOY_STAT @ 0x%08x\n", pc);
+		return rand() & 0b111;
+		return pads.joy_stat;
 	}
 
 	if (masked_addr == 0x1f80104a) {	// JOY_CTRL
 		debug_warn("[PAD] Read JOY_CTRL\n");
-		//return pad1.joy_ctrl;
-		return 0;
+		return pads.joy_ctrl;
 	}
 
-	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
-		debug_warn("[PAD] Read JOY_RX_DATA\n");
-		//return pad1.joy_rx_data;
-		return 0;
-	}
+	//if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
+	//	debug_warn("[PAD] Read JOY_RX_DATA\n");
+	//	return pads.joy_rx_data;
+	//}
 
 	if (masked_addr >= 0x1F801D80 && masked_addr <= 0x1F801DBC) {	// SPUSTAT
+		printf("[SPU] SPUSTAT read (stubbed)\n");
 		return 0;
 	}
 
@@ -190,8 +206,10 @@ uint16_t memory::read16(uint32_t addr) {
 		return I_MASK;
 	}
 
-	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801CfE || masked_addr == 0x1f801d0c && masked_addr <= 0x1f801dfc || masked_addr >= 0x1f801d1c && masked_addr <= 0x1f801dfc)	// more spu registers
+	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801CfE || masked_addr == 0x1f801d0c && masked_addr <= 0x1f801dfc || masked_addr >= 0x1f801d1c && masked_addr <= 0x1f801dfc) {	// more spu registers
+		printf("[SPU] Registers read (stubbed)\n");
 		return 0;
+	}
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint16_t));
@@ -212,7 +230,7 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0xffff;
 	}
 
-	debug_log("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x", masked_addr);
 	exit(0);
 }
 
@@ -220,16 +238,29 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	if (masked_addr == 0xfffffff8) return 0;
+	/*if (masked_addr == 0xfffffff4) return 0;
+	if (masked_addr == 0x00fffff4) return 0;
+	if (masked_addr == 0x00fffff8) return 0;
+	if (masked_addr == 0x00fffffc) return 0;*/
+
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
+		printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
 		return 0;
+	}
+
+	if (masked_addr == 0x1f801014) return 0;
+
+	if (masked_addr == 0x1f801060) {	// RAM_SIZE
+		return RAM_SIZE;
 	}
 
 	if (masked_addr == 0x1f802080) return 0x58534350; // "Also return 0x58534350 for 32-bit reads from 0x1f802080"  - peach
 
 	if (masked_addr == 0x1f801110) {	// timer 1 stuff
-		//printf("timer1\n");
-		return 0;
+		printf("[TIMER] Read timer 1 current value\n");
+		return tmr1_stub++;
 	}
 
 	if (masked_addr == 0x1f80101c) {
@@ -308,7 +339,7 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0xffffffff;
 	}
 
-	debug_log("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x", masked_addr);
 	exit(0);
 }
 
@@ -319,8 +350,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	// controllers
 	if (masked_addr == 0x1f801040) {
 		debug_warn("[PAD] Write 0x%x to JOY_TX_DATA\n", data);
-		//pad1.joy_tx_data = data;
-		//pad1.exec();
+		pads.WriteTXDATA(data);
 		return;
 	}
 
@@ -336,8 +366,9 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		case 0:
 			CDROM.execute(data);
 			break;
+		case 3: break;
 		default:
-			debug_log("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 
@@ -353,8 +384,9 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 			debug_log("[CDROM] Write 0x%x to interrupt enable register\n", data);
 			CDROM.interrupt_enable = data;
 			break;
+		case 2: break;
 		default:
-			debug_log("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 		return;
@@ -373,16 +405,14 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 				CDROM.irq = false;
 			}
 			break;
+		case 3: break;
 		default:
-			debug_log("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
+			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
 		}
 
 		return;
 	}
-
-	if (masked_addr >= 0x1f80104a && masked_addr < 0x1f80104a + sizeof(uint32_t))	// joy_ctrl
-		return;
 
 	if (masked_addr == 0x1f802080) {
 		printf("%c", data);
@@ -391,6 +421,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
+		printf("[TIMERS] Write timer 0/1 regs\n");
 		return;
 	}
 
@@ -398,7 +429,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		return;
 
 	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 0x7D000) {
-		debug_log("Attempted to overwrite bios!");
+		printf("Attempted to overwrite bios!");
 		exit(0);
 		return;
 	}
@@ -421,7 +452,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	else if (masked_addr == 0x1f802082) // Exit code register for Continuous Integration tests
 		exit(data);
 
-	debug_log("\nUnhandled write 0x%.8x", addr);
+	printf("\nUnhandled write 0x%.8x", masked_addr);
 	exit(0);
 }
 
@@ -429,7 +460,14 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	// if (masked_addr == 0x00fffffc) return;
+
 	if (masked_addr == 0x1f802084) {	// Openbios stuff
+		return;
+	}
+
+	if (masked_addr == 0x1f801060) {	// RAM_SIZE
+		RAM_SIZE = data;
 		return;
 	}
 
@@ -441,6 +479,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	if (masked_addr == 0x1f801074) { // I_MASK
 		I_MASK = data;
+		if((I_MASK >> 6) & 1) CDROM.Scheduler.push(&TMR2IRQ, CDROM.Scheduler.time + 5000, this);
 		debug_log("[IRQ] Write 0x%x to I_MASK\n", data);
 		return;
 	}
@@ -449,9 +488,6 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		exp2_delay_size = data;
 		return;
 	}
-
-	if (masked_addr == 0x1f801800)
-		return;
 
 	if (masked_addr == 0x1f8010f0) { // DCPR
 		DCPR = data;
@@ -497,6 +533,20 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		return;
 	}
 
+	// channel 4
+	if (masked_addr == 0x1f8010c0) { 
+		Ch4.MADR = data;
+		return; 
+	}
+	if (masked_addr == 0x1f8010c4) { 
+		Ch4.BCR = data;
+		return; 
+	}
+	if (masked_addr == 0x1f8010c8) {
+		//CDROM.Scheduler.push(&DMAIRQ, CDROM.Scheduler.time + 5000, this);
+		Ch4.CHCR = data;
+		return;
+	}
 	// channel 6
 	if (masked_addr == 0x1f8010e0) {	// base address
 		Ch6.MADR = data;
@@ -514,24 +564,23 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
+		printf("[TIMER] Write timer 0/1 regs\n");
 		return;
 	}
 
-	if (masked_addr >= 0x1f800000 && masked_addr <= 0x1f801020) {
-		return;
-	}
-
-	if (masked_addr >= 0x1f801060 && masked_addr < 0x1f801060 + sizeof(uint32_t)) {	// RAM_SIZE
-		RAM_SIZE = data;
-		if (debug) debug_log(" Write 0x%.8x to RAM_SIZE", data);
-		return;
-	}
+	if (masked_addr == 0x1f801000) return; // Expansion 1 Base Address
+	if (masked_addr == 0x1f801004) return; // Expansion 2 Base Address
+	if (masked_addr == 0x1f801008) return; // Expansion 1 Delay/Size
+	if (masked_addr == 0x1f80100c) return; // Expansion 3 Delay/Size
+	if (masked_addr == 0x1f801010) return; // BIOS ROM Delay/Size
+	if (masked_addr == 0x1f801014) return; // SPU Delay/Size
+	if (masked_addr == 0x1f801018) return; // CDROM Delay/Size
+	if (masked_addr == 0x1f801020) return; // COM_DELAY / COMMON_DELAY
 
 	if (masked_addr >= 0xfffe0130 && masked_addr < 0xfffe0130 + sizeof(uint32_t)) {	// CACHE_CONTROL
 		CACHE_CONTROL = data;
 		return;
 	}
-
 	write(addr, uint8_t(data & 0x000000ff), false);
 	write(addr + 3, uint8_t((data & 0xff000000) >> 24), false);
 	write(addr + 2, uint8_t((data & 0x00ff0000) >> 16), false);
@@ -559,19 +608,30 @@ void memory::write16(uint32_t addr, uint16_t data) {
 		return;
 
 	// controller
+	if (masked_addr == 0x1f80104a) {
+		debug_warn("[PAD] Write 0x%x to JOY_CTRL\n", data);
+		pads.joy_ctrl = data;
+		return;
+	}
 	if (masked_addr == 0x1f801048) {
 		debug_warn("[PAD] Write 0x%x to JOY_MODE\n", data);
-		//pad1.joy_mode = data;
+		pads.joy_mode = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f80104e) {
 		debug_warn("[PAD] Write 0x%x to JOY_BAUD\n", data);
-		//pad1.joy_baud = data;
+		pads.joy_baud = data;
+		return;
+	}
+
+	if (masked_addr == 0x1f801110) {
+		tmr1_stub = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
+		printf("[TIMER] Write timer regs\n");
 		return;
 	}
 
@@ -628,7 +688,8 @@ uint32_t memory::loadExec(std::string directory) {
 	debug_log("\nDestination: 0x%x", entry_addr);
 	debug_log("\nFile size: 0x%x\n\n\n", file_size);
 
-	for (int i = 0; i < file_size; i++) {
+	printf("%d, %d", file_size, file.size());
+	for (int i = 0; i < (file.size() - 2048); i++) {
 		write(entry_addr + i, file[0x800 + i], false);
 	}
 

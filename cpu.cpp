@@ -88,7 +88,8 @@ inline void cpu::debug_err(const char* fmt, ...) {
 
 void cpu::exception(exceptions exc) {
 	uint32_t handler = 0;
-	bool bd = (COP0.regs[13] >> 31) & 1;
+	//if (delay) return;
+	if (delay) COP0.regs[13] |= (1 << 31); else COP0.regs[13] &= ~(1 << 31);
 	
 	if (exc == 0x4 || exc == 0x5) {		// BadVAddr
 		COP0.regs[8] = pc;
@@ -101,10 +102,15 @@ void cpu::exception(exceptions exc) {
 		handler = 0x80000080;
 	}
 
-	COP0.regs[12] = (COP0.regs[12] & ~0x3f) | ((COP0.regs[12] & 0xf) << 2);
-	COP0.regs[13] = uint32_t(exc) << 2;
+	uint32_t temp = COP0.regs[12] & 0x3f;
+	COP0.regs[12] &= ~0x3f;
+	COP0.regs[12] |= ((temp << 2) & 0x3f);
+	COP0.regs[13] &= ~0xff;
+	COP0.regs[13] |= (uint32_t(exc) << 2);
 	COP0.regs[14] = pc;
+	if (delay) COP0.regs[14] -= 4;
 	pc = handler;
+	delay = false;
 }
 
 template<int channel>
@@ -139,7 +145,9 @@ void cpu::do_dma() {
 				debug = false;
 				return;
 			case 0:
-				debug_log("[DMA] GPU to RAM block copy (unimplemented)\n");
+				printf("[DMA] GPU to RAM block copy (unimplemented)\n");
+				bus.mem.Ch2.CHCR &= ~(1 << 24);
+				bus.mem.Ch2.CHCR &= ~(1 << 28);
 				return;
 			default:
 				printf("[DMA] Unhandled Direction (GPU Block Copy)");
@@ -162,7 +170,7 @@ void cpu::do_dma() {
 						bus.Gpu.execute_gp0(command);
 						_words--;
 					}
-					if ((_header & 0x800000) != 0)
+					if ((_header & 0x800000) != 0) 
 						break;
 					addr = _header & 0x1ffffc;
 				}
@@ -341,6 +349,9 @@ void cpu::execute(uint32_t instr) {
 
 	uint8_t primary = instr >> 26;
 	uint8_t secondary = instr & 0x3f;
+	
+	bus.mem.pc = pc;
+
 	if (delay) {	// branch delay slot
 		pc = jump - 4;
 		delay = false;
@@ -351,7 +362,7 @@ void cpu::execute(uint32_t instr) {
 	uint8_t rt = (instr >> 16) & 0x1f;
 	int32_t signed_rs = int32_t(regs[rs]);
 	uint16_t imm = instr & 0xffff;
-	uint32_t sign_extended_imm = uint32_t(int32_t(int16_t(imm)));
+	uint32_t sign_extended_imm = uint32_t(int16_t(imm));
 	int32_t signed_sign_extended_imm = int32_t(uint32_t(int32_t(int16_t(imm))));	// ??????????? is this even needed
 	uint8_t shift_imm = (instr >> 6) & 0x1f;
 	uint32_t jump_imm = instr & 0x3ffffff;
@@ -571,9 +582,9 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x01: {
 		auto bit16 = (instr >> 16) & 1;
-		auto bit20 = (instr >> 20) & 1;
+		bool link = ((instr >> 17) & 0xF) == 8;
 		if (bit16 == 0) {		// bltz
-			if (bit20 == 1) regs[0x1f] = pc + 8; // check if link (bltzal)
+			if (link) regs[0x1f] = pc + 8; // check if link (bltzal)
 			debug_log("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 			if (signed_rs < 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
@@ -582,11 +593,9 @@ void cpu::execute(uint32_t instr) {
 			}
 			else { debug_log("\n"); }
 			break;
-		}
-
-		if (bit16 == 1) {		// bgez
+		} else {		// bgez
 			debug_log("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
-			if (bit20 == 1) regs[0x1f] = pc + 8; // check if link (bgezal)
+			if (link) regs[0x1f] = pc + 8; // check if link (bgezal)
 			if (signed_rs >= 0) {
 				jump = (pc + 4) + (sign_extended_imm << 2);
 				delay = true;
@@ -595,6 +604,7 @@ void cpu::execute(uint32_t instr) {
 			else { debug_log("\n"); }
 			break;
 		}
+		break;
 	}
 	case 0x02: {
 		jump = (pc & 0xf0000000) | (jump_imm << 2);
@@ -960,7 +970,7 @@ void cpu::execute(uint32_t instr) {
 	}
 
 	default:
-		debug_err("\nUnimplemented instruction: 0x%x", primary);
+		debug_err("\nUnimplemented instruction: 0x%x @ 0x%08x", primary, pc);
 		exit(0);
 	}
 	pc += 4;
@@ -979,7 +989,6 @@ void cpu::step() {
 	check_dma(); // TODO: Only check DMA when control registers are written to   
 	if (bus.mem.I_STAT & bus.mem.I_MASK) {
 		COP0.regs[13] |= (1 << 10);
-
 		if ((COP0.regs[12] & 1) && (COP0.regs[12] & (1 << 10))) {
 			printf("[IRQ] Interrupt fired\n");
 			exception(exceptions::INT);

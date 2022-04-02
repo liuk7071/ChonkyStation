@@ -83,12 +83,14 @@ public:	// commands
 	void monochrome_three_point_opaque_polygon();
 	void monochrome_three_point_semi_transparent_polygon();
 	void texture_blending_four_point_opaque_polygon();
+	void texture_four_point_opaque_polygon();
 	void shaded_three_point_opaque_polygon();
 	void shaded_three_point_semi_transparent_polygon();
 	void shaded_four_point_opaque_polygon();
 	void shaded_four_point_semi_transparent_polygon();
 	void monochrome_rectangle_variable_size_opaque();
 	void texture_blending_rectangle_variable_size_opaque();
+	void texture_rectangle_variable_size_opaque();
 	void monochrome_rectangle_dot_opaque();
 	void fill_rectangle();
 	void cpu_to_vram();

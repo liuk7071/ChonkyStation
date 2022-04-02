@@ -23,7 +23,7 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 	case RTPT: cop2c[31] = 0; commandRTPT(); break;
 	default:
 		printf("Unimplemented GTE instruction: 0x%x\n", instr);
-		exit(1);
+		//exit(1);
 	}
 }
 
@@ -43,7 +43,7 @@ uint32_t gte::readCop2d(uint32_t reg) {
 	}
 	default:
 		printf("Unhandled cop2d read %d\n", reg);
-		exit(1);
+		//exit(1);
 	}
 }
 void gte::writeCop2d(uint32_t reg, uint32_t value) {
@@ -63,7 +63,7 @@ void gte::writeCop2d(uint32_t reg, uint32_t value) {
 	}
 	default:
 		printf("Unhandled cop2d write %d\n", reg);
-		exit(1);
+		//exit(1);
 	}
 }
 
@@ -104,8 +104,8 @@ void gte::moveMFC2(uint32_t* gpr) {
 		break;
 	}
 	default:
-		//printf("Unimplemented MFC2 destination: %d\n", (instruction >> 11) & 0x1f);
-		exit(1);
+		printf("Unimplemented MFC2 destination: %d\n", (instruction >> 11) & 0x1f);
+		//exit(1);
 	}
 }
 void gte::moveMTC2(uint32_t* gpr) {
@@ -117,7 +117,7 @@ void gte::moveMTC2(uint32_t* gpr) {
 	}
 	default:
 		printf("Unimplemented MTC2 destination: %d\n", (instruction >> 11) & 0x1f);
-		exit(1);
+		//exit(1);
 	}
 }
 void gte::moveCFC2(uint32_t* gpr) {
@@ -169,7 +169,7 @@ void gte::moveCTC2(uint32_t* gpr) {
 
 	default:
 		printf("Unimplemented CTC2 destination: %d\n", (instruction >> 11) & 0x1f);
-		exit(1);
+		//exit(1);
 	}
 }
 

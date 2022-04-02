@@ -16,10 +16,10 @@
 #include "scheduler.h"
 
 GLFWwindow* window = nullptr;
-int key, action;
 bool show_settings = false;
 bool show_system_settings = false;
 bool show_cpu_registers = false;
+bool show_interrupt_debugger = false;
 bool show_ram_viewer = false;
 bool show_vram = false;
 bool show_log = false;
@@ -43,23 +43,111 @@ bool test = false;
 
 static MemoryEditor MemEditor;
 
-static void key_callback(GLFWwindow* window, int key_, int scancode, int action_, int mods) {
-    key = key_;
-    action = action_;
-}
+uint16_t P1buttons = 0xffff;
+uint16_t P2buttons = 0xffff;
+static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // pad1
+    if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+        P1buttons &= ~(0b0100000000000000);
+    }
+    if (key == GLFW_KEY_S && action == GLFW_RELEASE) {
+        P1buttons |= 0b0100000000000000;
+    }
+    if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+        P1buttons &= ~(0b1000000000000000);
+    }
+    if (key == GLFW_KEY_A && action == GLFW_RELEASE) {
+        P1buttons |= 0b1000000000000000;
+    }
+    if (key == GLFW_KEY_D && action == GLFW_PRESS) {
+        P1buttons &= ~(0b0010000000000000);
+    }
+    if (key == GLFW_KEY_D && action == GLFW_RELEASE) {
+        P1buttons |= 0b0010000000000000;
+    }
+    if (key == GLFW_KEY_W && action == GLFW_PRESS) {
+        P1buttons &= ~(0b0001000000000000);
+    }
+    if (key == GLFW_KEY_W && action == GLFW_RELEASE) {
+        P1buttons |= 0b0001000000000000;
+    }
+    if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+        P1buttons &= ~(0b0000000000010000);
+    }
+    if (key == GLFW_KEY_UP && action == GLFW_RELEASE) {
+        P1buttons |= 0b0000000000010000;
+    }
+    if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+        P1buttons &= ~(0b0000000000100000);
+    }
+    if (key == GLFW_KEY_RIGHT && action == GLFW_RELEASE) {
+        P1buttons |= 0b0000000000100000;
+    }
+    if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+        P1buttons &= ~(0b0000000001000000);
+    }
+    if (key == GLFW_KEY_DOWN && action == GLFW_RELEASE) {
+        P1buttons |= 0b0000000001000000;
+    }
+    if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+        P1buttons &= ~(0b0000000010000000);
+    }
+    if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE) {
+        P1buttons |= 0b0000000010000000;
+    }
 
+    // pad2
+    if (key == GLFW_KEY_KP_5 && action == GLFW_PRESS) {
+        P2buttons &= ~(0b0000000000010000);
+    }
+    if (key == GLFW_KEY_KP_5 && action == GLFW_RELEASE) {
+        P2buttons |= 0b0000000000010000;
+    }
+    if (key == GLFW_KEY_KP_3 && action == GLFW_PRESS) {
+        P2buttons &= ~(0b0000000000100000);
+    }
+    if (key == GLFW_KEY_KP_3 && action == GLFW_RELEASE) {
+        P2buttons |= 0b0000000000100000;
+    }
+    if (key == GLFW_KEY_KP_2 && action == GLFW_PRESS) {
+        P2buttons &= ~(0b0000000001000000);
+    }
+    if (key == GLFW_KEY_KP_2 && action == GLFW_RELEASE) {
+        P2buttons |= 0b0000000001000000;
+    }
+    if (key == GLFW_KEY_KP_1 && action == GLFW_PRESS) {
+        P2buttons &= ~(0b0000000010000000);
+    }
+    if (key == GLFW_KEY_KP_1 && action == GLFW_RELEASE) {
+        P2buttons |= 0b0000000010000000;
+    }
+}
+void ScheduleVBLANK(void* dataptr) {
+    memory* memoryptr = (memory*)dataptr;
+    memoryptr->I_STAT |= 1;
+    memoryptr->CDROM.Scheduler.push(&ScheduleVBLANK, memoryptr->CDROM.Scheduler.time + (33868800 / 60), dataptr);
+}
 void Reset(const char* rom_dir, const char* bios_dir, cpu *Cpu) {
     if (!bios_selected) {
         dialog_message = "Please select a bios file at Settings > System";
         show_dialog = true;
     }
     else {
+        Cpu->bus.mem.CDROM.Scheduler.push(&ScheduleVBLANK, Cpu->bus.mem.CDROM.Scheduler.time + (33868800 / 60), &Cpu->bus.mem);
         if (run) {
             *Cpu = cpu(sideload ? binary_path : "", bios_path, false);
             Cpu->bus.Gpu.InitGL();
+            if (game_path) Cpu->bus.mem.CDROM.cd.OpenFile(game_path);
         }
-        run = true;
-        started = true;
+        else {
+            if (sideload) {
+                Cpu->exe = true;
+                Cpu->rom_directory = binary_path;
+            }
+            if(game_path) Cpu->bus.mem.CDROM.cd.OpenFile(game_path);
+            run = true;
+            started = true;
+        }
     }
 }
 
@@ -132,6 +220,52 @@ void CpuDebugger(cpu *Cpu) {
     ImGui::End();
 }
 
+void InterruptDebugger(cpu* Cpu) {
+    bool VBLANK = Cpu->bus.mem.I_MASK & 0b1;
+    bool GPU = Cpu->bus.mem.I_MASK & 0b10;
+    bool CDROM = Cpu->bus.mem.I_MASK & 0b100;
+    bool DMA = Cpu->bus.mem.I_MASK & 0b1000;
+    bool TMR0 = Cpu->bus.mem.I_MASK & 0b10000;
+    bool TMR1 = Cpu->bus.mem.I_MASK & 0b100000;
+    bool TMR2 = Cpu->bus.mem.I_MASK & 0b1000000;
+    bool PAD = Cpu->bus.mem.I_MASK & 0b10000000;
+    bool SIO = Cpu->bus.mem.I_MASK & 0b100000000;
+    bool SPU = Cpu->bus.mem.I_MASK & 0b1000000000;
+
+    ImGui::Begin("Enabled Interrupts");
+    ImGui::Text("VBLANK");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &VBLANK);
+    ImGui::Text("GPU   ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &GPU);
+    ImGui::Text("CDROM ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &CDROM);
+    ImGui::Text("DMA   ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &DMA);
+    ImGui::Text("TMR0  ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &TMR0);
+    ImGui::Text("TMR1  ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &TMR1);
+    ImGui::Text("TMR2  ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &TMR2);
+    ImGui::Text("PAD   ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &PAD);
+    ImGui::Text("SIO   ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &SIO);
+    ImGui::Text("SPU   ");
+    ImGui::SameLine();
+    ImGui::Checkbox("", &SPU);
+    ImGui::End();
+}
+
 void Dialog() {
     ImGui::Begin("", &show_dialog);
     ImGui::Text(dialog_message);
@@ -171,6 +305,7 @@ void ImGuiFrame(cpu *Cpu) {
                 }
                 else {
                     game_open = true;
+                    Cpu->bus.mem.CDROM.cd.OpenFile(game_path);
                 }
             }
     
@@ -214,6 +349,9 @@ void ImGuiFrame(cpu *Cpu) {
                 Cpu->debug = !Cpu->debug;
             }
 #endif
+            if (ImGui::MenuItem("Interrupts")) {
+                show_interrupt_debugger = !show_interrupt_debugger;
+            }
             if (ImGui::MenuItem("Log")) {
                 show_log = !show_log;
             }
@@ -265,7 +403,6 @@ void RenderVRAMViewer() {
     ImGui::Image((void*)(intptr_t)(vram_viewer), image_size);
     ImGui::End();
 }
-
 int main(int argc, char** argv) {
     if (!glfwInit()) {
         exit(1);
@@ -274,7 +411,7 @@ int main(int argc, char** argv) {
     // Parse CLI args (TODO: Use a library)
     const auto rom_dir = argc > 1 ? std::string(argv[1]) : "";  // Path of the ROM (Or "" if we just want to run the BIOS)
     const bool running_in_ci = argc > 2 && std::string(argv[2]).compare("--continuous-integration") == 0; // Running in CI makes the system run without SDL 
-    const std::string bios_dir = running_in_ci ? "" : "C:\\Users\\zacse\\Downloads\\pcsx-redux-main\\pcsx-redux-main\\src\\mips\\openbios\\openbios.bin"; // In CI, don't load a BIOS, otherwise load SCPH1001.bin. TODO: Add a CLI arg for the BIOS path
+    const std::string bios_dir = running_in_ci ? "" : "./SCPH1001.bin"; // In CI, don't load a BIOS, otherwise load SCPH1001.bin. TODO: Add a CLI arg for the BIOS path
 
     cpu Cpu = cpu(rom_dir, bios_dir, running_in_ci); // TODO: Have a system class, don't use the CPU as one   
     if (running_in_ci) { // When executing in CI, run the system headless, without a BIOS.
@@ -297,14 +434,18 @@ int main(int argc, char** argv) {
     int frameCount = 0;
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            Cpu.bus.mem.pads.P1buttons = P1buttons;
+            Cpu.bus.mem.pads.P2buttons = P2buttons;
             glfwPollEvents();
-            Cpu.bus.mem.I_STAT |= 0b0000001;
+            //if (run) Cpu.bus.mem.I_STAT |= 1;
             // Update the ImGui frontend
             ImGuiFrame(&Cpu);
             if (show_system_settings) SystemSettingsMenu();
             if (show_dialog) Dialog();
             if (show_ram_viewer) MemEditor.DrawWindow("RAM Viewer", Cpu.bus.mem.ram, 0x200000);
             if (show_cpu_registers) CpuDebugger(&Cpu);
+            if (show_interrupt_debugger) InterruptDebugger(&Cpu);
             UpdateVRAMViewer(&Cpu);
             if (show_vram) RenderVRAMViewer();
             if (show_log) Cpu.log.Draw("Log");
@@ -332,6 +473,7 @@ int main(int argc, char** argv) {
                 prevTime = currTime;
             }
             //Cpu.bus.Gpu.ClearScreen();
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
         else {
             if (test) printf("%x\n", Cpu.pc);

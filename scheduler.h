@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string>
 
-#define MAX_ENTRIES 32
+#define MAX_ENTRIES 16
 
 class scheduler
 {
