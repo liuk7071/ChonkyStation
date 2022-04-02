@@ -17,6 +17,10 @@ void DMAIRQ(void* dataptr) {
 	memory* memoryptr = (memory*)dataptr;
 	memoryptr->I_STAT |= 0b1000;
 }
+void TMR2IRQ(void* dataptr) { 
+	memory* memoryptr = (memory*)dataptr;
+	memoryptr->I_STAT |= 0b1000000;
+}
 memory::memory() {
 	debug = true;
 }
@@ -167,12 +171,13 @@ uint16_t memory::read16(uint32_t addr) {
 
 	if (masked_addr == 0x1f801120) {	// timer 2 stuff
 		printf("timer\n");
-		return 0;
+		return tmr1_stub++;
 	}
 
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
-		debug_warn("[PAD] Read JOY_STAT\n");
+		debug_warn("[PAD] Read JOY_STAT @ 0x%08x\n", pc);
+		return rand() & 0b111;
 		return pads.joy_stat;
 	}
 
@@ -474,6 +479,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	if (masked_addr == 0x1f801074) { // I_MASK
 		I_MASK = data;
+		if((I_MASK >> 6) & 1) CDROM.Scheduler.push(&TMR2IRQ, CDROM.Scheduler.time + 5000, this);
 		debug_log("[IRQ] Write 0x%x to I_MASK\n", data);
 		return;
 	}
@@ -528,11 +534,17 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	}
 
 	// channel 4
-	if (masked_addr == 0x1f8010c0) return;
-	if (masked_addr == 0x1f8010c4) return;
+	if (masked_addr == 0x1f8010c0) { 
+		Ch4.MADR = data;
+		return; 
+	}
+	if (masked_addr == 0x1f8010c4) { 
+		Ch4.BCR = data;
+		return; 
+	}
 	if (masked_addr == 0x1f8010c8) {
-		CDROM.Scheduler.push(&DMAIRQ, CDROM.Scheduler.time + 5000, this);
-		//printf("fuck");
+		//CDROM.Scheduler.push(&DMAIRQ, CDROM.Scheduler.time + 5000, this);
+		Ch4.CHCR = data;
 		return;
 	}
 	// channel 6
@@ -676,7 +688,8 @@ uint32_t memory::loadExec(std::string directory) {
 	debug_log("\nDestination: 0x%x", entry_addr);
 	debug_log("\nFile size: 0x%x\n\n\n", file_size);
 
-	for (int i = 0; i < file_size; i++) {
+	printf("%d, %d", file_size, file.size());
+	for (int i = 0; i < (file.size() - 2048); i++) {
 		write(entry_addr + i, file[0x800 + i], false);
 	}
 

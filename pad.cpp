@@ -3,8 +3,12 @@
 void pad::WriteTXDATA(uint8_t data) {
 	switch (data) {
 	case 0:
-	case 1:
+	case 1: {
+		bytes_read = 0;
+		read_response = true;
+		rx_data_fifo[0] = 0xff;
 		break;
+	}
 	case 0x42:
 	case 0x43: {
 		bytes_read = 0;

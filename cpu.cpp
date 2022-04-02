@@ -145,7 +145,9 @@ void cpu::do_dma() {
 				debug = false;
 				return;
 			case 0:
-				debug_log("[DMA] GPU to RAM block copy (unimplemented)\n");
+				printf("[DMA] GPU to RAM block copy (unimplemented)\n");
+				bus.mem.Ch2.CHCR &= ~(1 << 24);
+				bus.mem.Ch2.CHCR &= ~(1 << 28);
 				return;
 			default:
 				printf("[DMA] Unhandled Direction (GPU Block Copy)");
@@ -168,7 +170,7 @@ void cpu::do_dma() {
 						bus.Gpu.execute_gp0(command);
 						_words--;
 					}
-					if ((_header & 0x800000) != 0)
+					if ((_header & 0x800000) != 0) 
 						break;
 					addr = _header & 0x1ffffc;
 				}
@@ -348,6 +350,8 @@ void cpu::execute(uint32_t instr) {
 	uint8_t primary = instr >> 26;
 	uint8_t secondary = instr & 0x3f;
 	
+	bus.mem.pc = pc;
+
 	if (delay) {	// branch delay slot
 		pc = jump - 4;
 		delay = false;
@@ -966,7 +970,7 @@ void cpu::execute(uint32_t instr) {
 	}
 
 	default:
-		debug_err("\nUnimplemented instruction: 0x%x", primary);
+		debug_err("\nUnimplemented instruction: 0x%x @ 0x%08x", primary, pc);
 		exit(0);
 	}
 	pc += 4;

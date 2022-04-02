@@ -434,6 +434,7 @@ int main(int argc, char** argv) {
     int frameCount = 0;
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             Cpu.bus.mem.pads.P1buttons = P1buttons;
             Cpu.bus.mem.pads.P2buttons = P2buttons;
             glfwPollEvents();
@@ -472,6 +473,7 @@ int main(int argc, char** argv) {
                 prevTime = currTime;
             }
             //Cpu.bus.Gpu.ClearScreen();
+            //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
         else {
             if (test) printf("%x\n", Cpu.pc);
