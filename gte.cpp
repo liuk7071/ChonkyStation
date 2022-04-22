@@ -39,8 +39,14 @@ uint32_t gte::readCop2d(uint32_t reg) {
 	case 10:
 	case 11:
 		return (uint32_t)(int16_t)cop2d[reg];
-		break;
-
+	
+	case 7:
+	case 16:
+	case 17:
+	case 18:
+	case 19:
+		return cop2d[reg] & 0xffff;
+	
 	default:
 		return cop2d[reg];
 	}
