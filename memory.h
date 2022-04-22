@@ -15,12 +15,15 @@ public:
 	memory();
 	~memory();
 
+	uint32_t button_dest = 0;
+
 	Log* logwnd;
 
 	cdrom CDROM = cdrom();
 	pad pads;
 	std::vector<uint8_t> file;
 	std::vector <uint8_t> bios;
+	uint32_t adler32bios = 0;
 
 public:
 	uint32_t pc = 0;

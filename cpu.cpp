@@ -336,6 +336,17 @@ void cpu::execute(uint32_t instr) {
 		if (log_kernel) printf("\nkernel call B(0x%x)", regs[9]);
 		if (regs[9] == 0x3d)
 			if (tty) { printf("%c", regs[4]); log.AddLog("%c", regs[4]); }
+		if (regs[9] == 0x12) { // OutdatedPadInitAndStart(type,button_dest,unused,unused)
+			patch_b0_12h = true;
+			button_dest = regs[4];
+			bus.mem.button_dest = regs[4];
+			pc = regs[31];
+			//Cpu.bus.mem.write(Cpu.button_dest + 0, 0x00, false);
+			//Cpu.bus.mem.write(Cpu.button_dest + 1, 0x41, false);
+			//Cpu.bus.mem.write(Cpu.button_dest + 2, ((P1buttons >> 8) & 0xff), false);
+			//Cpu.bus.mem.write(Cpu.button_dest + 3, (P1buttons & 0xff), false);
+			printf("OutdatedPadInitAndStart: button_dest = 0x%x\n", button_dest);
+		}
 	}
 	if (pc == 0xC0 || pc == 0x800000C0 || pc == 0xA00000C0) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
@@ -916,12 +927,13 @@ void cpu::execute(uint32_t instr) {
 			return;
 		}
 
-		if (addr == 0x1f801810) {	// handle gp0 command
+		uint32_t masked_addr = bus.mem.mask_address(addr);
+		if (masked_addr == 0x1f801810) {	// handle gp0 command
 			bus.Gpu.execute_gp0(regs[rt]);
 			break;
 		}
 
-		if (addr == 0x1f801814) {	// handle gp1 command
+		if (masked_addr == 0x1f801814) {	// handle gp1 command
 			bus.Gpu.execute_gp1(regs[rt]);
 			break;
 		}

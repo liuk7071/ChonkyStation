@@ -29,7 +29,6 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 
 
 // Helpers
-
 uint32_t gte::readCop2d(uint32_t reg) {
 	switch (reg) {
 	case 12:
@@ -43,7 +42,7 @@ uint32_t gte::readCop2d(uint32_t reg) {
 	}
 	default:
 		printf("Unhandled cop2d read %d\n", reg);
-		//exit(1);
+		exit(1);
 	}
 }
 void gte::writeCop2d(uint32_t reg, uint32_t value) {
@@ -63,7 +62,24 @@ void gte::writeCop2d(uint32_t reg, uint32_t value) {
 	}
 	default:
 		printf("Unhandled cop2d write %d\n", reg);
-		//exit(1);
+		exit(1);
+	}
+}
+
+void gte::writeCop2c(uint32_t reg, uint32_t value) {
+	switch (reg) {
+	case 4:
+	case 12:
+	case 20:
+	case 26:
+	case 27:
+	case 29:
+	case 30:
+		cop2c[reg] = (uint32_t)(int16_t)value;
+		break;
+	default:
+		cop2c[reg] = value;
+		break;
 	}
 }
 
@@ -125,52 +141,7 @@ void gte::moveCFC2(uint32_t* gpr) {
 	gpr[(instruction >> 16) & 0x1f] = cop2c[(instruction >> 11) & 0x1f];
 }
 void gte::moveCTC2(uint32_t* gpr) {
-	switch ((instruction >> 11) & 0x1f) {
-	// S16
-	case 4:
-	case 12:
-	case 20:
-	case 26:
-	case 27:
-	case 29:
-	case 30: {
-		//printf("0x%x -> cnt%d\n", (uint32_t)(int16_t)gpr[(instruction >> 16) & 0x1f], (instruction >> 11) & 0x1f);
-		cop2c[(instruction >> 11) & 0x1f] = (uint32_t)(int16_t)(gpr[(instruction >> 16) & 0x1f]);
-		break;
-	}
-	// 32
-	case 0:
-	case 1:
-	case 2:
-	case 3:
-	case 5:
-	case 6:
-	case 7:
-	case 8:
-	case 9:
-	case 10:
-	case 11:
-	case 13:
-	case 14:
-	case 15:
-	case 16:
-	case 17:
-	case 18:
-	case 19:
-	case 21:
-	case 22:
-	case 23:
-	case 24:
-	case 25:
-	case 28: {
-		cop2c[(instruction >> 11) & 0x1f] = gpr[(instruction >> 16) & 0x1f];
-		break;
-	}
-
-	default:
-		printf("Unimplemented CTC2 destination: %d\n", (instruction >> 11) & 0x1f);
-		//exit(1);
-	}
+	writeCop2c((instruction >> 11) & 0x1f, gpr[(instruction >> 16) & 0x1f]);
 }
 
 void gte::commandRTPS() {

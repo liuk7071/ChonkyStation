@@ -234,6 +234,8 @@ public:
 	}*/
 	uint32_t readCop2d(uint32_t reg);
 	void writeCop2d(uint32_t reg, uint32_t val);
+	uint32_t readCop2c(uint32_t reg);
+	void writeCop2c(uint32_t reg, uint32_t val);
 	void pushZ(uint16_t value);
 	void pushColour();
 	void setIRFromMAC();

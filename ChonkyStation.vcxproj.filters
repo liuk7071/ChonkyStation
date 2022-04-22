@@ -143,5 +143,14 @@
     <ClInclude Include="pad.h">
       <Filter>File di intestazione</Filter>
     </ClInclude>
+    <ClInclude Include="xbyak\xbyak.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="xbyak\xbyak_mnemonic.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="xbyak\xbyak_util.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

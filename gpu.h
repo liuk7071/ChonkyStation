@@ -26,7 +26,7 @@ public:		// trongle stuff
 	unsigned int colourDepthUniform = 0;
 	
 	struct point {		// vertex struct
-		uint16_t x = 0, y = 0;	// coordinates
+		int16_t x = 0, y = 0;	// coordinates
 		uint32_t c = 0;		// BGR colour
 		uint8_t r = c & 0xff;
 		uint8_t g = (c >> 8) & 0xff;
@@ -84,10 +84,12 @@ public:	// commands
 	void monochrome_three_point_semi_transparent_polygon();
 	void texture_blending_four_point_opaque_polygon();
 	void texture_four_point_opaque_polygon();
+	void texture_four_point_semi_transparent_polygon();
 	void shaded_three_point_opaque_polygon();
 	void shaded_three_point_semi_transparent_polygon();
 	void shaded_four_point_opaque_polygon();
 	void shaded_four_point_semi_transparent_polygon();
+	void shaded_texture_blending_textured_four_point_opaque_polygon();
 	void monochrome_rectangle_variable_size_opaque();
 	void texture_blending_rectangle_variable_size_opaque();
 	void texture_rectangle_variable_size_opaque();
