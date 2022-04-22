@@ -84,42 +84,42 @@ cop2d[14] |= ((uint16_t)(value))
 #define MAC3 cop2d[27]
 
 
-#define RT12 ((int16_t)(cop2c[0] >> 16))
-#define RT11 ((int16_t)(cop2c[0] & 0xffff))
-#define RT21 ((int16_t)(cop2c[1] >> 16))
-#define RT13 ((int16_t)(cop2c[1] & 0xffff))
-#define RT23 ((int16_t)(cop2c[2] >> 16))
-#define RT22 ((int16_t)(cop2c[2] & 0xffff))
-#define RT32 ((int16_t)(cop2c[3] >> 16))
-#define RT31 ((int16_t)(cop2c[3] & 0xffff))
+#define RT11 ((int16_t)(cop2c[0] >> 16))
+#define RT12 ((int16_t)(cop2c[0] & 0xffff))
+#define RT13 ((int16_t)(cop2c[1] >> 16))
+#define RT21 ((int16_t)(cop2c[1] & 0xffff))
+#define RT22 ((int16_t)(cop2c[2] >> 16))
+#define RT23 ((int16_t)(cop2c[2] & 0xffff))
+#define RT31 ((int16_t)(cop2c[3] >> 16))
+#define RT32 ((int16_t)(cop2c[3] & 0xffff))
 #define RT33 ((int16_t)(cop2c[4] & 0xffff))
 
 #define TRX cop2c[5]
 #define TRY cop2c[6]
 #define TRZ cop2c[7]
 
-#define L12 ((int16_t)(cop2c[8] >> 16))
-#define L11 ((int16_t)(cop2c[8] & 0xffff))
-#define L21 ((int16_t)(cop2c[9] >> 16))
-#define L13 ((int16_t)(cop2c[9] & 0xffff))
-#define L23 ((int16_t)(cop2c[10] >> 16))
-#define L22 ((int16_t)(cop2c[10] & 0xffff))
-#define L32 ((int16_t)(cop2c[11] >> 16))
-#define L31 ((int16_t)(cop2c[11] & 0xffff))
+#define L11 ((int16_t)(cop2c[8] >> 16))
+#define L12 ((int16_t)(cop2c[8] & 0xffff))
+#define L13 ((int16_t)(cop2c[9] >> 16))
+#define L21 ((int16_t)(cop2c[9] & 0xffff))
+#define L22 ((int16_t)(cop2c[10] >> 16))
+#define L23 ((int16_t)(cop2c[10] & 0xffff))
+#define L31 ((int16_t)(cop2c[11] >> 16))
+#define L32 ((int16_t)(cop2c[11] & 0xffff))
 #define L33 ((int16_t)(cop2c[12] & 0xffff))
 
 #define RBK cop2c[13]
 #define GBK cop2c[14]
 #define BBK cop2c[15]
 
-#define LR1 ((int16_t)(cop2c[16] & 0xffff))
-#define LR2 ((int16_t)(cop2c[16] >> 16))
-#define LR3 ((int16_t)(cop2c[17] & 0xffff))
-#define LG1 ((int16_t)(cop2c[17] >> 16))
-#define LG2 ((int16_t)(cop2c[18] & 0xffff))
-#define LG3 ((int16_t)(cop2c[18] >> 16))
-#define LB1 ((int16_t)(cop2c[19] & 0xffff))
-#define LB2 ((int16_t)(cop2c[19] >> 16))
+#define LR1 ((int16_t)(cop2c[16] >> 16))
+#define LR2 ((int16_t)(cop2c[16] & 0xffff))
+#define LR3 ((int16_t)(cop2c[17] >> 16))
+#define LG1 ((int16_t)(cop2c[17] & 0xffff))
+#define LG2 ((int16_t)(cop2c[18] >> 16))
+#define LG3 ((int16_t)(cop2c[18] & 0xffff))
+#define LB1 ((int16_t)(cop2c[19] >> 16))
+#define LB2 ((int16_t)(cop2c[19] & 0xffff))
 #define LB3 ((int16_t)(cop2c[20] & 0xffff))
 
 #define RFC cop2c[21]

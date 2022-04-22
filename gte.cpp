@@ -31,6 +31,21 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 // Helpers
 uint32_t gte::readCop2d(uint32_t reg) {
 	switch (reg) {
+	case 1:
+	case 3:
+	case 5:
+	case 8:
+	case 9:
+	case 10:
+	case 11:
+		return (uint32_t)(int16_t)cop2d[reg];
+		break;
+
+	default:
+		return cop2d[reg];
+	}
+
+	/*switch (reg) {
 	case 12:
 	case 13:
 	case 14:
@@ -43,7 +58,7 @@ uint32_t gte::readCop2d(uint32_t reg) {
 	default:
 		printf("Unhandled cop2d read %d\n", reg);
 		exit(1);
-	}
+	}*/
 }
 void gte::writeCop2d(uint32_t reg, uint32_t value) {
 	switch (reg) {
@@ -61,8 +76,8 @@ void gte::writeCop2d(uint32_t reg, uint32_t value) {
 		break;
 	}
 	default:
-		printf("Unhandled cop2d write %d\n", reg);
-		exit(1);
+		cop2d[reg] = value;
+		break;
 	}
 }
 
@@ -71,7 +86,7 @@ void gte::writeCop2c(uint32_t reg, uint32_t value) {
 	case 4:
 	case 12:
 	case 20:
-	case 26:
+	case 26: 
 	case 27:
 	case 29:
 	case 30:
@@ -107,7 +122,8 @@ void gte::setIRFromMAC() {
 
 // Commands
 void gte::moveMFC2(uint32_t* gpr) {
-	switch ((instruction >> 11) & 0x1f) {
+	gpr[(instruction >> 16) & 0x1f] = readCop2d((instruction >> 11) & 0x1f);
+	/*switch ((instruction >> 11) & 0x1f) {
 	case 7: {
 		//printf("cop2r%d (0x%x) -> r%d\n", (instruction >> 11) & 0x1f, cop2d[(instruction >> 11) & 0x1f], (instruction >> 16) & 0x1f);
 		gpr[(instruction >> 16) & 0x1f] = cop2d[(instruction >> 11) & 0x1f];
@@ -122,10 +138,11 @@ void gte::moveMFC2(uint32_t* gpr) {
 	default:
 		printf("Unimplemented MFC2 destination: %d\n", (instruction >> 11) & 0x1f);
 		//exit(1);
-	}
+	}*/
 }
 void gte::moveMTC2(uint32_t* gpr) {
-	switch ((instruction >> 11) & 0x1f) {
+	writeCop2d((instruction >> 11) & 0x1f, gpr[(instruction >> 16) & 0x1f]);
+	/*switch ((instruction >> 11) & 0x1f) {
 	case 8: {
 		//printf("0x%x -> cop2r%d\n", (uint32_t)(int16_t)gpr[(instruction >> 16) & 0x1f], (instruction >> 11) & 0x1f);
 		cop2d[(instruction >> 11) & 0x1f] = (uint32_t)(int16_t)(gpr[(instruction >> 16) & 0x1f]);
@@ -134,7 +151,7 @@ void gte::moveMTC2(uint32_t* gpr) {
 	default:
 		printf("Unimplemented MTC2 destination: %d\n", (instruction >> 11) & 0x1f);
 		//exit(1);
-	}
+	}*/
 }
 void gte::moveCFC2(uint32_t* gpr) {
 	//printf("cnt%d (0x%x) -> r%d\n", (instruction >> 11) & 0x1f, cop2c[(instruction >> 11) & 0x1f], (instruction >> 16) & 0x1f);
@@ -186,20 +203,20 @@ void gte::commandNCLIP() {
 
 void gte::commandNCDS() {
 	const int shift = sf(instruction) * 12;
-	MAC1 = int32_t((L11 * VX0) + (L12 * VY0) + (L13 * VZ0)) >> shift;
-	MAC2 = int32_t((L21 * VX0) + (L22 * VY0) + (L23 * VZ0)) >> shift;
-	MAC3 = int32_t((L31 * VX0) + (L32 * VY0) + (L33 * VZ0)) >> shift;
+	MAC1 = int32_t(((int16_t)L11 * (int16_t)VX0) + ((int16_t)L12 * (int16_t)VY0) + ((int16_t)L13 * (int16_t)VZ0)) >> shift;
+	MAC2 = int32_t(((int16_t)L21 * (int16_t)VX0) + ((int16_t)L22 * (int16_t)VY0) + ((int16_t)L23 * (int16_t)VZ0)) >> shift;
+	MAC3 = int32_t(((int16_t)L31 * (int16_t)VX0) + ((int16_t)L32 * (int16_t)VY0) + ((int16_t)L33 * (int16_t)VZ0)) >> shift;
 	setIRFromMAC();
-	MAC1 = int32_t((RBK * 0x1000) + ((LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3))) >> shift;
-	MAC2 = int32_t((GBK * 0x1000) + ((LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3))) >> shift;
-	MAC1 = int32_t((BBK * 0x1000) + ((LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3))) >> shift;
+	MAC1 = int32_t((RBK * 0x1000) + (((int16_t)LR1 * (int16_t)IR1) + ((int16_t)LR2 * (int16_t)IR2) + ((int16_t)LR3 * (int16_t)IR3))) >> shift;
+	MAC2 = int32_t((GBK * 0x1000) + (((int16_t)LG1 * (int16_t)IR1) + ((int16_t)LG2 * (int16_t)IR2) + ((int16_t)LG3 * (int16_t)IR3))) >> shift;
+	MAC1 = int32_t((BBK * 0x1000) + (((int16_t)LB1 * (int16_t)IR1) + ((int16_t)LB2 * (int16_t)IR2) + ((int16_t)LB3 * (int16_t)IR3))) >> shift;
 	setIRFromMAC();
 	MAC1 = (R * ((int16_t)IR1)) << 4;
 	MAC2 = (G * ((int16_t)IR2)) << 4;
 	MAC3 = (B * ((int16_t)IR3)) << 4;
-	MAC1 = MAC1 + ((RFC - MAC1) * ((int16_t)IR0));
-	MAC2 = MAC2 + ((GFC - MAC2) * ((int16_t)IR0));
-	MAC3 = MAC3 + ((BFC - MAC3) * ((int16_t)IR0));
+	MAC1 = MAC1 + ((RFC - (int32_t)MAC1) * ((int16_t)IR0));
+	MAC2 = MAC2 + ((GFC - (int32_t)MAC2) * ((int16_t)IR0));
+	MAC3 = MAC3 + ((BFC - (int32_t)MAC3) * ((int16_t)IR0));
 	MAC1 = int32_t(MAC1) >> shift;
 	MAC2 = int32_t(MAC2) >> shift;
 	MAC3 = int32_t(MAC3) >> shift;

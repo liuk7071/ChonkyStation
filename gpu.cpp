@@ -453,7 +453,7 @@ void gpu::execute_gp0(uint32_t command) {
 		}
 		default:
 			printf("\n[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
-			exit(0);
+			//exit(0);
 		}
 	}
 	else {
