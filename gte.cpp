@@ -119,15 +119,15 @@ void gte::pushColour() {
 	RGB0 = RGB1;
 	RGB1 = RGB2;
 
-	const uint32_t col = (((int32_t)(MAC1) / 16) << 0) | (((int32_t)(MAC2) / 16) << 8) | (((int32_t)(MAC3) / 16) << 16) | (CD2 << 24);
+	const uint32_t col = (((int32_t)(MAC1) >> 4) << 0) | (((int32_t)(MAC2) >> 4) << 8) | (((int32_t)(MAC3) >> 4) << 16) | (CD2 << 24);
 	//RGB2 = 0x00345678 | (CD2 << 24);
 	RGB2 = col;
 }
 
 void gte::setIRFromMAC() {
-	IR1 = MAC1 & 0xffff;
-	IR2 = MAC2 & 0xffff;
-	IR3 = MAC3 & 0xffff;
+	IR1 = (int32_t)MAC1 & 0xffff;
+	IR2 = (int32_t)MAC2 & 0xffff;
+	IR3 = (int32_t)MAC3 & 0xffff;
 }
 
 // Commands
@@ -228,15 +228,15 @@ void gte::commandNCDS() {
 	MAC1 = (int32_t)(((int64_t)RFC << 12) - (int32_t)MAC1) >> shift;
 	MAC2 = (int32_t)(((int64_t)GFC << 12) - (int32_t)MAC2) >> shift;
 	MAC3 = (int32_t)(((int64_t)BFC << 12) - (int32_t)MAC3) >> shift;
-	IR1 = (int32_t)MAC1;
-	IR2 = (int32_t)MAC2;
-	IR3 = (int32_t)MAC3;
+	IR1 = (int16_t)MAC1;
+	IR2 = (int16_t)MAC2;
+	IR3 = (int16_t)MAC3;
 	MAC1 = (int32_t)(((int64_t)IR1 * (int64_t)IR0) + (int32_t)MAC1) >> shift;
 	MAC2 = (int32_t)(((int64_t)IR2 * (int64_t)IR0) + (int32_t)MAC2) >> shift;
 	MAC3 = (int32_t)(((int64_t)IR3 * (int64_t)IR0) + (int32_t)MAC3) >> shift;
-	IR1 = (int32_t)MAC1;
-	IR2 = (int32_t)MAC2;
-	IR3 = (int32_t)MAC3;
+	IR1 = (int16_t)MAC1;
+	IR2 = (int16_t)MAC2;
+	IR3 = (int16_t)MAC3;
 
 	/*MAC1 = (int32_t)MAC1 + ((((int64_t)RFC << 12) - (int32_t)MAC1) * ((int16_t)IR0));
 	MAC2 = (int32_t)MAC2 + ((((int64_t)GFC << 12) - (int32_t)MAC2) * ((int16_t)IR0));
@@ -246,16 +246,16 @@ void gte::commandNCDS() {
 	MAC3 = int32_t(MAC3) >> shift;*/
 	
 	pushColour();
-	setIRFromMAC();
+	//setIRFromMAC();
 }
 
 void gte::commandAVSZ3() {
-	MAC0 = (int64_t)ZSF3 * ((int32_t)SZ1 + (int32_t)SZ2 + (int32_t)SZ3);
+	MAC0 = (int64_t)ZSF3 * ((int16_t)SZ1 + (int16_t)SZ2 + (int16_t)SZ3);
 	OTZ = saturate(MAC0 / 0x1000, 0, 0xffff);
 }
 
 void gte::commandAVSZ4() {
-	MAC0 = (int64_t)ZSF4 * ((int32_t)SZ0 + (int32_t)SZ1 + (int32_t)SZ2 + (int32_t)SZ3);
+	MAC0 = (int64_t)ZSF4 * ((int16_t)SZ0 + (int16_t)SZ1 + (int16_t)SZ2 + (int16_t)SZ3);
 	OTZ = saturate(MAC0 / 0x1000, 0, 0xffff);
 }
 
