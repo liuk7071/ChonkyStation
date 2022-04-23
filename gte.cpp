@@ -183,7 +183,7 @@ void gte::commandRTPS() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	int32_t _proj_factor = ((H * 0x20000) / SZ3);
+	int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
 	int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
@@ -250,12 +250,12 @@ void gte::commandNCDS() {
 }
 
 void gte::commandAVSZ3() {
-	MAC0 = (int64_t)ZSF3 * ((int16_t)SZ1 + (int16_t)SZ2 + (int16_t)SZ3);
+	MAC0 = (int64_t)ZSF3 * ((uint16_t)SZ1 + (uint16_t)SZ2 + (uint16_t)SZ3);
 	OTZ = saturate(MAC0 / 0x1000, 0, 0xffff);
 }
 
 void gte::commandAVSZ4() {
-	MAC0 = (int64_t)ZSF4 * ((int16_t)SZ0 + (int16_t)SZ1 + (int16_t)SZ2 + (int16_t)SZ3);
+	MAC0 = (int64_t)ZSF4 * ((uint16_t)SZ0 + (uint16_t)SZ1 + (uint16_t)SZ2 + (uint16_t)SZ3);
 	OTZ = saturate(MAC0 / 0x1000, 0, 0xffff);
 }
 
@@ -271,7 +271,7 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	int32_t _proj_factor = ((H * 0x20000) / SZ3);
+	int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
 	int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
@@ -298,7 +298,7 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	_proj_factor = ((H * 0x20000) / SZ3);
+	_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
 	proj_factor = (int64_t)(_proj_factor);
 	_x = (int64_t)(int16_t)(IR1);
 	_y = (int64_t)(int16_t)(IR2);
@@ -324,7 +324,7 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	_proj_factor = ((H * 0x20000) / SZ3);
+	_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
 	proj_factor = (int64_t)(_proj_factor);
 	_x = (int64_t)(int16_t)(IR1);
 	_y = (int64_t)(int16_t)(IR2);
