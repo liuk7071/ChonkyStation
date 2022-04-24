@@ -28,6 +28,10 @@ cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_
 	test1.doTest();
 	testRTPT test2;
 	test2.doTest();
+	testNCLIP test3;
+	test3.doTest();
+	testNCDS test4;
+	test4.doTest();
 #endif
 }
 
@@ -977,6 +981,7 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x3A: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
+		uint32_t val = GTE.readCop2d(rt);
 		bus.mem.write32(addr, GTE.readCop2d(rt));
 		break;
 	}

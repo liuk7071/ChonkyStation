@@ -4,6 +4,7 @@
 #include <iostream>
 #include <bit>
 #include <iterator>
+#include <intrin.h>
 
 #define TEST_GTE
 
@@ -134,8 +135,8 @@ cop2d[14] |= ((uint16_t)(value))
 #define DQA ((int16_t)cop2c[27])
 #define DQB cop2c[28]
 
-#define ZSF3 cop2c[29]
-#define ZSF4 cop2c[30]
+#define ZSF3 (int16_t)cop2c[29]
+#define ZSF4 (int16_t)cop2c[30]
 
 class gte
 {
@@ -159,9 +160,8 @@ public:
 	"mac0", "mac1", "mac2", "mac3", "irgb", "orgb", "lzcs", "lzcr",  // 18
 	};
 	void execute(uint32_t instr, uint32_t* gpr);
-	uint32_t sf(uint32_t instr) {
-		return ((instr >> 19) & 1);
-	}
+	uint32_t sf(uint32_t instr) { return ((instr >> 19) & 1); }
+	uint32_t lm(uint32_t instr) { return ((instr >> 10) & 1); }
 	uint32_t instruction = 0;
 	enum Commands {
 		MOVE,
@@ -192,9 +192,9 @@ public:
 	void commandRTPT();
 	
 	// Helpers
-	/*static uint32_t countLeadingZeros16(uint16_t value) {
+	static uint32_t countLeadingZeros16(uint16_t value) {
 		// Use a 32-bit CLZ as it's what's most commonly available and Clang/GCC fail to optimize 16-bit CLZ
-		
+		int count = __lzcnt(value);
 		return count - 16;
 	}
 	static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
@@ -231,10 +231,9 @@ public:
 
 		// Some divisions like 0xF015/0x780B result in 0x20000, but are saturated to 0x1ffff without setting FLAG
 		return std::min<uint32_t>(0x1ffff, res);
-	}*/
+	}
 	uint32_t readCop2d(uint32_t reg);
 	void writeCop2d(uint32_t reg, uint32_t val);
-	uint32_t readCop2c(uint32_t reg);
 	void writeCop2c(uint32_t reg, uint32_t val);
 	void pushZ(uint16_t value);
 	void pushColour();

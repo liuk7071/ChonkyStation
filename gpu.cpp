@@ -695,6 +695,7 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	v1.x = fifo[1] & 0xffff;
 	v1.y = fifo[1] >> 16;
 	clut = fifo[2] >> 16;
+	//printf("\nclut: 0x%x\n", clut);
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
@@ -709,6 +710,7 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
 	texpage = fifo[4] >> 16;
+	//printf("texpage: 0x%x\n", texpage);
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
 	v2.x = fifo[3] & 0xffff;
