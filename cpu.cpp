@@ -351,6 +351,11 @@ void cpu::execute(uint32_t instr) {
 			//Cpu.bus.mem.write(Cpu.button_dest + 3, (P1buttons & 0xff), false);
 			printf("OutdatedPadInitAndStart: button_dest = 0x%x\n", button_dest);
 		}
+		if (regs[9] == 0x4f) {
+			pc = regs[31];
+			regs[2] = 1;
+			bus.mem.read_card_sector(regs[4], regs[5], regs[6]);
+		}
 	}
 	if (pc == 0xC0 || pc == 0x800000C0 || pc == 0xA00000C0) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
@@ -1002,6 +1007,11 @@ void cpu::check_CDROM_IRQ() {
 		bus.mem.I_STAT |= (1 << 2);
 	}
 }
+void IRQ7(void* dataptr) {
+	cpu* cpuptr = (cpu*)dataptr;
+	cpuptr->bus.mem.I_STAT |= (1 << 7);
+	//printf("[IRQ] IRQ7\n");
+}
 void cpu::step() {
 	check_dma(); // TODO: Only check DMA when control registers are written to   
 	if (bus.mem.I_STAT & bus.mem.I_MASK) {
@@ -1020,4 +1030,8 @@ void cpu::step() {
 	bus.mem.CDROM.Scheduler.tick(2);
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag)
 		bus.mem.I_STAT |= (1 << 2);
+	if (bus.mem.pads.irq) {
+		bus.mem.CDROM.Scheduler.push(&IRQ7, bus.mem.CDROM.Scheduler.time + 10000, this);
+		bus.mem.pads.irq = false;
+	}
 }

@@ -721,3 +721,14 @@ uint32_t memory::loadExec(std::string directory) {
 
 	return start_pc;
 }
+
+// HLE Syscalls
+void memory::read_card_sector(int port, uint32_t sector, uint32_t dst) {
+	printf("read_card_sector:\nport: %d\nsector: %xh\n dst: %xh\n", port, sector, dst);
+	fseek(pads.memcard1, sector * 128, SEEK_SET);
+	uint8_t data[128];
+	fread(data, sizeof(uint8_t), 128, pads.memcard1);
+	for (int i = 0; i < 128; i++) {
+		write(dst + i, data[i], false);
+	}
+}

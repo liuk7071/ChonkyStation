@@ -237,7 +237,7 @@ public:
 	void writeCop2c(uint32_t reg, uint32_t val);
 	void pushZ(uint16_t value);
 	void pushColour();
-	void setIRFromMAC();
+	void setIRFromMAC(bool lm);
 	
 	static int32_t saturate(int32_t val, int32_t min, int32_t max) {
 		if (val > max) {

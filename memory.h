@@ -76,4 +76,7 @@ public:
 	uint32_t read32(uint32_t addr);
 
 	uint32_t mask_address(const uint32_t addr);
+
+	// HLE Syscalls
+	void read_card_sector(int port, uint32_t sector, uint32_t dst);
 };
