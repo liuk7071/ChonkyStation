@@ -12,7 +12,7 @@ public:
 	struct event {
 		void (*function_ptr)(void*);
 		void* data;
-		int time;
+		uint64_t time;
 	};
 	event events[MAX_ENTRIES];
 	int scheduled = 0; // Counter of how many events are scheduled

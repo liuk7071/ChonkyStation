@@ -21,7 +21,7 @@ public:
 	uint8_t ReadDataByte();
 public:
 	FILE* iso;
-	int buff_left = SECTOR_SIZE;
+	int buff_left = 0;
 	uint8_t SectorBuffer[SECTOR_SIZE];
 	uint8_t DataBuffer[CDXA_DATA_SIZE];
 };

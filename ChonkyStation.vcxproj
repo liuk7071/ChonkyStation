@@ -199,6 +199,9 @@
     <ClInclude Include="scheduler.h" />
     <ClInclude Include="tests.h" />
     <ClInclude Include="TinyFileDialogs\tinyfiledialogs.h" />
+    <ClInclude Include="xbyak\xbyak.h" />
+    <ClInclude Include="xbyak\xbyak_mnemonic.h" />
+    <ClInclude Include="xbyak\xbyak_util.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

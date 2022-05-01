@@ -4,19 +4,20 @@
 #include <iostream>
 #include <bit>
 #include <iterator>
+#include <intrin.h>
 
 #define TEST_GTE
 
-#define VX0 ((int16_t)(cop2d[0] >> 16))
-#define VY0 ((int16_t)(cop2d[0] & 0xffff))
+#define VY0 ((int16_t)(cop2d[0] >> 16))
+#define VX0 ((int16_t)(cop2d[0] & 0xffff))
 #define VZ0 ((int16_t)cop2d[1])
 
-#define VX1 ((int16_t)(cop2d[2] >> 16))
-#define VY1 ((int16_t)(cop2d[2] & 0xffff))
+#define VY1 ((int16_t)(cop2d[2] >> 16))
+#define VX1 ((int16_t)(cop2d[2] & 0xffff))
 #define VZ1 ((int16_t)(cop2d[3]))
 
-#define VX2 ((int16_t)(cop2d[4] >> 16))
-#define VY2 ((int16_t)(cop2d[4] & 0xffff))
+#define VY2 ((int16_t)(cop2d[4] >> 16))
+#define VX2 ((int16_t)(cop2d[4] & 0xffff))
 #define VZ2 ((int16_t)cop2d[5])
 
 #define RGBC cop2d[6]
@@ -112,14 +113,14 @@ cop2d[14] |= ((uint16_t)(value))
 #define GBK cop2c[14]
 #define BBK cop2c[15]
 
-#define LR1 ((int16_t)(cop2c[16] & 0xffff))
 #define LR2 ((int16_t)(cop2c[16] >> 16))
-#define LR3 ((int16_t)(cop2c[17] & 0xffff))
+#define LR1 ((int16_t)(cop2c[16] & 0xffff))
 #define LG1 ((int16_t)(cop2c[17] >> 16))
-#define LG2 ((int16_t)(cop2c[18] & 0xffff))
+#define LR3 ((int16_t)(cop2c[17] & 0xffff))
 #define LG3 ((int16_t)(cop2c[18] >> 16))
-#define LB1 ((int16_t)(cop2c[19] & 0xffff))
+#define LG2 ((int16_t)(cop2c[18] & 0xffff))
 #define LB2 ((int16_t)(cop2c[19] >> 16))
+#define LB1 ((int16_t)(cop2c[19] & 0xffff))
 #define LB3 ((int16_t)(cop2c[20] & 0xffff))
 
 #define RFC cop2c[21]
@@ -134,8 +135,8 @@ cop2d[14] |= ((uint16_t)(value))
 #define DQA ((int16_t)cop2c[27])
 #define DQB cop2c[28]
 
-#define ZSF3 cop2c[29]
-#define ZSF4 cop2c[30]
+#define ZSF3 (int16_t)cop2c[29]
+#define ZSF4 (int16_t)cop2c[30]
 
 class gte
 {
@@ -159,14 +160,15 @@ public:
 	"mac0", "mac1", "mac2", "mac3", "irgb", "orgb", "lzcs", "lzcr",  // 18
 	};
 	void execute(uint32_t instr, uint32_t* gpr);
-	uint32_t sf(uint32_t instr) {
-		return ((instr >> 19) & 1);
-	}
+	uint32_t sf(uint32_t instr) { return ((instr >> 19) & 1); }
+	uint32_t lm(uint32_t instr) { return ((instr >> 10) & 1); }
+	template<int x> uint32_t mx(int i);
 	uint32_t instruction = 0;
 	enum Commands {
 		MOVE,
 		RTPS = 0x01,
 		NCLIP = 0x06,
+		MVMVA = 0x12,
 		NCDS = 0x13,
 		AVSZ3 = 0x2d,
 		AVSZ4 = 0x2e,
@@ -186,15 +188,16 @@ public:
 	void moveCTC2(uint32_t* gpr);
 	void commandRTPS();
 	void commandNCLIP();
+	void commandMVMVA();
 	void commandNCDS();
 	void commandAVSZ3();
 	void commandAVSZ4();
 	void commandRTPT();
 	
 	// Helpers
-	/*static uint32_t countLeadingZeros16(uint16_t value) {
+	static uint32_t countLeadingZeros16(uint16_t value) {
 		// Use a 32-bit CLZ as it's what's most commonly available and Clang/GCC fail to optimize 16-bit CLZ
-		
+		int count = __lzcnt(value);
 		return count - 16;
 	}
 	static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
@@ -231,12 +234,13 @@ public:
 
 		// Some divisions like 0xF015/0x780B result in 0x20000, but are saturated to 0x1ffff without setting FLAG
 		return std::min<uint32_t>(0x1ffff, res);
-	}*/
+	}
 	uint32_t readCop2d(uint32_t reg);
 	void writeCop2d(uint32_t reg, uint32_t val);
+	void writeCop2c(uint32_t reg, uint32_t val);
 	void pushZ(uint16_t value);
 	void pushColour();
-	void setIRFromMAC();
+	void setIRFromMAC(bool lm);
 	
 	static int32_t saturate(int32_t val, int32_t min, int32_t max) {
 		if (val > max) {

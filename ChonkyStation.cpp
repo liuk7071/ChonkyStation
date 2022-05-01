@@ -1,6 +1,7 @@
 #include <iostream>
 #include <windows.h>
 #include <sstream>
+#include <map>
 #include "TinyFileDialogs/tinyfiledialogs.h"
 #include "glad/glad.h"
 #undef main
@@ -11,6 +12,7 @@
 #include "imgui/imgui_memory_editor.h"
 #include "logwindow.h"
 #include "GLFW\glfw3.h"
+#include "xbyak/xbyak.h"
 #include "Cpu.h"
 
 #include "scheduler.h"
@@ -18,6 +20,7 @@
 GLFWwindow* window = nullptr;
 bool show_settings = false;
 bool show_system_settings = false;
+bool show_pad_settings = false;
 bool show_cpu_registers = false;
 bool show_interrupt_debugger = false;
 bool show_ram_viewer = false;
@@ -28,8 +31,35 @@ bool sideload = false;
 bool run = false;
 const float aspect_ratio = 640 / 480;
 const float vram_aspect_ratio = 1024 / 512;
+bool mouse_captured = false;
 
 char* game_path;
+static const std::map<uint32_t, std::string> knownBioses = {
+        {0x1002e6b5, "SCPH-1002 (EU)"},
+        {0x1ac46cf1, "SCPH-5000 (JP)"},
+        {0x24e21a0e, "SCPH-7003 (US)"},
+        {0x38f5c1fe, "SCPH-1000 (JP)"},
+        {0x42ea6879, "SCPH-1002 - DTLH-3002 (EU)"},
+        {0x48ba1524, "????"},
+        {0x4e501b56, "SCPH-5502 - SCPH-5552 (2) (EU)"},
+        {0x560e2da1, "????"},
+        {0x61e5b760, "SCPH-7001 (US)"},
+        {0x649db764, "SCPH-7502 (EU)"},
+        {0x68d2dd36, "????"},
+        {0x68ee15cc, "SCPH-5502 - SCPH-5552 (EU)"},
+        {0x7de956a4, "SCPH-101"},
+        {0x80a156a8, "????"},
+        {0x9e7d4faa, "SCPH-3000 (JP)"},
+        {0x9eff111b, "SCPH-7000 (JP)"},
+        {0xa6cf18fe, "SCPH-5500 (JP)"},
+        {0xa8e56981, "SCPH-3500 (JP)"},
+        {0xb6ef0d64, "????"},
+        {0xd10b6509, "????"},
+        {0xdaa2e0a6, "SCPH-1001 - DTLH-3000 (US)"},
+        {0xe7ca4fad, "????"},
+        {0xf380c9ff, "SCPH-5000"},
+        {0xfb4afc11, "SCPH-5000 (2)"},
+};
 std::string bios_path = "";
 std::string binary_path = "";
 bool game_open, bios_selected;
@@ -43,9 +73,32 @@ bool test = false;
 
 static MemoryEditor MemEditor;
 
+bool pad1_connected = true;
+bool pad2_connected = false;
+std::string pad1_type = "Digital";
+std::string pad2_type = "Digital";
+std::string pad1_source = "Keyboard";
+std::string pad2_source = "Keyboard";
 uint16_t P1buttons = 0xffff;
 uint16_t P2buttons = 0xffff;
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    // Capture mouse / release mouse
+    if ((mods & GLFW_MOD_SHIFT) && (mods & GLFW_MOD_CONTROL) && (mods & GLFW_MOD_ALT)) {
+        if (mouse_captured) {
+            // Disable mouse capture
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+        else {
+            // Enable mouse capture
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+        }
+        mouse_captured = !mouse_captured;
+    }
+
+    int count;
+    const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &count);
+
     // pad1
     if (key == GLFW_KEY_S && action == GLFW_PRESS) {
         P1buttons &= ~(0b0100000000000000);
@@ -95,6 +148,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     if (key == GLFW_KEY_LEFT && action == GLFW_RELEASE) {
         P1buttons |= 0b0000000010000000;
     }
+    if (key == GLFW_KEY_N && action == GLFW_PRESS) {
+        P1buttons &= ~(0b0000000000000001);
+    }
+    if (key == GLFW_KEY_N && action == GLFW_RELEASE) {
+        P1buttons |= 0b0000000000000001;
+    }
 
     // pad2
     if (key == GLFW_KEY_KP_5 && action == GLFW_PRESS) {
@@ -122,6 +181,19 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         P2buttons |= 0b0000000010000000;
     }
 }
+
+void joystick_callback(int jid, int event) {
+    if (event == GLFW_CONNECTED) {
+        printf("Gamepad connected\n");
+    }
+    else if (event == GLFW_DISCONNECTED) {
+        printf("Gamepad disconnected");
+    }
+    if (glfwJoystickIsGamepad(GLFW_JOYSTICK_1)) {
+        printf("rpog");
+    }
+}
+
 void ScheduleVBLANK(void* dataptr) {
     memory* memoryptr = (memory*)dataptr;
     memoryptr->I_STAT |= 1;
@@ -158,6 +230,7 @@ void InitWindow() {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(0);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetJoystickCallback(joystick_callback);
     gladLoadGL();
 
     // ImGui
@@ -169,11 +242,11 @@ void InitWindow() {
     ImGui_ImplOpenGL3_Init(glsl_version);
 }
 
-void SystemSettingsMenu() {
+void SystemSettingsMenu(cpu* Cpu) {
     static bool general = true;
     static bool graphics = false;
     ImGui::Begin("System Settings", &show_system_settings);
-    ImGui::Text("Note: Changing these settings requires a \nreset of the emulator (Emulation > Reset)");
+    ImGui::Text("Note: Changing these settings might require a \nreset of the emulator (Emulation > Reset)");
     ImGui::NewLine();
     ImGui::Checkbox("Sideload binary", &sideload);
     
@@ -198,8 +271,74 @@ void SystemSettingsMenu() {
         }
         else {
             bios_path = path;
+            Cpu->bus.mem.loadBios(bios_path);
             bios_selected = true;
         }
+    }
+
+    auto type = knownBioses.find(Cpu->bus.mem.adler32bios);
+    if (bios_selected) {
+        if ((type != knownBioses.end())) {
+            ImGui::Text("Detected %s BIOS", type->second.c_str());
+        }
+        else if (strncmp((const char*)&Cpu->bus.mem.bios.data()[0x78], "OpenBIOS", 8) == 0) {
+            ImGui::Text("Detected OpenBIOS");
+        }
+        else {
+            ImGui::Text("Warning: an unknown bios was selected. Things may break.");
+        }
+    }
+    ImGui::End();
+}
+
+void PadSettingsMenu() {
+    ImGui::Begin("Configure Pads", &show_pad_settings, ImGuiWindowFlags_NoResize);
+    if (ImGui::BeginTabBar("pads")) {
+        if (ImGui::BeginTabItem("Pad 1")) {
+            ImGui::Checkbox("Connected", &pad1_connected);
+            if (ImGui::BeginCombo("Type", pad1_type.c_str())) {
+                if (ImGui::Selectable("Digital", "Digital" == pad1_type.c_str())) {
+                    pad1_type = "Digital";
+                }
+                if (ImGui::Selectable("Mouse", "Mouse" == pad1_type.c_str())) {
+                    pad1_type = "Mouse";
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::Separator();
+            if (ImGui::BeginCombo("Input source", pad1_source.c_str())) {
+                if (ImGui::Selectable("Keyboard", "Keyboard" == pad1_source.c_str())) {
+                    pad1_source = "Keyboard";
+                }
+                if (ImGui::Selectable("Gamepad", "Gamepad" == pad1_source.c_str())) {
+                    pad1_source = "Gamepad";
+                }
+            }
+            ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem("Pad 2")) {
+            ImGui::Checkbox("Connected", &pad2_connected);
+            if (ImGui::BeginCombo("Type", pad2_type.c_str())) {
+                if (ImGui::Selectable("Digital", "Digital" == pad2_type.c_str())) {
+                    pad2_type = "Digital";
+                }
+                if (ImGui::Selectable("Mouse", "Mouse" == pad2_type.c_str())) {
+                    pad2_type = "Mouse";
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::Separator();
+            if (ImGui::BeginCombo("Input source", pad2_source.c_str())) {
+                if (ImGui::Selectable("Keyboard", "Keyboard" == pad2_source.c_str())) {
+                    pad2_source = "Keyboard";
+                }
+                if (ImGui::Selectable("Gamepad", "Gamepad" == pad2_source.c_str())) {
+                    pad2_source = "Gamepad";
+                }
+            }
+            ImGui::EndTabItem();
+        }
+        ImGui::EndTabBar();
     }
     ImGui::End();
 }
@@ -337,6 +476,9 @@ void ImGuiFrame(cpu *Cpu) {
             if (ImGui::MenuItem("System")) {
                 show_system_settings = true;
             }
+            if (ImGui::MenuItem("Configure Pads")) {
+                show_pad_settings = true;
+            }
             ImGui::EndMenu();
         }
     
@@ -404,6 +546,20 @@ void RenderVRAMViewer() {
     ImGui::End();
 }
 int main(int argc, char** argv) {
+    /*struct Code : Xbyak::CodeGenerator {
+        Code(int x)
+        {
+            mov(eax, x);
+            ret();
+        }
+    };
+
+    Code c(5);
+    int (*f)() = c.getCode<int (*)()>();
+    printf("ret=%d\n", f()); // ret = 5
+
+    exit(1);*/
+
     if (!glfwInit()) {
         exit(1);
     }
@@ -435,13 +591,90 @@ int main(int argc, char** argv) {
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
             //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            if (pad1_source == "Gamepad") {
+                GLFWgamepadstate state;
+                P1buttons = 0xffff;
+                if (glfwGetGamepadState(GLFW_JOYSTICK_1, &state)) {
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_A] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0100000000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_X] == GLFW_PRESS) {
+                        P1buttons &= ~(0b1000000000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_B] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0010000000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_Y] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0001000000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0000000000010000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0000000000100000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0000000001000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0000000010000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_GUIDE] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0000000000000001);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_START] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0000000000001000);
+                    }
+                }
+            }
+            if (pad2_source == "Gamepad") {
+                GLFWgamepadstate state;
+                P2buttons = 0xffff;
+                if (glfwGetGamepadState(GLFW_JOYSTICK_1, &state))
+                {
+                    //printf("aaa\n");
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_A] == GLFW_PRESS)
+                    {
+                        //printf("aaa\n");
+                        P2buttons &= ~(0b0100000000000000);
+                    }
+                }
+            }
             Cpu.bus.mem.pads.P1buttons = P1buttons;
             Cpu.bus.mem.pads.P2buttons = P2buttons;
+            Cpu.bus.mem.pads.pad1_type = pad1_type;
+            Cpu.bus.mem.pads.pad2_type = pad2_type;
+            Cpu.bus.mem.pads.pad1_connected = pad1_connected;
+            Cpu.bus.mem.pads.pad2_connected = pad2_connected;
+            if (Cpu.patch_b0_12h) {
+                if (pad1_connected) {
+                    if (pad1_type == "Digital") {
+                        Cpu.bus.mem.write32(Cpu.button_dest, P1buttons | (0x41 << 16));
+                        Cpu.bus.mem.write(Cpu.button_dest + 0, 0x00, false);
+                        Cpu.bus.mem.write(Cpu.button_dest + 1, 0x41, false);
+                        Cpu.bus.mem.write(Cpu.button_dest + 2, (P1buttons & 0xff), false);
+                        Cpu.bus.mem.write(Cpu.button_dest + 3, ((P1buttons >> 8) & 0xff), false);
+                    }
+                    else if (pad1_type == "Mouse") {
+                        auto& io = ImGui::GetIO();
+                        int leftClick = ImGui::IsMouseDown(ImGuiMouseButton_Left) ? 0 : 1;
+                        int rightClick = ImGui::IsMouseDown(ImGuiMouseButton_Right) ? 0 : 1;
+                        uint16_t buttons = (leftClick << 1) | rightClick;
+                        Cpu.bus.mem.write(Cpu.button_dest + 0, 0x00, false);
+                        Cpu.bus.mem.write(Cpu.button_dest + 1, 0x12, false);
+                        Cpu.bus.mem.write(Cpu.button_dest + 2, 0xff, false);
+                        Cpu.bus.mem.write(Cpu.button_dest + 3, 0xf0 | (buttons << 2), false);
+                        Cpu.bus.mem.write(Cpu.button_dest + 4, io.MouseDelta.x, false);
+                        Cpu.bus.mem.write(Cpu.button_dest + 5, io.MouseDelta.y, false);
+                    }
+                } else Cpu.bus.mem.write(Cpu.button_dest, 0xff, false);
+            }
             glfwPollEvents();
             //if (run) Cpu.bus.mem.I_STAT |= 1;
             // Update the ImGui frontend
             ImGuiFrame(&Cpu);
-            if (show_system_settings) SystemSettingsMenu();
+            if (show_system_settings) SystemSettingsMenu(&Cpu);
+            if (show_pad_settings) PadSettingsMenu();
             if (show_dialog) Dialog();
             if (show_ram_viewer) MemEditor.DrawWindow("RAM Viewer", Cpu.bus.mem.ram, 0x200000);
             if (show_cpu_registers) CpuDebugger(&Cpu);

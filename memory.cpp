@@ -38,14 +38,14 @@ void memory::debug_log(const char* fmt, ...) {
 #endif
 }
 void memory::debug_warn(const char* fmt, ...) {
-	if (debug) {
+	//if (debug) {
 		SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
 		std::va_list args;
 		va_start(args, fmt);
 		std::vprintf(fmt, args);
 		va_end(args);
 		SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-	}
+	//}
 }
 void memory::debug_err(const char* fmt, ...) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
@@ -100,6 +100,11 @@ uint8_t memory::read(uint32_t addr) {
 		return data;
 	}
 
+	if (masked_addr == 0x1f801054) { // SIO_STAT
+		printf("[SIO] Read SIO_STAT (ignored)\n");
+		return 0;
+	}
+
 	if (masked_addr == 0x1f801800) {	// cdrom status
 		printf("[CDROM] Status register read\n");
 		return CDROM.status;
@@ -150,18 +155,18 @@ uint8_t memory::read(uint32_t addr) {
 		return 0xff;
 	}
 
-	printf("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
 	exit(0);
 }
 
 uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-
+	//if (patch_b0_15h && (masked_addr == mask_address(button_dest))) printf("test\n");
 	// Timer 1 current value
 	if (masked_addr == 0x1f801110) {
-		printf("[TIMER] Read timer 1 current value (stubbed)\n");
-		return 0;
+		//printf("[TIMER] Read timer 1 current value (stubbed)\n");
+		return tmr1_stub++;
 	}
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
@@ -176,9 +181,10 @@ uint16_t memory::read16(uint32_t addr) {
 
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
-		debug_warn("[PAD] Read JOY_STAT @ 0x%08x\n", pc);
-		return rand() & 0b111;
-		return pads.joy_stat;
+		uint16_t data = pads.joy_stat;
+		debug_warn("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, pc);
+		//return rand() & 0b111;
+		return data;
 	}
 
 	if (masked_addr == 0x1f80104a) {	// JOY_CTRL
@@ -230,7 +236,7 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0xffff;
 	}
 
-	printf("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
 	exit(0);
 }
 
@@ -259,7 +265,7 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f802080) return 0x58534350; // "Also return 0x58534350 for 32-bit reads from 0x1f802080"  - peach
 
 	if (masked_addr == 0x1f801110) {	// timer 1 stuff
-		printf("[TIMER] Read timer 1 current value\n");
+		//printf("[TIMER] Read timer 1 current value\n");
 		return tmr1_stub++;
 	}
 
@@ -319,7 +325,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f8010e8)	// control
 		return Ch6.CHCR;
-
+	
 	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint32_t));
 		return bytes;
@@ -339,13 +345,19 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0xffffffff;
 	}
 
-	printf("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
+	printf("\n$v0 is 0x%x\n", regs[2]);
+	std::ofstream file("ram.bin", std::ios::binary);
+	file.write((const char*)ram, 0x200000);
+	debug_warn("Ram dumped.");
 	exit(0);
 }
 
 void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+	
+	if (addr == 0x0801ffee8) printf("8bit write [0x0801ffee8] <- 0x%02x @ 0x%08x\n", data, pc);
 
 	// controllers
 	if (masked_addr == 0x1f801040) {
@@ -461,6 +473,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t masked_addr = mask_address(addr);
 
 	// if (masked_addr == 0x00fffffc) return;
+	if (addr == 0x0801ffee8) printf("32bit write [0x0801ffee8] <- 0x%08x @ 0x%08x\n", data, pc);
 
 	if (masked_addr == 0x1f802084) {	// Openbios stuff
 		return;
@@ -479,7 +492,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	if (masked_addr == 0x1f801074) { // I_MASK
 		I_MASK = data;
-		if((I_MASK >> 6) & 1) CDROM.Scheduler.push(&TMR2IRQ, CDROM.Scheduler.time + 5000, this);
+		//if((I_MASK >> 6) & 1) CDROM.Scheduler.push(&TMR2IRQ, CDROM.Scheduler.time + 5000, this);
 		debug_log("[IRQ] Write 0x%x to I_MASK\n", data);
 		return;
 	}
@@ -568,6 +581,8 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		return;
 	}
 
+	if (masked_addr == 0x1f801814) return;
+
 	if (masked_addr == 0x1f801000) return; // Expansion 1 Base Address
 	if (masked_addr == 0x1f801004) return; // Expansion 2 Base Address
 	if (masked_addr == 0x1f801008) return; // Expansion 1 Delay/Size
@@ -591,6 +606,8 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
+
+	if (addr == 0x0801ffee8) printf("16bit write [0x0801ffee8] <- 0x%04x @ 0x%08x\n", data, pc);
 
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);
@@ -669,8 +686,26 @@ static auto readBinary(std::string directory) -> std::vector<uint8_t> {
 	return exe;
 }
 
+#define MOD_ADLER 65521
+// Taken from Wikipedia, used for the bios hash
+uint32_t adler32(unsigned char* data, size_t len) {
+	uint32_t a = 1, b = 0;
+	size_t index;
+
+	// Process each byte of the data in order
+	for (index = 0; index < len; ++index)
+	{
+		a = (a + data[index]) % MOD_ADLER;
+		b = (b + a) % MOD_ADLER;
+	}
+
+	return (b << 16) | a;
+}
+
 void memory::loadBios(std::string directory) {
 	bios = readBinary(directory);
+	adler32bios = adler32(bios.data(), 0x80000);
+	printf("bios hash: 0x%x\n", adler32bios);
 }
 
 uint32_t memory::loadExec(std::string directory) {
@@ -694,4 +729,15 @@ uint32_t memory::loadExec(std::string directory) {
 	}
 
 	return start_pc;
+}
+
+// HLE Syscalls
+void memory::read_card_sector(int port, uint32_t sector, uint32_t dst) {
+	printf("read_card_sector:\nport: %d\nsector: %xh\n dst: %xh\n", port, sector, dst);
+	fseek(pads.memcard1, sector * 128, SEEK_SET);
+	uint8_t data[128];
+	fread(data, sizeof(uint8_t), 128, pads.memcard1);
+	for (int i = 0; i < 128; i++) {
+		write(dst + i, data[i], false);
+	}
 }

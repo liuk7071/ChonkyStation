@@ -15,15 +15,19 @@ public:
 	memory();
 	~memory();
 
+	uint32_t button_dest = 0;
+
 	Log* logwnd;
 
 	cdrom CDROM = cdrom();
 	pad pads;
 	std::vector<uint8_t> file;
 	std::vector <uint8_t> bios;
+	uint32_t adler32bios = 0;
 
 public:
 	uint32_t pc = 0;
+	uint32_t* regs;
 	uint8_t* ram = new uint8_t[0x200000];
 	uint8_t* scratchpad = new uint8_t[1024];
 	uint8_t* exp1 = new uint8_t[1024000];
@@ -73,4 +77,7 @@ public:
 	uint32_t read32(uint32_t addr);
 
 	uint32_t mask_address(const uint32_t addr);
+
+	// HLE Syscalls
+	void read_card_sector(int port, uint32_t sector, uint32_t dst);
 };
