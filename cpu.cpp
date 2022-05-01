@@ -146,7 +146,7 @@ void cpu::do_dma() {
 				}
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				bus.mem.Ch2.CHCR &= ~(1 << 28);
-				debug = false;
+				//debug = false;
 				return;
 			case 0:
 				printf("[DMA] GPU to RAM block copy (unimplemented)\n");
@@ -180,7 +180,7 @@ void cpu::do_dma() {
 				}
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				debug_log("[DMA] GPU Linked List transfer complete\n");
-				debug = false;
+				//debug = false;
 				return;
 			default:
 				printf("[DMA] Unhandled Direction (GPU Linked List)\n");
@@ -218,13 +218,13 @@ void cpu::do_dma() {
 						uint8_t b4 = bus.mem.CDROM.cd.ReadDataByte();
 						uint32_t word = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
 						bus.mem.write32(current_addr, word);
-						printf("[DMA] CDROM Block Copy completed\n");
+						printf("[DMA] CDROM Block Copy completed (pc = 0x%08x)\n", pc);
 						bus.mem.CDROM.status &= ~(0b10000000); // DRQSTS
 						bus.mem.Ch3.CHCR &= ~(1 << 24);
 						bus.mem.Ch3.CHCR &= ~(1 << 28);
-						debug = false;
+						//debug = false;
 						
-						bus.mem.CDROM.queued_read = true;
+						//bus.mem.CDROM.queued_read = true;
 						//bus.mem.CDROM.delay = 2;
 						return;
 					}
@@ -276,7 +276,7 @@ void cpu::do_dma() {
 						debug_log("[DMA] OTC Block Copy completed\n");
 						bus.mem.Ch6.CHCR &= ~(1 << 24);
 						bus.mem.Ch6.CHCR &= ~(1 << 28);
-						debug = false;
+						//debug = false;
 						return;
 					}
 					bus.mem.write32(current_addr, (addr - 4) & 0x1fffff);
@@ -332,6 +332,13 @@ void cpu::check_dma() {
 void cpu::execute(uint32_t instr) {
 	regs[0] = 0; // $zero
 
+	if (pc == 0x80026ac8) {
+		printf("$a0 is 0x%08x\n", regs[4]);
+	}
+	if (regs[4] == 0xffffa61c) {
+		printf("$a0 became 0xffffa61c @ 0x%08x\n", pc);
+	}
+
 #ifdef log_kernel_tty
 	if (pc == 0xA0 || pc == 0x800000A0 || pc == 0xA00000A0) {
 		if (log_kernel) printf("\nkernel call A(0x%x)", regs[9]);
@@ -371,6 +378,17 @@ void cpu::execute(uint32_t instr) {
 	uint8_t secondary = instr & 0x3f;
 	
 	bus.mem.pc = pc;
+	bus.mem.regs = regs;
+
+	/*if (pc == 0x800595c4) {
+		std::ofstream file("ramdumpchonky.bin", std::ios::binary);
+		file.write((const char*)bus.mem.ram, 0x200000);
+		FILE* ramdump;
+		ramdump = fopen("./ramdump2.bin", "r");
+		fseek(ramdump, 0, SEEK_SET);
+		fread(bus.mem.ram, sizeof(uint8_t), 0x200000, ramdump);
+		printf("Loaded ram dump\n");
+	}*/
 
 	if (delay) {	// branch delay slot
 		pc = jump - 4;
@@ -990,7 +1008,7 @@ void cpu::execute(uint32_t instr) {
 		bus.mem.write32(addr, GTE.readCop2d(rt));
 		break;
 	}
-
+	case 0x2f: break;
 	default:
 		debug_err("\nUnimplemented instruction: 0x%x @ 0x%08x", primary, pc);
 		exit(0);

@@ -48,8 +48,7 @@ void cdrom::execute(uint8_t command) {
 
 	}
 	cmd_length = 0;
-	for (auto& i : fifo)
-		fifo[i] = 0;
+	for (int i = 0; i < 16; i++) fifo[i] = 0;
 	return;
 }
 
@@ -86,7 +85,7 @@ void cdrom::queuedRead(void* dataptr) {
 		cdromptr->queued_fifo[0] = cdromptr->get_stat();
 		cdromptr->queued_response_length = 1;
 
-		cdromptr->Scheduler.push(&INT1, cdromptr->Scheduler.time + 105000, cdromptr);
+		cdromptr->Scheduler.push(&INT1, cdromptr->Scheduler.time + (33868800 / 75), cdromptr);
 	}
 }
 void cdrom::INT1(void* dataptr) {
@@ -102,7 +101,7 @@ void cdrom::INT1(void* dataptr) {
 		cdromptr->response_length = cdromptr->queued_response_length;
 		cdromptr->status |= 0b00100000;
 
-		cdromptr->Scheduler.push(&queuedRead, cdromptr->Scheduler.time + 300000, cdromptr);
+		cdromptr->Scheduler.push(&queuedRead, cdromptr->Scheduler.time + 5000, cdromptr);
 	}
 	return;
 }
@@ -178,7 +177,7 @@ void cdrom::GetStat() {	// Return status byte
 	response_fifo[0] = get_stat();
 	response_length = 1;
 	status |= 0b00100000;
-	Scheduler.push(&INT3, Scheduler.time + 5000, this);
+	Scheduler.push(&INT3, Scheduler.time + 25000, this);
 }
 void cdrom::GetTN() { // Get first track number, and last track number in the TOC of the current Session.
 	debug_log("[CDROM] GetTN (stubbed)\n");
@@ -198,8 +197,10 @@ void cdrom::Setmode() {	// Set mode
 	CDDA = fifo[0] & 1;
 	if (DoubleSpeed) debug_log("DoubleSpeed\n");
 	if (xa_adpcm) debug_log("XA-ADPCM\n");
-	if (WholeSector) debug_log("WholeSector\n");
-	if (CDDA) debug_log("CDDA\n");
+	if (WholeSector) {
+		printf("WholeSector\n"); exit(1);
+	}
+	if (CDDA) { debug_log("CDDA\n"); exit(1); }
 	response_fifo[0] = get_stat();
 	//INT3();
 	status |= 0b00100000;
@@ -264,7 +265,7 @@ void cdrom::SetLoc() { // Sets the seek target
 void cdrom::SeekL() {	// Seek to the seek target (SetLoc)
 	status |= 0b00001000;
 	debug_log("[CDROM] SeekL\n");
-	response_fifo[0] = get_stat();
+	response_fifo[0] = 0x42;
 	response_length = 1;
 	delayed_INT3 = true;
 	queued_fifo[0] = get_stat();
@@ -287,12 +288,12 @@ void cdrom::ReadN() {	// Read with retry
 	//INT3();
 	//delay = 2;
 
-	queued_fifo[0] = get_stat();
+	queued_fifo[0] = 0x22;
 	queued_response_length = 1;
 	//queued_INT1 = true;
 
 	Scheduler.push(&INT3, Scheduler.time + 4, this);
-	Scheduler.push(&INT1, Scheduler.time + 400000, this);
+	Scheduler.push(&INT1, Scheduler.time + (33868800 / 75), this);
 	//queued_delay = 33868800 / 75;
 	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
 }

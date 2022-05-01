@@ -162,11 +162,13 @@ public:
 	void execute(uint32_t instr, uint32_t* gpr);
 	uint32_t sf(uint32_t instr) { return ((instr >> 19) & 1); }
 	uint32_t lm(uint32_t instr) { return ((instr >> 10) & 1); }
+	template<int x> uint32_t mx(int i);
 	uint32_t instruction = 0;
 	enum Commands {
 		MOVE,
 		RTPS = 0x01,
 		NCLIP = 0x06,
+		MVMVA = 0x12,
 		NCDS = 0x13,
 		AVSZ3 = 0x2d,
 		AVSZ4 = 0x2e,
@@ -186,6 +188,7 @@ public:
 	void moveCTC2(uint32_t* gpr);
 	void commandRTPS();
 	void commandNCLIP();
+	void commandMVMVA();
 	void commandNCDS();
 	void commandAVSZ3();
 	void commandAVSZ4();

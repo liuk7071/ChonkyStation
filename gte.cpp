@@ -17,16 +17,67 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 	}
 	case RTPS: cop2c[31] = 0; commandRTPS(); break;
 	case NCLIP: cop2c[31] = 0; commandNCLIP(); break;
+	case MVMVA: cop2c[31] = 0; commandMVMVA(); break;
 	case NCDS: cop2c[31] = 0; commandNCDS(); break;
 	case AVSZ3: cop2c[31] = 0; commandAVSZ3(); break;
 	case AVSZ4: cop2c[31] = 0; commandAVSZ4(); break;
 	case RTPT: cop2c[31] = 0; commandRTPT(); break;
 	default:
 		printf("Unimplemented GTE instruction: 0x%x\n", instr);
-		//exit(1);
+		exit(1);
 	}
 }
 
+template<int x>
+uint32_t gte::mx(int i) {
+	switch (x) {
+	case 0: // Rotation matrix
+		switch (i) {
+		case 11: return RT11;
+		case 12: return RT12;
+		case 13: return RT13;
+		case 21: return RT21;
+		case 22: return RT22;
+		case 23: return RT23;
+		case 31: return RT31;
+		case 32: return RT32;
+		case 33: return RT33;
+		default:
+			printf("Bad matrix index (%d)\n", i);
+		}
+	case 1: // Light matrix
+		switch (i) {
+		case 11: return L11;
+		case 12: return L12;
+		case 13: return L13;
+		case 21: return L21;
+		case 22: return L22;
+		case 23: return L23;
+		case 31: return L31;
+		case 32: return L32;
+		case 33: return L33;
+		default:
+			printf("Bad matrix index (%d)\n", i);
+		}
+	case 2: // Colour matrix
+		switch (i) {
+		case 11: return LR1;
+		case 12: return LR2;
+		case 13: return LR3;
+		case 21: return LG1;
+		case 22: return LG2;
+		case 23: return LG3;
+		case 31: return LB1;
+		case 32: return LB2;
+		case 33: return LB3;
+		default:
+			printf("Bad matrix index (%d)\n", i);
+		}
+	default:
+		printf("Bad mx value (%d)\n", x);
+		exit(0);
+	}
+}
 
 // Helpers
 uint32_t gte::readCop2d(uint32_t reg) {
@@ -210,6 +261,10 @@ void gte::commandRTPS() {
 	IR0 = saturate((int16_t)(depth), 0, 0x1000);
 }
 
+void gte::commandMVMVA() {
+
+}
+
 void gte::commandNCDS() {
 	//printf("ncds\n");
 	const int shift = sf(instruction) * 12;
@@ -249,41 +304,12 @@ void gte::commandNCDS() {
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	pushColour();
-	//setIRFromMAC();
-
-	//MAC1 = (int32_t)MAC1 + ((((int64_t)RFC << 12) - (int32_t)MAC1) * ((int16_t)IR0));
-	//MAC2 = (int32_t)MAC2 + ((((int64_t)GFC << 12) - (int32_t)MAC2) * ((int16_t)IR0));
-	//MAC3 = (int32_t)MAC3 + ((((int64_t)BFC << 12) - (int32_t)MAC3) * ((int16_t)IR0));
-	//MAC1 = int32_t(MAC1) >> shift;
-	//MAC2 = int32_t(MAC2) >> shift;
-	//MAC3 = int32_t(MAC3) >> shift;
-	//setIRFromMAC();
-
-	/*MAC1 = (int32_t)((int64_t)(L11 * VX0) + (L12 * VY0) + (L13 * VZ0)) >> shift;
-	MAC2 = (int32_t)((int64_t)(L21 * VX0) + (L22 * VY0) + (L23 * VZ0)) >> shift;
-	MAC3 = (int32_t)((int64_t)(L31 * VX0) + (L32 * VY0) + (L33 * VZ0)) >> shift;
-	IR1 = saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	IR2 = saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	IR3 = saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	MAC1 = (int32_t)((int64_t)((int64_t)RBK << 12) + (LR1 * IR1) + (LR2 * IR2) + (LR3 * IR3)) >> shift;
-	MAC2 = (int32_t)((int64_t)((int64_t)GBK << 12) + (LG1 * IR1) + (LG2 * IR2) + (LG3 * IR3)) >> shift;
-	MAC3 = (int32_t)((int64_t)((int64_t)BBK << 12) + (LB1 * IR1) + (LB2 * IR2) + (LB3 * IR3)) >> shift;
-	IR1 = saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	IR2 = saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	IR3 = saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	MAC1 = (((R << 4) * IR1) + ((int16_t)IR0 * (int64_t)saturate((int32_t)(((int64_t)RFC << 12) - ((R << 4) * IR1)) >> shift, -0x8000, 0x7fff)));
-	MAC2 = (((G << 4) * IR2) + ((int16_t)IR0 * (int64_t)saturate((int32_t)(((int64_t)GFC << 12) - ((G << 4) * IR2)) >> shift, -0x8000, 0x7fff)));
-	MAC3 = (((B << 4) * IR3) + ((int16_t)IR0 * (int64_t)saturate((int32_t)(((int64_t)BFC << 12) - ((B << 4) * IR3)) >> shift, -0x8000, 0x7fff)));
-	IR1 = saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	IR2 = saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	IR3 = saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	pushColour();*/
 }
 
 void gte::commandNCLIP() {
 	//printf("nclip\n");
 	MAC0 = (int64_t)((int32_t)(SX0) * (int32_t)(SY1)) + ((int32_t)(SX1) * (int32_t)(SY2)) + ((int32_t)(SX2) * (int32_t)(SY0)) - ((int32_t)(SX0) * (int32_t)(SY2)) - ((int32_t)(SX1) * (int32_t)(SY0)) - ((int32_t)(SX2) * (int32_t)(SY1));
-	MAC0 = ((int64_t)(SX0 * SY1) + (SX1 * SY2) + (SX2 * SY0) - (SX0 * SY2) - (SX1 * SY0) - (SX2 * SY1));
+	//MAC0 = ((int64_t)(SX0 * SY1) + (SX1 * SY2) + (SX2 * SY0) - (SX0 * SY2) - (SX1 * SY0) - (SX2 * SY1));
 	//printf("sx0: %d, sy0: %d sx1: %d, sy1: %d sx2: %d, sy2: %d\n", SX0, SY0, SX1, SY1, SX2, SY2);
 	//auto a = (int32_t)(SX0) * ((int32_t)(SY1) - (int32_t)(SY2));
 	//auto b = (int32_t)(SX1) * ((int32_t)(SY2) - (int32_t)(SY0));
@@ -297,7 +323,7 @@ void gte::commandAVSZ3() {
 	//printf("avsz3\n");
 	MAC0 = (int64_t)ZSF3 * ((uint16_t)SZ1 + (uint16_t)SZ2 + (uint16_t)SZ3);
 	//MAC0 = 0x10000;
-	MAC0 = ((int64_t)(ZSF3 * SZ1) + (ZSF3 * SZ2) + (ZSF3 * SZ3));
+	//MAC0 = ((int64_t)(ZSF3 * SZ1) + (ZSF3 * SZ2) + (ZSF3 * SZ3));
 	OTZ = saturate((int32_t)MAC0 / 0x1000, 0, 0xffff);
 }
 

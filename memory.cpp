@@ -155,7 +155,7 @@ uint8_t memory::read(uint32_t addr) {
 		return 0xff;
 	}
 
-	printf("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
 	exit(0);
 }
 
@@ -236,7 +236,7 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0xffff;
 	}
 
-	printf("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
 	exit(0);
 }
 
@@ -345,7 +345,11 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0xffffffff;
 	}
 
-	printf("\nUnhandled read 0x%.8x", masked_addr);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
+	printf("\n$v0 is 0x%x\n", regs[2]);
+	std::ofstream file("ram.bin", std::ios::binary);
+	file.write((const char*)ram, 0x200000);
+	debug_warn("Ram dumped.");
 	exit(0);
 }
 
@@ -353,6 +357,8 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 	
+	if (addr == 0x0801ffee8) printf("8bit write [0x0801ffee8] <- 0x%02x @ 0x%08x\n", data, pc);
+
 	// controllers
 	if (masked_addr == 0x1f801040) {
 		debug_warn("[PAD] Write 0x%x to JOY_TX_DATA\n", data);
@@ -467,6 +473,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t masked_addr = mask_address(addr);
 
 	// if (masked_addr == 0x00fffffc) return;
+	if (addr == 0x0801ffee8) printf("32bit write [0x0801ffee8] <- 0x%08x @ 0x%08x\n", data, pc);
 
 	if (masked_addr == 0x1f802084) {	// Openbios stuff
 		return;
@@ -599,6 +606,8 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
+
+	if (addr == 0x0801ffee8) printf("16bit write [0x0801ffee8] <- 0x%04x @ 0x%08x\n", data, pc);
 
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);

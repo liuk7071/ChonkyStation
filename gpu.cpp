@@ -45,7 +45,7 @@ out vec4 frag_colour;
 
 void main() {
 	gl_Position = vec4(float(pos.x) / 320 - 1, -(1 - float(pos.y) / 240), 0.0, 1.0);
-	frag_colour = vec4(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255, 255f);
+	frag_colour = vec4(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255, 1.f);
 }
 )";
 static const GLchar* TextureVertexShaderSource =
