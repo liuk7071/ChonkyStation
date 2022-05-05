@@ -2,7 +2,7 @@
 
 CD::CD() {}
 void CD::OpenFile(const char* directory) {
-	iso = fopen(directory, "r");
+	iso = fopen(directory, "rb");
 	dir = directory;
 	IsCDInserted = true;
 }
