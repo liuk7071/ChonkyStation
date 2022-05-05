@@ -38,8 +38,10 @@ void cdrom::execute(uint8_t command) {
 	case 0x06: ReadN(); break;
 	case 0x09: Pause(); break;
 	case 0x0A: init(); break;
+	case 0x0C: Demute(); break;
 	case 0x0E: Setmode(); break;
 	case 0x13: GetTN(); break;
+	case 0x14: GetTD(); break;
 	case 0x15: SeekL(); break;
 	case 0x19: test(); break;
 	case 0x1A: GetID(); break;
@@ -188,6 +190,15 @@ void cdrom::GetTN() { // Get first track number, and last track number in the TO
 	status |= 0b00100000;
 	Scheduler.push(&INT3, Scheduler.time + 15000, this);
 }
+void cdrom::GetTD() {
+	debug_log("[CDROM] GetTD (stubbed)\n");
+	response_fifo[0] = get_stat();
+	response_fifo[1] = 0x01;
+	response_fifo[2] = 0x01;
+	response_length = 3;
+	status |= 0b00100000;
+	Scheduler.push(&INT3, Scheduler.time + 15000, this);
+}
 void cdrom::Setmode() {	// Set mode 
 	status |= 0b00001000;
 	debug_log("[CDROM] Setmode (0x%x)\n", fifo[0]);
@@ -200,7 +211,9 @@ void cdrom::Setmode() {	// Set mode
 	if (WholeSector) {
 		printf("WholeSector\n"); exit(1);
 	}
-	if (CDDA) { debug_log("CDDA\n"); exit(1); }
+	if (CDDA) { debug_log("CDDA\n"); 
+		//exit(1); 
+	}
 	response_fifo[0] = get_stat();
 	//INT3();
 	status |= 0b00100000;
@@ -329,4 +342,11 @@ void cdrom::init() {
 	Scheduler.push(&INT2, Scheduler.time + 40000, this);
 	queued_delay = 50000;
 	status |= 0b00100000;
+}
+void cdrom::Demute() {
+	debug_log("[CDROM] Demute\n");
+	response_fifo[0] = get_stat();
+	response_length = 1;
+	status |= 0b00100000;
+	Scheduler.push(&INT3, Scheduler.time + 25000, this);
 }

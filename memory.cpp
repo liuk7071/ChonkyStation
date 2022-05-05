@@ -396,7 +396,8 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 			debug_log("[CDROM] Write 0x%x to interrupt enable register\n", data);
 			CDROM.interrupt_enable = data;
 			break;
-		case 2: break;
+		case 2: printf("[CDROM] Write to Left-CD to Left-SPU Volume"); break;
+		case 3: printf("[CDROM] Write to Right-CD to Left-SPU Volume\n"); break;
 		default:
 			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
@@ -417,7 +418,8 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 				CDROM.irq = false;
 			}
 			break;
-		case 3: break;
+		case 2: printf("[CDROM] Write to Left-CD to Right-SPU Volume\n"); break;
+		case 3: printf("[CDROM] Write to Audio Volume Apply Changes\n"); break;
 		default:
 			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);

@@ -56,12 +56,14 @@ public:
 	void test();
 	void GetStat();
 	void GetTN();
+	void GetTD();
 	void GetID();
 	void SetLoc();
 	void SeekL();
 	void ReadN();
 	void Pause();
 	void init();
+	void Demute();
 	void Setmode();
 
 	// setmode

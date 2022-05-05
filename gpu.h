@@ -93,6 +93,9 @@ public:	// commands
 	void monochrome_rectangle_variable_size_opaque();
 	void texture_blending_rectangle_variable_size_opaque();
 	void texture_rectangle_variable_size_opaque();
+	void texture_blending_rectangle_variable_size_semi_transparent();
+	void texture_blending_rectangle_8x8_opaque();
+	void texture_rectangle_8x8_opaque();
 	void monochrome_rectangle_dot_opaque();
 	void fill_rectangle();
 	void cpu_to_vram();
