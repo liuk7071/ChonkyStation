@@ -168,6 +168,7 @@ public:
 		MOVE,
 		RTPS = 0x01,
 		NCLIP = 0x06,
+		DPCS = 0x10,
 		MVMVA = 0x12,
 		NCDS = 0x13,
 		NCS = 0x1e,
@@ -190,6 +191,7 @@ public:
 	void moveCTC2(uint32_t* gpr);
 	void commandRTPS();
 	void commandNCLIP();
+	void commandDPCS();
 	void commandMVMVA();
 	void commandNCDS();
 	void commandNCS();

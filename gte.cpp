@@ -17,6 +17,7 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 	}
 	case RTPS: cop2c[31] = 0; commandRTPS(); break;
 	case NCLIP: cop2c[31] = 0; commandNCLIP(); break;
+	case DPCS: cop2c[31] = 0; commandDPCS(); break;
 	case MVMVA: cop2c[31] = 0; commandMVMVA(); break;
 	case NCDS: cop2c[31] = 0; commandNCDS(); break;
 	case NCS: cop2c[31] = 0; commandNCS(); break;
@@ -261,6 +262,32 @@ void gte::commandRTPS() {
 	MAC0 = (int32_t)(depth);
 	depth >>= 12;
 	IR0 = saturate((int16_t)(depth), 0, 0x1000);
+}
+
+void gte::commandDPCS() {
+	const int shift = sf(instruction) * 12;
+	const int lm = this->lm(instruction);
+	MAC1 = (uint64_t)R << 16;
+	MAC2 = (uint64_t)G << 16;
+	MAC3 = (uint64_t)B << 16;
+
+	// Interpolate colour
+	uint32_t _MAC1 = MAC1;
+	uint32_t _MAC2 = MAC2;
+	uint32_t _MAC3 = MAC3;
+	MAC1 = (int32_t)((((int64_t)RFC << 12) - (int32_t)MAC1) >> shift);
+	MAC2 = (int32_t)((((int64_t)GFC << 12) - (int32_t)MAC2) >> shift);
+	MAC3 = (int32_t)((((int64_t)BFC << 12) - (int32_t)MAC3) >> shift);
+	IR1 = (int16_t)saturate(MAC1, -0x8000, 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000, 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000, 0x7fff);
+	MAC1 = (int32_t)(((int64_t)IR1 * IR0) + (int32_t)_MAC1) >> shift;
+	MAC2 = (int32_t)(((int64_t)IR2 * IR0) + (int32_t)_MAC2) >> shift;
+	MAC3 = (int32_t)(((int64_t)IR3 * IR0) + (int32_t)_MAC3) >> shift;
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	pushColour();
 }
 
 void gte::commandMVMVA() {
