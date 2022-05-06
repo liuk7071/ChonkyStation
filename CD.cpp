@@ -10,7 +10,7 @@ void CD::OpenFile(const char* directory) {
 uint8_t CD::ReadDataByte() {
 	if (buff_left >= CDXA_DATA_SIZE - 1)
 		printf("[All data has been read]\n");
-	return SectorBuffer[0x18 + buff_left++];
+	return SectorBuffer[(WholeSector ? 0x0c : 0x18) + buff_left++];
 }
 
 void CD::read(uint32_t loc) {

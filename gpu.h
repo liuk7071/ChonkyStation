@@ -91,6 +91,7 @@ public:	// commands
 	void shaded_four_point_semi_transparent_polygon();
 	void shaded_texture_blending_textured_four_point_opaque_polygon();
 	void monochrome_rectangle_variable_size_opaque();
+	void monochrome_rectangle_variable_size_semi_transparent();
 	void texture_blending_rectangle_variable_size_opaque();
 	void texture_rectangle_variable_size_opaque();
 	void texture_blending_rectangle_variable_size_semi_transparent();

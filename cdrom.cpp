@@ -209,8 +209,9 @@ void cdrom::Setmode() {	// Set mode
 	if (DoubleSpeed) debug_log("DoubleSpeed\n");
 	if (xa_adpcm) debug_log("XA-ADPCM\n");
 	if (WholeSector) {
-		printf("WholeSector\n"); exit(1);
+		printf("WholeSector\n");
 	}
+	cd.WholeSector = WholeSector;
 	if (CDDA) { debug_log("CDDA\n"); 
 		//exit(1); 
 	}

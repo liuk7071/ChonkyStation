@@ -107,6 +107,7 @@ uint8_t memory::read(uint32_t addr) {
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
 		printf("[CDROM] Status register read\n");
+		return rand() % 0xff;
 		return CDROM.status;
 	}
 
@@ -162,6 +163,13 @@ uint8_t memory::read(uint32_t addr) {
 uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
+	
+	// SPU stuff
+	if (masked_addr == 0x1f801d08) return 0;
+	if (masked_addr == 0x1f801d0a) return 0;
+	if (masked_addr == 0x1f801d18) return 0;
+	if (masked_addr == 0x1f801d1a) return 0;
+
 	//if (patch_b0_15h && (masked_addr == mask_address(button_dest))) printf("test\n");
 	// Timer 1 current value
 	if (masked_addr == 0x1f801110) {
@@ -177,6 +185,14 @@ uint16_t memory::read16(uint32_t addr) {
 	if (masked_addr == 0x1f801120) {	// timer 2 stuff
 		printf("timer\n");
 		return tmr1_stub++;
+	}
+
+	if (masked_addr == 0x1f801124) {
+		return 0;
+	}
+
+	if (masked_addr == 0x1f801128) {
+		return 0;
 	}
 
 	// controllers

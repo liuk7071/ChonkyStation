@@ -383,6 +383,12 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 2;
 			break;
 		}
+		case 0x62: { // Monochrome Rectangle (variable size) (semi-transparent)
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 2;
+			break;
+		}
 		case 0x64: { // Textured Rectangle, variable size, opaque, texture-blending
 			fifo[0] = command;
 			cmd_length++;
@@ -472,7 +478,7 @@ void gpu::execute_gp0(uint32_t command) {
 		}
 		default:
 			printf("\n[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
-			exit(0);
+			//exit(0);
 		}
 	}
 	else {
@@ -500,6 +506,7 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x3C: gpu::shaded_texture_blending_textured_four_point_opaque_polygon(); break;
 				case 0x40: gpu::monochrome_line_opaque(); break;
 				case 0x60: gpu::monochrome_rectangle_variable_size_opaque(); break;
+				case 0x62: gpu::monochrome_rectangle_variable_size_semi_transparent(); break;
 				case 0x64: gpu::texture_blending_rectangle_variable_size_opaque(); break;
 				case 0x65: gpu::texture_rectangle_variable_size_opaque(); break;
 				case 0x66: gpu::texture_blending_rectangle_variable_size_semi_transparent(); break;
@@ -1584,6 +1591,74 @@ void gpu::monochrome_polyline_opaque() {
 void gpu::monochrome_rectangle_variable_size_opaque() {
 	uint32_t colour = fifo[0] & 0xffffff;
 	debug_printf("[GP0] Monochrome Rectangle (variable size) (opaque) (colour: 0x%x)\n", colour);
+	point v1, res, v2, v3, v4;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	res.x = fifo[2] & 0xffff;
+	res.y = fifo[2] >> 16;
+	v2.x = v1.x + res.x;
+	v2.y = v1.y;
+	v3.x = v1.x;
+	v3.y = v1.y + res.y;
+	v4.x = v1.x + res.x;
+	v4.y = v1.y + res.y;
+
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0,
+		v2.x, v2.y, 0,
+		v3.x, v3.y, 0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribIPointer(0, 3, GL_INT, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
+	uint32_t Vertices2[]{
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+		v4.x, v4.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribIPointer(0, 3, GL_INT, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+	return;
+}
+
+void gpu::monochrome_rectangle_variable_size_semi_transparent() {
+	uint32_t colour = fifo[0] & 0xffffff;
+	debug_printf("[GP0] Monochrome Rectangle (variable size) (semi-transparent) (colour: 0x%x)\n", colour);
 	point v1, res, v2, v3, v4;
 	v1.x = fifo[1] & 0xffff;
 	v1.y = fifo[1] >> 16;

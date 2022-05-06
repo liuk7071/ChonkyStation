@@ -170,6 +170,8 @@ public:
 		NCLIP = 0x06,
 		MVMVA = 0x12,
 		NCDS = 0x13,
+		NCS = 0x1e,
+		NCT = 0x20,
 		AVSZ3 = 0x2d,
 		AVSZ4 = 0x2e,
 		RTPT = 0x30
@@ -190,6 +192,8 @@ public:
 	void commandNCLIP();
 	void commandMVMVA();
 	void commandNCDS();
+	void commandNCS();
+	void commandNCT();
 	void commandAVSZ3();
 	void commandAVSZ4();
 	void commandRTPT();

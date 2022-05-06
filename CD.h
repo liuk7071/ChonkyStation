@@ -19,6 +19,7 @@ public:
 public:
 	void read(uint32_t loc);
 	uint8_t ReadDataByte();
+	bool WholeSector = false;
 public:
 	FILE* iso;
 	int buff_left = 0;
