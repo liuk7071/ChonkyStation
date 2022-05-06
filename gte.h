@@ -169,8 +169,10 @@ public:
 		RTPS = 0x01,
 		NCLIP = 0x06,
 		DPCS = 0x10,
+		INTPL = 0x11,
 		MVMVA = 0x12,
 		NCDS = 0x13,
+		NCDT = 0x16,
 		NCS = 0x1e,
 		NCT = 0x20,
 		AVSZ3 = 0x2d,
@@ -192,8 +194,10 @@ public:
 	void commandRTPS();
 	void commandNCLIP();
 	void commandDPCS();
+	void commandINTPL();
 	void commandMVMVA();
 	void commandNCDS();
+	void commandNCDT();
 	void commandNCS();
 	void commandNCT();
 	void commandAVSZ3();
