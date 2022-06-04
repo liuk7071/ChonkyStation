@@ -87,7 +87,7 @@ void cdrom::queuedRead(void* dataptr) {
 		cdromptr->queued_fifo[0] = cdromptr->get_stat();
 		cdromptr->queued_response_length = 1;
 
-		cdromptr->Scheduler.push(&INT1, cdromptr->Scheduler.time + (33868800 / 75), cdromptr);
+		cdromptr->Scheduler.push(&INT1, cdromptr->Scheduler.time + ((33868800 / 100) / (cdromptr->DoubleSpeed ? 2 : 1)), cdromptr);
 	}
 }
 void cdrom::INT1(void* dataptr) {
@@ -307,7 +307,7 @@ void cdrom::ReadN() {	// Read with retry
 	//queued_INT1 = true;
 
 	Scheduler.push(&INT3, Scheduler.time + 4, this);
-	Scheduler.push(&INT1, Scheduler.time + (33868800 / 75), this);
+	Scheduler.push(&INT1, Scheduler.time + ((33868800 / 100) / (DoubleSpeed ? 2 : 1)), this);
 	//queued_delay = 33868800 / 75;
 	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
 }

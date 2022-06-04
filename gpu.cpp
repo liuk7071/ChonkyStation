@@ -65,14 +65,18 @@ uniform int colourDepth;
 
 void main()
 {
-    gl_Position = vec4(float(aPos.x) / 320 - 1, -(1 - float(aPos.y) / 240), 0.0, 1.0);
+	gl_Position = vec4(float(aPos.x) / 320 - 1, -(1 - float(aPos.y) / 240), 0.0, 1.0);
+    //gl_Position = vec4(float(aPos.x + 0.5) / 320 - 1, -(1 - float(aPos.y + 0.5) / 240), 0.0, 1.0);
     ourColor = aColor;
 	if(colourDepth == 0) {
 		TexCoord = vec2(float((aTexCoord.x / 4) + texpage.x) / 1024 - 1, -(1 - float(aTexCoord.y + texpage.y) / 512));
+		//TexCoord = vec2(float(((aTexCoord.x + 0.5) / 4) + texpage.x) / 1024 - 1, -(1 - float((aTexCoord.y + 0.5) + texpage.y) / 512));
 	} else if(colourDepth == 1) {
 		TexCoord = vec2(float((aTexCoord.x / 2) + texpage.x) / 1024 - 1, -(1 - float(aTexCoord.y + texpage.y) / 512));
+		//TexCoord = vec2(float(((aTexCoord.x + 0.5) / 2) + texpage.x) / 1024 - 1, -(1 - float((aTexCoord.y + 0.5) + texpage.y) / 512));
 	} else if(colourDepth == 2) {
 		TexCoord = vec2(float(aTexCoord.x + texpage.x) / 1024 - 1, -(1 - float(aTexCoord.y + texpage.y) / 512));
+		//TexCoord = vec2(float((aTexCoord.x + 0.5) + texpage.x) / 1024 - 1, -(1 - float((aTexCoord.y + 0.5) + texpage.y) / 512));
 	}
 	_texCoord = aTexCoord;
 }
@@ -304,12 +308,14 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 3;
 			break;
 		}
+		case 0x29:
 		case 0x28: { // Monochrome four-point polygon, opaque
 			fifo[0] = command;
 			cmd_length++;
 			cmd_left = 4;
 			break;
 		}
+		case 0x2B:
 		case 0x2A: { // Monochrome four-point polygon, semi-transparent
 			fifo[0] = command;
 			cmd_length++;
@@ -358,6 +364,7 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 11;
 			break;
 		}
+		case 0x41:
 		case 0x40: { // Monochrome line, opaque
 			fifo[0] = command;
 			cmd_length++;
@@ -425,6 +432,12 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 2;
 			break;
 		}
+		case 0x80: { // Copy Rectangle (VRAM to VRAM)
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 3;
+			break;
+		}
 		case 0xA0: {	// Copy rectangle CPU to VRAM
 			fifo[0] = command;
 			cmd_length++;
@@ -467,6 +480,8 @@ void gpu::execute_gp0(uint32_t command) {
 		case 0xE5: {	// Set Drawing Area Offset
 			// unimplemented
 			printf("x offset: %d y offset: %d\n", (command & 0b1111111111), (command >> 11) & 0b1111111111);
+			xoffset = (command & 0b1111111111);
+			yoffset = ((command >> 11) & 0b1111111111);
 			debug_printf("[GP0] Set Drawing Area Offset\n");
 			break;
 		}
@@ -478,7 +493,7 @@ void gpu::execute_gp0(uint32_t command) {
 		}
 		default:
 			printf("\n[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
-			//exit(0);
+			abort();
 		}
 	}
 	else {
@@ -494,7 +509,9 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x02: gpu::fill_rectangle(); break;
 				case 0x20: gpu::monochrome_three_point_opaque_polygon(); break;
 				case 0x22: gpu::monochrome_three_point_semi_transparent_polygon(); break;
+				case 0x29:
 				case 0x28: gpu::monochrome_four_point_opaque_polygon(); break;
+				case 0x2B:
 				case 0x2A: gpu::monochrome_four_point_semi_transparent_polygon(); break;
 				case 0x2C: gpu::texture_blending_four_point_opaque_polygon(); break;
 				case 0x2D: gpu::texture_four_point_opaque_polygon(); break;
@@ -504,6 +521,7 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x38: gpu::shaded_four_point_opaque_polygon(); break;
 				case 0x3A: gpu::shaded_four_point_semi_transparent_polygon(); break;
 				case 0x3C: gpu::shaded_texture_blending_textured_four_point_opaque_polygon(); break;
+				case 0x41:
 				case 0x40: gpu::monochrome_line_opaque(); break;
 				case 0x60: gpu::monochrome_rectangle_variable_size_opaque(); break;
 				case 0x62: gpu::monochrome_rectangle_variable_size_semi_transparent(); break;
@@ -513,8 +531,9 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x68: gpu::monochrome_rectangle_dot_opaque(); break;
 				case 0x74: gpu::texture_blending_rectangle_8x8_opaque(); break;
 				case 0x75: gpu::texture_rectangle_8x8_opaque(); break;
+				case 0x80: break;
 				case 0xA0: gpu::cpu_to_vram(); break;
-				default: printf("\n%d", fifo[0] >> 24); exit(1);
+				default: printf("\n%d", fifo[0] >> 24); abort();
 				}
 			}
 			break;
@@ -662,6 +681,15 @@ void gpu::monochrome_four_point_opaque_polygon() {
 	v4.x = fifo[4] & 0xffff;
 	v4.y = fifo[4] >> 16;
 
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0,
 		v2.x, v2.y, 0,
@@ -748,6 +776,15 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -883,6 +920,15 @@ void gpu::texture_four_point_opaque_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -1017,6 +1063,15 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -1131,8 +1186,66 @@ void gpu::monochrome_four_point_semi_transparent_polygon() {
 	v3.y = fifo[3] >> 16;
 	v4.x = fifo[4] & 0xffff;
 	v4.y = fifo[4] >> 16;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
 	
-	// TODO: OpenGL implementation
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0,
+		v2.x, v2.y, 0,
+		v3.x, v3.y, 0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribIPointer(0, 3, GL_INT, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
+	uint32_t Vertices2[]{
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+		v4.x, v4.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 640, 480);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribIPointer(0, 3, GL_INT, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 	return;
 }
 
@@ -1146,6 +1259,13 @@ void gpu::monochrome_three_point_opaque_polygon() {
 	v2.y = fifo[2] >> 16;
 	v3.x = fifo[3] & 0xffff;
 	v3.y = fifo[3] >> 16;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
 
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0.0,
@@ -1185,6 +1305,13 @@ void gpu::monochrome_three_point_semi_transparent_polygon() {
 	v3.x = fifo[3] & 0xffff;
 	v3.y = fifo[3] >> 16;
 	
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	printf("CCCCCCCCCCCC\n");
 	// TODO: OpenGL implementation
 	return;
 }
@@ -1202,9 +1329,12 @@ void gpu::shaded_three_point_opaque_polygon() {
 	v3.x = fifo[5] & 0xffff;
 	v3.y = fifo[5] >> 16;
 
-	printf("\n%d, %d\n", v1.x, v1.y);
-	printf("%d, %d\n", v2.x, v2.y);
-	printf("%d, %d\n", v3.x, v3.y);
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
 
 	uint32_t Vertices[]{
 		v1.x, v1.y, 0.0, 
@@ -1246,6 +1376,13 @@ void gpu::shaded_three_point_semi_transparent_polygon() {
 	v3.x = fifo[5] & 0xffff;
 	v3.y = fifo[5] >> 16;
 
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	printf("BBBBBBBBBBBBBB\n");
 	// TODO: OpenGL implementation
 	return;
 }
@@ -1264,6 +1401,16 @@ void gpu::shaded_four_point_opaque_polygon() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
 	debug_printf("[GP0] Shaded four-point polygon, opaque\n");
 
 	uint32_t Vertices1[]{
@@ -1332,7 +1479,17 @@ void gpu::shaded_four_point_semi_transparent_polygon() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
 	debug_printf("[GP0] Shaded four-point polygon, semi-transparent\n");
+	printf("AAAAAAAAAAAAAA\n");
 	// TODO: OpenGL implementation
 	return;
 }
@@ -1368,6 +1525,15 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 	v3.y = fifo[7] >> 16;
 	v4.x = fifo[10] & 0xffff;
 	v4.y = fifo[10] >> 16;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -1603,6 +1769,15 @@ void gpu::monochrome_rectangle_variable_size_opaque() {
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
 
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0,
 		v2.x, v2.y, 0,
@@ -1670,6 +1845,15 @@ void gpu::monochrome_rectangle_variable_size_semi_transparent() {
 	v3.y = v1.y + res.y;
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
 
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0,
@@ -1757,6 +1941,15 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 	v3.y = v1.y + res.y;
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -1892,6 +2085,15 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 	v4.x = v1.x + 8;
 	v4.y = v1.y + 8;
 
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -2025,6 +2227,15 @@ void gpu::texture_rectangle_8x8_opaque() {
 	v3.y = v1.y + 8;
 	v4.x = v1.x + 8;
 	v4.y = v1.y + 8;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -2162,6 +2373,15 @@ void gpu::texture_rectangle_variable_size_opaque() {
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
 
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -2297,6 +2517,15 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 	v3.y = v1.y + res.y;
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;

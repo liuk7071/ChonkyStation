@@ -162,7 +162,12 @@ public:
 	void execute(uint32_t instr, uint32_t* gpr);
 	uint32_t sf(uint32_t instr) { return ((instr >> 19) & 1); }
 	uint32_t lm(uint32_t instr) { return ((instr >> 10) & 1); }
-	template<int x> uint32_t mx(int i);
+	uint32_t m(uint32_t instr) { return ((instr >> 17) & 3); }
+	uint32_t v(uint32_t instr) { return ((instr >> 15) & 3); }
+	uint32_t cv(uint32_t instr) { return ((instr >> 13) & 3); }
+	uint32_t mx(int x, int i);
+	uint32_t vx(int x, int i);
+	uint32_t tx(int x, int i);
 	uint32_t instruction = 0;
 	enum Commands {
 		MOVE,

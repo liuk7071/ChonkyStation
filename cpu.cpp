@@ -32,6 +32,12 @@ cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_
 	test3.doTest();
 	testNCDS test4;
 	test4.doTest();
+	testMVMVA test5;
+	test5.doTest();
+	testDPCS test6;
+	test6.doTest();
+	testNCT test7;
+	test7.doTest();
 #endif
 }
 
@@ -117,6 +123,11 @@ void cpu::exception(exceptions exc) {
 	delay = false;
 }
 
+void DMAIRQ(void* dataptr) {
+	memory* memoryptr = (memory*)dataptr;
+	memoryptr->I_STAT |= 0b1000;
+}
+
 template<int channel>
 void cpu::do_dma() {
 	//debug = true;
@@ -147,6 +158,9 @@ void cpu::do_dma() {
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				bus.mem.Ch2.CHCR &= ~(1 << 28);
 				//debug = false;
+				//if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+				//	bus.mem.I_STAT |= 0b1000;
+				//}
 				return;
 			case 0:
 				printf("[DMA] GPU to RAM block copy (unimplemented)\n");
@@ -174,10 +188,13 @@ void cpu::do_dma() {
 						bus.Gpu.execute_gp0(command);
 						_words--;
 					}
-					if ((_header & 0x800000) != 0) 
+					if ((_header & 0x800000) != 0)
 						break;
 					addr = _header & 0x1ffffc;
 				}
+				//if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+				//	bus.mem.I_STAT |= 0b1000;
+				//}
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				debug_log("[DMA] GPU Linked List transfer complete\n");
 				//debug = false;
@@ -223,7 +240,9 @@ void cpu::do_dma() {
 						bus.mem.Ch3.CHCR &= ~(1 << 24);
 						bus.mem.Ch3.CHCR &= ~(1 << 28);
 						//debug = false;
-						
+						if (((bus.mem.DICR >> 19) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+							bus.mem.I_STAT |= 0b1000;
+						}
 						//bus.mem.CDROM.queued_read = true;
 						//bus.mem.CDROM.delay = 2;
 						return;
@@ -277,6 +296,9 @@ void cpu::do_dma() {
 						bus.mem.Ch6.CHCR &= ~(1 << 24);
 						bus.mem.Ch6.CHCR &= ~(1 << 28);
 						//debug = false;
+						//if (((bus.mem.DICR >> 22) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+						//	bus.mem.I_STAT |= 0b1000;
+						//}
 						return;
 					}
 					bus.mem.write32(current_addr, (addr - 4) & 0x1fffff);
@@ -835,9 +857,10 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x23: {
 		uint32_t addr = regs[rs] + sign_extended_imm;
-		debug_log("lw %s, 0x%.4x(%s) ; addr = 0x%08x", reg[rt].c_str(), imm, reg[rs].c_str(), addr);
+		uint32_t value = bus.mem.read32(addr);
+		debug_log("lw %s, 0x%.4x(%s) ; addr = 0x%08x, val = 0x%08x", reg[rt].c_str(), imm, reg[rs].c_str(), addr, value);
 		if ((COP0.regs[12] & 0x10000) == 0) {
-			regs[rt] = bus.mem.read32(addr);
+			regs[rt] = value;
 			debug_log("\n");
 		}
 		else {

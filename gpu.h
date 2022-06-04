@@ -54,6 +54,9 @@ public:
 	int gp0_mode = 0;
 	void execute_gp0(uint32_t command);
 	void execute_gp1(uint32_t command);
+
+	uint32_t xoffset = 0;
+	uint32_t yoffset = 0;
 	
 
 	// GPUSTAT

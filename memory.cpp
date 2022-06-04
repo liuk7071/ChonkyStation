@@ -13,9 +13,12 @@ void ScheduleVBLANK_(void* dataptr) {
 	printf("fuck\n");
 	memoryptr->I_STAT |= 1;
 }
-void DMAIRQ(void* dataptr) {
+
+void TMR1IRQ(void* dataptr) {
 	memory* memoryptr = (memory*)dataptr;
-	memoryptr->I_STAT |= 0b1000;
+	memoryptr->I_STAT |= 0b100000;
+	memoryptr->CDROM.Scheduler.push(&TMR1IRQ, memoryptr->CDROM.Scheduler.time + 5000, memoryptr);
+	printf("[TIMERS] Sending TMR1 IRQ (stub)\n");
 }
 void TMR2IRQ(void* dataptr) { 
 	memory* memoryptr = (memory*)dataptr;
@@ -107,8 +110,8 @@ uint8_t memory::read(uint32_t addr) {
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
 		printf("[CDROM] Status register read\n");
-		return rand() % 0xff;
-		return CDROM.status;
+		//return rand() % 0xff;
+		return CDROM.status | (CDROM.cd.drqsts << 6);
 	}
 
 	if (masked_addr == 0x1f801801) {
@@ -174,7 +177,8 @@ uint16_t memory::read16(uint32_t addr) {
 	// Timer 1 current value
 	if (masked_addr == 0x1f801110) {
 		//printf("[TIMER] Read timer 1 current value (stubbed)\n");
-		return tmr1_stub++;
+		tmr1_stub += rand() % 4;
+		return tmr1_stub;
 	}
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
@@ -183,7 +187,7 @@ uint16_t memory::read16(uint32_t addr) {
 	}
 
 	if (masked_addr == 0x1f801120) {	// timer 2 stuff
-		printf("timer\n");
+		//printf("timer\n");
 		return tmr1_stub++;
 	}
 
@@ -230,7 +234,7 @@ uint16_t memory::read16(uint32_t addr) {
 
 	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801CfE || masked_addr == 0x1f801d0c && masked_addr <= 0x1f801dfc || masked_addr >= 0x1f801d1c && masked_addr <= 0x1f801dfc) {	// more spu registers
 		printf("[SPU] Registers read (stubbed)\n");
-		return 0;
+		return rand() % 0xff;
 	}
 
 	if (masked_addr >= 0x1FC00000 && masked_addr <= 0x1FC00000 + 524288) {
@@ -282,7 +286,8 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f801110) {	// timer 1 stuff
 		//printf("[TIMER] Read timer 1 current value\n");
-		return tmr1_stub++;
+		tmr1_stub += rand() % 4;
+		return tmr1_stub;
 	}
 
 	if (masked_addr == 0x1f80101c) {
@@ -360,7 +365,6 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
 		return 0xffffffff;
 	}
-
 	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
 	printf("\n$v0 is 0x%x\n", regs[2]);
 	std::ofstream file("ram.bin", std::ios::binary);
@@ -373,7 +377,6 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 	
-	if (addr == 0x0801ffee8) printf("8bit write [0x0801ffee8] <- 0x%02x @ 0x%08x\n", data, pc);
 
 	// controllers
 	if (masked_addr == 0x1f801040) {
@@ -451,7 +454,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
-		printf("[TIMERS] Write timer 0/1 regs\n");
+		printf("[TIMERS] Write timer 0/1 regs (0x%08x)\n", masked_addr);
 		return;
 	}
 
@@ -491,7 +494,6 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t masked_addr = mask_address(addr);
 
 	// if (masked_addr == 0x00fffffc) return;
-	if (addr == 0x0801ffee8) printf("32bit write [0x0801ffee8] <- 0x%08x @ 0x%08x\n", data, pc);
 
 	if (masked_addr == 0x1f802084) {	// Openbios stuff
 		return;
@@ -593,9 +595,16 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		Ch6.CHCR = data;
 		return;
 	}
+	
+	if (masked_addr == 0x1f801114) {
+		printf("[TIMERS] Sending TMR1 IRQ (stub)\n");
+		tmr1_stub = 0;
+		//CDROM.Scheduler.push(&TMR1IRQ, CDROM.Scheduler.time + 5000, this);
+		return;
+	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
-		printf("[TIMER] Write timer 0/1 regs\n");
+		printf("[TIMERS] Write timer 0/1 regs (0x%08x)\n", masked_addr);
 		return;
 	}
 
@@ -624,8 +633,6 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 void memory::write16(uint32_t addr, uint16_t data) {
 	uint32_t masked_addr = mask_address(addr);
-
-	if (addr == 0x0801ffee8) printf("16bit write [0x0801ffee8] <- 0x%04x @ 0x%08x\n", data, pc);
 
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);

@@ -25,5 +25,6 @@ public:
 	int buff_left = 0;
 	uint8_t SectorBuffer[SECTOR_SIZE];
 	uint8_t DataBuffer[CDXA_DATA_SIZE];
+	uint8_t drqsts = 0;
 };
 

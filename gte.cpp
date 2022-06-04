@@ -33,8 +33,7 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 	}
 }
 
-template<int x>
-uint32_t gte::mx(int i) {
+uint32_t gte::mx(int x, int i) {
 	switch (x) {
 	case 0: // Rotation matrix
 		switch (i) {
@@ -48,7 +47,7 @@ uint32_t gte::mx(int i) {
 		case 32: return RT32;
 		case 33: return RT33;
 		default:
-			printf("Bad matrix index (%d)\n", i);
+			printf("Bad matrix index (%d)\n", i); exit(0);
 		}
 	case 1: // Light matrix
 		switch (i) {
@@ -62,7 +61,7 @@ uint32_t gte::mx(int i) {
 		case 32: return L32;
 		case 33: return L33;
 		default:
-			printf("Bad matrix index (%d)\n", i);
+			printf("Bad matrix index (%d)\n", i); exit(0);
 		}
 	case 2: // Colour matrix
 		switch (i) {
@@ -76,10 +75,78 @@ uint32_t gte::mx(int i) {
 		case 32: return LB2;
 		case 33: return LB3;
 		default:
-			printf("Bad matrix index (%d)\n", i);
+			printf("Bad matrix index (%d)\n", i); exit(0);
 		}
 	default:
 		printf("Bad mx value (%d)\n", x);
+		exit(0);
+	}
+}
+uint32_t gte::vx(int x, int i) {
+	switch (x) {
+	case 0:
+		switch (i) {
+		case 0: return VX0;
+		case 1: return VY0;
+		case 2: return VZ0;
+		default:
+			printf("Bad vector index (%d)\n", i);
+			exit(0);
+		}
+	case 1:
+		switch (i) {
+		case 0: return VX1;
+		case 1: return VY1;
+		case 2: return VZ1;
+		default:
+			printf("Bad vector index (%d)\n", i);
+			exit(0);
+		}
+	case 2:
+		switch (i) {
+		case 0: return VX2;
+		case 1: return VY2;
+		case 2: return VZ2;
+		default:
+			printf("Bad vector index (%d)\n", i);
+			exit(0);
+		}
+	case 3:
+		switch (i) {
+		case 0: return IR1;
+		case 1: return IR2;
+		case 2: return IR3;
+		default:
+			printf("Bad vector index (%d)\n", i);
+			exit(0);
+		}
+	default:
+		printf("Bad vx value (%d)\n", x);
+		exit(0);
+	}
+}
+uint32_t gte::tx(int x, int i) {
+	switch (x) {
+	case 0:
+		switch (i) {
+		case 0: return TRX;
+		case 1: return TRY;
+		case 2: return TRZ;
+		default:
+			printf("Bad vector index (%d)\n", i);
+			exit(0);
+		}
+	case 1:
+		switch (i) {
+		case 0: return RBK;
+		case 1: return GBK;
+		case 2: return BBK;
+		default:
+			printf("Bad vector index (%d)\n", i);
+			exit(0);
+		}
+	default:
+		printf("Bad tx value (%d)\n", x);
 		exit(0);
 	}
 }
@@ -319,7 +386,15 @@ void gte::commandINTPL() {
 }
 
 void gte::commandMVMVA() {
-
+	const int lm = this->lm(instruction);
+	const int shift = sf(instruction) * 12;
+	const int m = this->m(instruction);
+	const int v = this->v(instruction);
+	const int cv = this->cv(instruction);
+	MAC1 = int64_t(((int64_t)(int32_t)tx(m, 0) * 0x1000) + ((int16_t)mx(m, 11) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 12) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 13) * (int16_t)vx(v, 2))) >> shift;
+	MAC2 = int64_t(((int64_t)(int32_t)tx(m, 1) * 0x1000) + ((int16_t)mx(m, 21) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 22) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 23) * (int16_t)vx(v, 2))) >> shift;
+	MAC3 = int64_t(((int64_t)(int32_t)tx(m, 2) * 0x1000) + ((int16_t)mx(m, 31) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 32) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 33) * (int16_t)vx(v, 2))) >> shift;
+	setIRFromMAC(lm);
 }
 
 void gte::commandNCDS() {
