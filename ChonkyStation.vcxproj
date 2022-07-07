@@ -95,6 +95,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,6 +111,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,6 +128,8 @@
       <ConformanceMode>true</ConformanceMode>
       <DebugInformationFormat>OldStyle</DebugInformationFormat>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,6 +150,7 @@
       <SupportJustMyCode>false</SupportJustMyCode>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -174,7 +180,39 @@
     <ClCompile Include="memory.cpp" />
     <ClCompile Include="pad.cpp" />
     <ClCompile Include="scheduler.cpp" />
+    <ClCompile Include="Shader Editor\shader-editor.cc" />
+    <ClCompile Include="Shader Editor\ZepEditor.cc" />
     <ClCompile Include="TinyFileDialogs\tinyfiledialogs.c" />
+    <ClCompile Include="zep\src\buffer.cpp" />
+    <ClCompile Include="zep\src\commands.cpp" />
+    <ClCompile Include="zep\src\display.cpp" />
+    <ClCompile Include="zep\src\editor.cpp" />
+    <ClCompile Include="zep\src\filesystem.cpp" />
+    <ClCompile Include="zep\src\glyph_iterator.cpp" />
+    <ClCompile Include="zep\src\indexer.cpp" />
+    <ClCompile Include="zep\src\keymap.cpp" />
+    <ClCompile Include="zep\src\line_widgets.cpp" />
+    <ClCompile Include="zep\src\mcommon\animation\timer.cpp" />
+    <ClCompile Include="zep\src\mcommon\file\path.cpp" />
+    <ClCompile Include="zep\src\mcommon\string\murmur_hash.cpp" />
+    <ClCompile Include="zep\src\mcommon\string\stringutils.cpp" />
+    <ClCompile Include="zep\src\mode.cpp" />
+    <ClCompile Include="zep\src\mode_search.cpp" />
+    <ClCompile Include="zep\src\mode_standard.cpp" />
+    <ClCompile Include="zep\src\mode_tree.cpp" />
+    <ClCompile Include="zep\src\mode_vim.cpp" />
+    <ClCompile Include="zep\src\range_markers.cpp" />
+    <ClCompile Include="zep\src\regress.cpp" />
+    <ClCompile Include="zep\src\scroller.cpp" />
+    <ClCompile Include="zep\src\splits.cpp" />
+    <ClCompile Include="zep\src\syntax.cpp" />
+    <ClCompile Include="zep\src\syntax_markdown.cpp" />
+    <ClCompile Include="zep\src\syntax_providers.cpp" />
+    <ClCompile Include="zep\src\syntax_rainbow_brackets.cpp" />
+    <ClCompile Include="zep\src\syntax_tree.cpp" />
+    <ClCompile Include="zep\src\tab_window.cpp" />
+    <ClCompile Include="zep\src\theme.cpp" />
+    <ClCompile Include="zep\src\window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h" />
@@ -197,11 +235,23 @@
     <ClInclude Include="memory.h" />
     <ClInclude Include="pad.h" />
     <ClInclude Include="scheduler.h" />
+    <ClInclude Include="Shader Editor\shader-editor.h" />
+    <ClInclude Include="Shader Editor\ZepEditor.h" />
     <ClInclude Include="tests.h" />
     <ClInclude Include="TinyFileDialogs\tinyfiledialogs.h" />
     <ClInclude Include="xbyak\xbyak.h" />
     <ClInclude Include="xbyak\xbyak_mnemonic.h" />
     <ClInclude Include="xbyak\xbyak_util.h" />
+    <ClInclude Include="zep\include\zep\editor.h" />
+    <ClInclude Include="zep\include\zep\filesystem.h" />
+    <ClInclude Include="zep\include\zep\imgui\display_imgui.h" />
+    <ClInclude Include="zep\include\zep\mode_standard.h" />
+    <ClInclude Include="zep\include\zep\mode_vim.h" />
+    <ClInclude Include="zep\include\zep\regress.h" />
+    <ClInclude Include="zep\include\zep\syntax.h" />
+    <ClInclude Include="zep\include\zep\tab_window.h" />
+    <ClInclude Include="zep\include\zep\theme.h" />
+    <ClInclude Include="zep\include\zep\window.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <cstdarg>
 #include <string.h>
+#define NOMINMAX
 #include <windows.h>
 #include "Bus.h"
 #include "cop0.h"

@@ -6,6 +6,9 @@ https://wheremyfoodat.github.io/software-fastmem/ */
 #define log
 #undef log
 
+#define ENABLE_RAM_MIRRORS
+#undef ENABLE_RAM_MIRRORS
+
 #pragma warning(disable : 4996)
 
 void ScheduleVBLANK_(void* dataptr) {
@@ -155,6 +158,13 @@ uint8_t memory::read(uint32_t addr) {
 		return bytes;
 	}
 
+#ifdef ENABLE_RAM_MIRRORS
+	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x200000) {
+		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint8_t));
+		return bytes;
+	}
+#endif
+
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {	// return default exp1 value
 		return 0xff;
 	}
@@ -251,7 +261,12 @@ uint16_t memory::read16(uint32_t addr) {
 		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint16_t));
 		return bytes;
 	}
-
+#ifdef ENABLE_RAM_MIRRORS
+	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x200000) {
+		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint16_t));
+		return bytes;
+	}
+#endif
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
 		return 0xffff;
 	}
@@ -361,6 +376,13 @@ uint32_t memory::read32(uint32_t addr) {
 		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint32_t));
 		return bytes;
 	}
+
+#ifdef ENABLE_RAM_MIRRORS
+	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x200000) {
+		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint32_t));
+		return bytes;
+	}
+#endif
 
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
 		return 0xffffffff;
@@ -476,13 +498,18 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		ram[masked_addr & 0x1fffff] = data;
 		return;
 	}
-
+#ifdef ENABLE_RAM_MIRRORS
+	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x200000) {
+		ram[masked_addr & 0x1fffff] = data;
+		return;
+	}
+#endif
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
 		exp1[masked_addr & 0xfffff] = data;
 		return;
 	}
 
-	else if (masked_addr == 0x1f802082) // Exit code register for Continuous Integration tests
+	else if (masked_addr == 0x1f802082) // exit code register for Continuous Integration tests
 		exit(data);
 
 	printf("\nUnhandled write 0x%.8x", masked_addr);

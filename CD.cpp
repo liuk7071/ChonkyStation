@@ -8,7 +8,7 @@ void CD::OpenFile(const char* directory) {
 }
 
 uint8_t CD::ReadDataByte() {
-	if (buff_left >= CDXA_DATA_SIZE - 1) {
+	if (buff_left >= ((WholeSector ? (SECTOR_SIZE - 0xc) : CDXA_DATA_SIZE) - 1)) {
 		printf("[All data has been read]\n");
 		drqsts = 0;
 	}

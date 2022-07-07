@@ -21,7 +21,7 @@ SDL_Window*     g_Window = NULL;
 SDL_GLContext   g_GLContext = NULL;
 
 // For clarity, our main loop code is declared at the end.
-void main_loop(void*);
+static void main_loop(void*);
 
 int main(int, char**)
 {
@@ -99,7 +99,7 @@ int main(int, char**)
     emscripten_set_main_loop_arg(main_loop, NULL, 0, true);
 }
 
-void main_loop(void* arg)
+static void main_loop(void* arg)
 {
     ImGuiIO& io = ImGui::GetIO();
     IM_UNUSED(arg); // We can pass this argument as the second parameter of emscripten_set_main_loop_arg(), but we don't use that.
@@ -111,8 +111,8 @@ void main_loop(void* arg)
 
     // Poll and handle events (inputs, window resize, etc.)
     // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
+    // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+    // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
     // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
     SDL_Event event;
     while (SDL_PollEvent(&event))
@@ -123,7 +123,7 @@ void main_loop(void* arg)
 
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame(g_Window);
+    ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
 
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
@@ -167,7 +167,7 @@ void main_loop(void* arg)
     ImGui::Render();
     SDL_GL_MakeCurrent(g_Window, g_GLContext);
     glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
-    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     SDL_GL_SwapWindow(g_Window);
