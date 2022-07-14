@@ -6,7 +6,7 @@ Bus* bus;
 gpu::gpu() {
 	// Initialize pixel array
 	pixels = new uint32_t[480 * 640];
-	debug = true;
+	debug = false;
 }
 
 void connectBus(Bus *_bus) {
@@ -33,6 +33,8 @@ uint32_t gpu::get_status() {
 }
 
 void gpu::InitGL() {
+	//WriteBuffer.reserve(1024 * 512);
+	//WriteBuffer.clear();
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO);
 	glGenFramebuffers(1, &FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
@@ -402,6 +404,8 @@ void gpu::execute_gp0(uint32_t command) {
 			fifo[cmd_length++] = command;
 
 			if (cmd_left == 0) {	// all the parameters are in, run command
+				glScissor(drawing_topleft_x, drawing_topleft_y, (drawing_bottomright_x - drawing_topleft_x), (drawing_bottomright_y - drawing_topleft_y));
+				glEnable(GL_SCISSOR_TEST);
 
 				switch ((fifo[0] >> 24) & 0xff) {
 
@@ -435,6 +439,8 @@ void gpu::execute_gp0(uint32_t command) {
 				default: printf("\n%d", fifo[0] >> 24); abort();
 				}
 			}
+			
+			glDisable(GL_SCISSOR_TEST);
 			break;
 		}
 		case 1: {	// load mode
@@ -448,16 +454,19 @@ void gpu::execute_gp0(uint32_t command) {
 
 			auto x = coords & 0xffff;
 			auto y = coords >> 16;
+
 			if (cmd_left == 0) {
 				gp0_mode = 0;
-				glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 				glBindTexture(GL_TEXTURE_2D, VramTexture);
-				glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, WriteBuffer.data());
-				WriteBuffer.clear();
+				glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &WriteBuffer[0]);
+				for (int i = 0; i < (1024 * 512) / 2; i++) WriteBuffer[i] = 0;
+				//WriteBuffer.clear();
+				WriteBufferCnt = 0;
 				SyncVRAM();
 				break;
 			}
-			WriteBuffer.push_back(command);
+			//WriteBuffer.push_back(command);
+			WriteBuffer[WriteBufferCnt++] = command;
 			break;
 		}
 		case 2: {	// polyline mode
@@ -2493,7 +2502,6 @@ void gpu::fill_rectangle() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glDisable(GL_SCISSOR_TEST);
 	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
-	//exit(1);
 	return;
 }
 

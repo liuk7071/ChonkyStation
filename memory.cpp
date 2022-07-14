@@ -21,14 +21,14 @@ void TMR1IRQ(void* dataptr) {
 	memory* memoryptr = (memory*)dataptr;
 	memoryptr->I_STAT |= 0b100000;
 	memoryptr->CDROM.Scheduler.push(&TMR1IRQ, memoryptr->CDROM.Scheduler.time + 5000, memoryptr);
-	printf("[TIMERS] Sending TMR1 IRQ (stub)\n");
+	//printf("[TIMERS] Sending TMR1 IRQ (stub)\n");
 }
 void TMR2IRQ(void* dataptr) { 
 	memory* memoryptr = (memory*)dataptr;
 	memoryptr->I_STAT |= 0b1000000;
 }
 memory::memory() {
-	debug = true;
+	debug = false;
 }
 
 memory::~memory() {
@@ -44,14 +44,14 @@ void memory::debug_log(const char* fmt, ...) {
 #endif
 }
 void memory::debug_warn(const char* fmt, ...) {
-	//if (debug) {
+	if (debug) {
 		SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
 		std::va_list args;
 		va_start(args, fmt);
 		std::vprintf(fmt, args);
 		va_end(args);
 		SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
-	//}
+	}
 }
 void memory::debug_err(const char* fmt, ...) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED);
@@ -184,6 +184,13 @@ uint16_t memory::read16(uint32_t addr) {
 	if (masked_addr == 0x1f801d1a) return 0;
 
 	//if (patch_b0_15h && (masked_addr == mask_address(button_dest))) printf("test\n");
+	
+	// Timer 0 current value
+	if (masked_addr == 0x1f801100) {
+		printf("[TIMER] Read timer 0 current value\n");
+		tmr1_stub += rand() % 4;
+		return tmr1_stub;
+	}
 	// Timer 1 current value
 	if (masked_addr == 0x1f801110) {
 		//printf("[TIMER] Read timer 1 current value (stubbed)\n");
@@ -192,22 +199,27 @@ uint16_t memory::read16(uint32_t addr) {
 	}
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
-		printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
+		//printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
 		return 0;
 	}
 
 	if (masked_addr == 0x1f801120) {	// timer 2 stuff
-		//printf("timer\n");
+		//printf("[TIMER] Read timer 2 current value (stubbed)\n");
 		return tmr1_stub++;
 	}
 
 	if (masked_addr == 0x1f801124) {
+		//printf("[TIMER] Read timer 2 counter mode (stubbed)\n");
 		return 0;
 	}
 
 	if (masked_addr == 0x1f801128) {
+		//printf("[TIMER] Read timer 2 counter target (stubbed)\n");
 		return 0;
 	}
+
+	// What is this?
+	if (masked_addr == 0x1f801130) return 0;
 
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
@@ -229,7 +241,7 @@ uint16_t memory::read16(uint32_t addr) {
 
 	if (masked_addr >= 0x1F801D80 && masked_addr <= 0x1F801DBC) {	// SPUSTAT
 		printf("[SPU] SPUSTAT read (stubbed)\n");
-		return 0;
+		return rand() % 0xff;
 	}
 
 	if (masked_addr == 0x1F801070) { // I_STAT
@@ -243,7 +255,7 @@ uint16_t memory::read16(uint32_t addr) {
 	}
 
 	if (masked_addr >= 0x1F801C00 && masked_addr <= 0x1F801CfE || masked_addr == 0x1f801d0c && masked_addr <= 0x1f801dfc || masked_addr >= 0x1f801d1c && masked_addr <= 0x1f801dfc) {	// more spu registers
-		printf("[SPU] Registers read (stubbed)\n");
+		//printf("[SPU] Registers read (stubbed)\n");
 		return rand() % 0xff;
 	}
 
@@ -287,7 +299,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
-		printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
+		//printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
 		return 0;
 	}
 
@@ -384,6 +396,16 @@ uint32_t memory::read32(uint32_t addr) {
 	}
 #endif
 
+	// MDEC
+	if (masked_addr == 0x1f801820) {
+		printf("[MDEC] Read MDEC Data/Response Register (stubbed)\n");
+		return 0;
+	}
+	if (masked_addr == 0x1f801824) {
+		printf("[MDEC] Read MDEC1 - MDEC Status Register (stubbed)\n");
+		return 0;
+	}
+
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
 		return 0xffffffff;
 	}
@@ -476,7 +498,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
-		printf("[TIMERS] Write timer 0/1 regs (0x%08x)\n", masked_addr);
+		//printf("[TIMERS] Write timer 0/1 regs (0x%08x)\n", masked_addr);
 		return;
 	}
 
@@ -557,7 +579,40 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	if (masked_addr == 0x1f8010f4) { // DICR
 		DICR = data;
+		DICR &= ~(data & 0x7f000000);
 		if (debug) debug_log(" Write 0x%.8x to dicr", data);
+		return;
+	}
+
+	// channel 0 (stubbed)
+	if (masked_addr == 0x1f801080) {	// base address
+		printf("[DMA] Write to DMA0 (ram -> mdec) base address (stubbed)\n");
+		return;
+	}
+
+	if (masked_addr == 0x1f801084) { // block control
+		printf("[DMA] Write to DMA0 (ram -> mdec) block control (stubbed)\n");
+		return;
+	}
+
+	if (masked_addr == 0x1f801088) {	// control
+		printf("[DMA] Write to DMA0 (ram -> mdec) control (stubbed)\n");
+		return;
+	}
+
+	// channel 1 (stubbed)
+	if (masked_addr == 0x1f801090) {	// base address
+		printf("[DMA] Write to DMA1 (mdec -> ram) base address (stubbed)\n");
+		return;
+	}
+
+	if (masked_addr == 0x1f801094) { // block control
+		printf("[DMA] Write to DMA1 (mdec -> ram) block control (stubbed)\n");
+		return;
+	}
+
+	if (masked_addr == 0x1f801098) {	// control
+		printf("[DMA] Write to DMA1 (mdec -> ram) control (stubbed)\n");
 		return;
 	}
 
@@ -624,14 +679,25 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	}
 	
 	if (masked_addr == 0x1f801114) {
-		printf("[TIMERS] Sending TMR1 IRQ (stub)\n");
+		////printf("[TIMERS] Sending TMR1 IRQ (stub)\n");
+		//printf("[TIMER] Write timer 2 counter mode\n");
 		tmr1_stub = 0;
 		//CDROM.Scheduler.push(&TMR1IRQ, CDROM.Scheduler.time + 5000, this);
 		return;
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
-		printf("[TIMERS] Write timer 0/1 regs (0x%08x)\n", masked_addr);
+		//printf("[TIMERS] Write timer 0/1 regs (0x%08x)\n", masked_addr);
+		return;
+	}
+
+	// MDEC
+	if (masked_addr == 0x1f801820) { // MDEC0 - MDEC Command/Parameter Register
+		printf("[MDEC] Write MDEC0 - MDEC Command/Parameter Register (0x%x) (stubbed)\n", data);
+		return;
+	}
+	if (masked_addr == 0x1f801824) { // MDEC1 - MDEC Control/Reset Register
+		printf("[MDEC] Write MDEC1 - MDEC Control/Reset Register (stubbed)\n");
 		return;
 	}
 
@@ -695,12 +761,13 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	}
 
 	if (masked_addr == 0x1f801110) {
+		//printf("[TIMER] Write timer 1 current value\n");
 		tmr1_stub = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
-		printf("[TIMER] Write timer regs\n");
+		//printf("[TIMER] Write timer regs\n");
 		return;
 	}
 

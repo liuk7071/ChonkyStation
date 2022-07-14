@@ -74,6 +74,7 @@ const char* FilterPatternsExe[1] = { "*.exe" };
 
 unsigned int vram_viewer;
 bool test = false;
+bool tmr1irq = false;
 
 static MemoryEditor MemEditor;
 
@@ -102,6 +103,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
     int count;
     const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &count);
+    
+    // Timer 1 stub
+    if (key == GLFW_KEY_U && action == GLFW_PRESS) {
+        tmr1irq = true;
+    }
 
     // pad1
     if (key == GLFW_KEY_S && action == GLFW_PRESS) {
@@ -567,17 +573,17 @@ void ImGuiCallback_VRAM(const ImDrawList* parentList, const ImDrawCmd* cmd) {
     GLint imguiProgramID;
     glGetIntegerv(GL_CURRENT_PROGRAM, &imguiProgramID);
     GLint projmtxloc = glGetUniformLocation(imguiProgramID, "ProjMtx");
-    printf("%d\n", projmtxloc);
+    //printf("%d\n", projmtxloc);
     glGetUniformfv(imguiProgramID, projmtxloc, &projMtx[0][0]);
     glUseProgram(ShaderProgram);
     projmtxloc = glGetUniformLocation(ShaderProgram, "projMatrix");
-    printf("%d\n", projmtxloc);
+    //printf("%d\n", projmtxloc);
     glUniformMatrix4fv(projmtxloc, 1, GL_FALSE, &projMtx[0][0]);
     //GLuint textureID = static_cast<GLuint>(reinterpret_cast<uintptr_t>(cmd->TextureId));
     //glBindTexture(GL_TEXTURE_2D, vram_texture);
     //GLint textureloc = glGetUniformLocation(ShaderProgram, "_texture");
     //glUniform1i(textureloc, 0);
-    printf("text %d\n", vram_texture);
+    //printf("text %d\n", vram_texture);
 }
 
 void UpdateVRAMViewer(cpu* Cpu) {
@@ -693,6 +699,18 @@ int main(int argc, char** argv) {
     int frameCount = 0;
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
+            if (tmr1irq) {
+                printf("[TIMERS] TMR1 IRQ\n");
+                tmr1irq = false;
+                Cpu.bus.mem.I_STAT |= 0b100000;
+            }
+            Cpu.bus.mem.I_STAT |= 0b100000;
+            //Cpu.bus.mem.I_STAT |= 0b1000000;
+            if (Cpu.should_service_dma_irq) {
+                printf("[DMA] IRQ\n");
+                Cpu.bus.mem.I_STAT |= 0b1000;
+                Cpu.should_service_dma_irq = false;
+            }
             //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             if (pad1_source == "Gamepad") {
                 GLFWgamepadstate state;
@@ -726,6 +744,7 @@ int main(int argc, char** argv) {
                         P1buttons &= ~(0b0000000000000001);
                     }
                     if (state.buttons[GLFW_GAMEPAD_BUTTON_START] == GLFW_PRESS) {
+                        printf("start\n");
                         P1buttons &= ~(0b0000000000001000);
                     }
                 }

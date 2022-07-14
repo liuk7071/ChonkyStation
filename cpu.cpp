@@ -158,9 +158,10 @@ void cpu::do_dma() {
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				bus.mem.Ch2.CHCR &= ~(1 << 28);
 				//debug = false;
-				//if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
-				//	bus.mem.I_STAT |= 0b1000;
-				//}
+				if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+					bus.mem.DICR |= (1 << 26);
+					should_service_dma_irq = true;
+				}
 				return;
 			case 0:
 				printf("[DMA] GPU to RAM block copy (unimplemented)\n");
@@ -192,9 +193,10 @@ void cpu::do_dma() {
 						break;
 					addr = _header & 0x1ffffc;
 				}
-				//if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
-				//	bus.mem.I_STAT |= 0b1000;
-				//}
+				if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+					bus.mem.DICR |= (1 << 26);
+					should_service_dma_irq = true;
+				}
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				debug_log("[DMA] GPU Linked List transfer complete\n");
 				//debug = false;
@@ -225,7 +227,6 @@ void cpu::do_dma() {
 				debug_log("[DMA] Transfer direction: device to ram\n");
 				debug_log("[DMA] MADR: 0x%x\n", addr);
 				debug_log("[DMA] Transfer size: %d words\n", words);
-				bus.mem.CDROM.cd.buff_left = 0;
 				while (words >= 0) {
 					current_addr = addr & 0x1ffffc;
 					if (words == 1) {
@@ -241,7 +242,8 @@ void cpu::do_dma() {
 						bus.mem.Ch3.CHCR &= ~(1 << 28);
 						//debug = false;
 						if (((bus.mem.DICR >> 19) & 1) && ((bus.mem.DICR >> 23) & 1)) {
-							bus.mem.I_STAT |= 0b1000;
+							bus.mem.DICR |= (1 << 27);
+							should_service_dma_irq = true;
 						}
 						//bus.mem.CDROM.queued_read = true;
 						//bus.mem.CDROM.delay = 2;
@@ -296,9 +298,10 @@ void cpu::do_dma() {
 						bus.mem.Ch6.CHCR &= ~(1 << 24);
 						bus.mem.Ch6.CHCR &= ~(1 << 28);
 						//debug = false;
-						//if (((bus.mem.DICR >> 22) & 1) && ((bus.mem.DICR >> 23) & 1)) {
-						//	bus.mem.I_STAT |= 0b1000;
-						//}
+						if (((bus.mem.DICR >> 22) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+							bus.mem.DICR |= (1 << 30);
+							should_service_dma_irq = true;
+						}
 						return;
 					}
 					bus.mem.write32(current_addr, (addr - 4) & 0x1fffff);

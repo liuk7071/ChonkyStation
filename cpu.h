@@ -56,6 +56,7 @@ public:
 
 public:
 	void check_dma();
+	bool should_service_dma_irq = false;
 	template<int channel> void do_dma();
 	void check_CDROM_IRQ();
 	void step();

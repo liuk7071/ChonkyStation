@@ -103,7 +103,7 @@ void cdrom::INT1(void* dataptr) {
 		}
 		cdromptr->response_length = cdromptr->queued_response_length;
 		cdromptr->status |= 0b00100000;
-
+		cdromptr->cd.bytes_read = 0;
 		cdromptr->Scheduler.push(&queuedRead, cdromptr->Scheduler.time + 5000, cdromptr);
 	}
 	return;
@@ -297,6 +297,7 @@ void cdrom::ReadN() {	// Read with retry
 	reading = true;
 	status |= 0b00001000;	// Set parameter fifo empty bit
 	debug_log("[CDROM] ReadN\n");
+	cd.bytes_read = 0;
 	cd.read(seekloc);
 	response_fifo[0] = get_stat();
 	response_length = 1;
