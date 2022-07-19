@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch",
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build/demos/demo_imgui/Debug",
+            "environment": [],
+            "externalConsole": false,
+            "request": "launch",
+            "args": [],
+            "type": "cppvsdbg",
+            "program": "${workspaceFolder}/build/demos/demo_imgui/Debug/ZepDemo.exe",
+            "windows": {
+                "type": "cppvsdbg",
+                "program": "${workspaceFolder}/build/demos/demo_imgui/Debug/ZepDemo.exe",
+            },
+            "osx": {
+                "cwd": "${workspaceFolder}/build/demos/demo_imgui",
+                "program": "${workspaceFolder}/build/demos/demo_imgui/ZepDemo.app/Contents/MacOS/ZepDemo",
+                "MIMode": "lldb",
+                "type": "cppdbg",
+            }
+        }
+    ]
+}

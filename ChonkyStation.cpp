@@ -1,4 +1,5 @@
 #include <iostream>
+#define NOMINMAX
 #include <windows.h>
 #include <sstream>
 #include <map>
@@ -11,6 +12,7 @@
 #include "imgui/backends/imgui_impl_opengl3.h"
 #include "imgui/imgui_memory_editor.h"
 #include "logwindow.h"
+#include "Shader Editor/shader-editor.h"
 #include "GLFW\glfw3.h"
 #include "xbyak/xbyak.h"
 #include "Cpu.h"
@@ -26,6 +28,8 @@ bool show_interrupt_debugger = false;
 bool show_ram_viewer = false;
 bool show_vram = false;
 bool show_log = false;
+bool show_shader_editor = false;
+bool show_textured_primitives_shader_editor = false;
 bool started = false;
 bool sideload = false;
 bool run = false;
@@ -70,6 +74,7 @@ const char* FilterPatternsExe[1] = { "*.exe" };
 
 unsigned int vram_viewer;
 bool test = false;
+bool tmr1irq = false;
 
 static MemoryEditor MemEditor;
 
@@ -98,6 +103,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 
     int count;
     const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &count);
+    
+    // Timer 1 stub
+    if (key == GLFW_KEY_U && action == GLFW_PRESS) {
+        tmr1irq = true;
+    }
 
     // pad1
     if (key == GLFW_KEY_S && action == GLFW_PRESS) {
@@ -250,7 +260,7 @@ void SystemSettingsMenu(cpu* Cpu) {
     ImGui::NewLine();
     ImGui::Checkbox("Sideload binary", &sideload);
     
-    if (!sideload) ImGui::PushDisabled();
+    if (!sideload) ImGui::BeginDisabled();
     ImGui::Text("Binary to sideload: \"%s\"", binary_path.c_str());
     if (ImGui::Button("Select##1")) {
         const char* path;
@@ -261,7 +271,7 @@ void SystemSettingsMenu(cpu* Cpu) {
             binary_path = path;
         }
     }
-    if (!sideload) ImGui::PopDisabled();
+    if (!sideload) ImGui::EndDisabled();
 
     ImGui::Text("BIOS path: \"%s\"", bios_path.c_str());
     if (ImGui::Button("Select##2")) {
@@ -432,7 +442,9 @@ void ImGuiFrame(cpu *Cpu) {
     ImVec2 image_size(x, y);
     ImVec2 centered((ImGui::GetWindowSize().x - image_size.x) * 0.5, (ImGui::GetWindowSize().y - image_size.y) * 0.5);
     ImGui::SetCursorPos(centered);
-    ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(Cpu->bus.Gpu.id)), image_size);
+    ImVec2 uv0 = ImVec2(Cpu->bus.Gpu.drawing_topleft_x / 1024.f, Cpu->bus.Gpu.drawing_topleft_y / 512.f);
+    ImVec2 uv1 = ImVec2(Cpu->bus.Gpu.drawing_bottomright_x / 1024.f, Cpu->bus.Gpu.drawing_bottomright_y / 512.f);
+    ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(Cpu->bus.Gpu.VramTexture)), image_size, uv0, uv1);
     ImGui::End();
 
     // MenuBar
@@ -486,6 +498,11 @@ void ImGuiFrame(cpu *Cpu) {
             if (ImGui::MenuItem("CPU")) {
                 show_cpu_registers = !show_cpu_registers;
             }
+            if (ImGui::BeginMenu("GPU")) {
+                if (ImGui::MenuItem("Show shader editor")) show_shader_editor = !show_shader_editor;
+                if (ImGui::MenuItem("Show textured primitives shader editor")) show_textured_primitives_shader_editor = !show_textured_primitives_shader_editor;
+                ImGui::EndMenu();
+            }
 #ifdef log_cpu
             if (ImGui::MenuItem("CPU Trace")) {
                 Cpu->debug = !Cpu->debug;
@@ -519,15 +536,65 @@ void ImGuiFrame(cpu *Cpu) {
     }
 }
 
-void UpdateVRAMViewer(cpu* Cpu) {
-    glBindTexture(GL_TEXTURE_2D, vram_viewer);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, Cpu->bus.Gpu.vram_rgb);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+static const GLchar* VertexShaderSource =
+R"(
+#version 330 core
+precision highp float;
+in vec2 position;
+in vec2 UV;
+uniform mat4 projMatrix;
+
+out vec2 fragUV;
+
+void main() {
+    fragUV = UV;
+    gl_Position = projMatrix * vec4(position.xy, 0.f, 1.f);
 }
-void RenderVRAMViewer() {
+)";
+static const GLchar* FragmentShaderSource =
+R"(
+#version 330 core
+precision highp float;
+uniform sampler2D _texture;
+in vec2 fragUV;
+layout (location = 0) out vec4 outColour;
+
+void main() {
+    vec4 c = texture(_texture, fragUV.st);
+    c.a = 1.f;
+    outColour = c;
+} 
+)";
+
+GLuint ShaderProgram;
+GLuint vram_texture;
+void ImGuiCallback_VRAM(const ImDrawList* parentList, const ImDrawCmd* cmd) {
+    GLfloat projMtx[4][4];
+    GLint imguiProgramID;
+    glGetIntegerv(GL_CURRENT_PROGRAM, &imguiProgramID);
+    GLint projmtxloc = glGetUniformLocation(imguiProgramID, "ProjMtx");
+    //printf("%d\n", projmtxloc);
+    glGetUniformfv(imguiProgramID, projmtxloc, &projMtx[0][0]);
+    glUseProgram(ShaderProgram);
+    projmtxloc = glGetUniformLocation(ShaderProgram, "projMatrix");
+    //printf("%d\n", projmtxloc);
+    glUniformMatrix4fv(projmtxloc, 1, GL_FALSE, &projMtx[0][0]);
+    //GLuint textureID = static_cast<GLuint>(reinterpret_cast<uintptr_t>(cmd->TextureId));
+    //glBindTexture(GL_TEXTURE_2D, vram_texture);
+    //GLint textureloc = glGetUniformLocation(ShaderProgram, "_texture");
+    //glUniform1i(textureloc, 0);
+    //printf("text %d\n", vram_texture);
+}
+
+void UpdateVRAMViewer(cpu* Cpu) {
+    uint32_t* pixels = new uint32_t[1024 * 512];
+    glBindTexture(GL_TEXTURE_2D, Cpu->bus.Gpu.VramTexture);
+    glGetTextureImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, 1024 * 512 * 4, pixels);
+    glBindTexture(GL_TEXTURE_2D, vram_texture);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, pixels);
+}
+
+void RenderVRAMViewer(cpu* Cpu) {
     ImGui::Begin("Imagevram", NULL, ImGuiWindowFlags_NoTitleBar);
 
     float x = ImGui::GetWindowSize().x - 15, y = ImGui::GetWindowSize().y - 15;
@@ -539,10 +606,17 @@ void RenderVRAMViewer() {
         x = y * vram_aspect_ratio;
     }
 
+
+    //UpdateVRAMViewer(Cpu);
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 image_size(x, y);
     ImVec2 centered((ImGui::GetWindowSize().x - image_size.x) * 0.5, (ImGui::GetWindowSize().y - image_size.y) * 0.5);
     ImGui::SetCursorPos(centered);
-    ImGui::Image((void*)(intptr_t)(vram_viewer), image_size);
+    drawList->AddCallback(ImGuiCallback_VRAM, nullptr);
+    vram_texture = Cpu->bus.Gpu.VramTexture;
+    ImGui::Image(reinterpret_cast<ImTextureID*>(vram_texture), image_size);
+    drawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
     ImGui::End();
 }
 int main(int argc, char** argv) {
@@ -577,19 +651,66 @@ int main(int argc, char** argv) {
     }
 
     InitWindow();
-    glGenTextures(1, &vram_viewer);
-    glBindTexture(GL_TEXTURE_2D, vram_viewer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, Cpu.bus.Gpu.vram_rgb);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     Cpu.bus.Gpu.InitGL();
+    glGenTextures(1, &vram_texture);
+    glBindTexture(GL_TEXTURE_2D, vram_texture);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1024, 512);
+
+    GLuint VertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(VertexShader, 1, &VertexShaderSource, NULL);
+    glCompileShader(VertexShader);
+    int success;
+    char InfoLog[512];
+    glGetShaderiv(VertexShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(VertexShader, 512, NULL, InfoLog);
+        std::cout << "VRAM Vertex shader compilation failed\n" << InfoLog << std::endl;
+    }
+    GLuint FragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(FragmentShader, 1, &FragmentShaderSource, NULL);
+    glCompileShader(FragmentShader);
+    glGetShaderiv(FragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(FragmentShader, 512, NULL, InfoLog);
+        std::cout << "VRAM Fragment shader compilation failed\n" << InfoLog << std::endl;
+    }
+    ShaderProgram = glCreateProgram();
+    glAttachShader(ShaderProgram, VertexShader);
+    glAttachShader(ShaderProgram, FragmentShader);
+    glLinkProgram(ShaderProgram);
+    glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(ShaderProgram, 512, NULL, InfoLog);
+        std::cout << "Linking shader program failed\n" << InfoLog << std::endl;
+    }
     
+    ShaderEditor ShaderEditUntextured = { "untextured" };
+    ShaderEditor ShaderEditTextured = { "textured" };
+    ShaderEditUntextured.init();
+    ShaderEditTextured.init();
+    ShaderEditUntextured.setText(Cpu.bus.Gpu.VertexShaderSource, Cpu.bus.Gpu.FragmentShaderSource, "");
+    ShaderEditTextured.setText(Cpu.bus.Gpu.TextureVertexShaderSource, Cpu.bus.Gpu.TextureFragmentShaderSource, "");
+    ShaderEditUntextured.m_show = true;
+    ShaderEditTextured.m_show = true;
+
     double prevTime = glfwGetTime();
     int frameCount = 0;
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
+            if (tmr1irq) {
+                printf("[TIMERS] TMR1 IRQ\n");
+                tmr1irq = false;
+                Cpu.bus.mem.I_STAT |= 0b100000;
+            }
+            Cpu.bus.mem.I_STAT |= 0b100000;
+            //Cpu.bus.mem.I_STAT |= 0b1000000;
+            if (Cpu.should_service_dma_irq) {
+                printf("[DMA] IRQ\n");
+                Cpu.bus.mem.I_STAT |= 0b1000;
+                Cpu.should_service_dma_irq = false;
+            }
             //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             if (pad1_source == "Gamepad") {
                 GLFWgamepadstate state;
@@ -623,6 +744,7 @@ int main(int argc, char** argv) {
                         P1buttons &= ~(0b0000000000000001);
                     }
                     if (state.buttons[GLFW_GAMEPAD_BUTTON_START] == GLFW_PRESS) {
+                        printf("start\n");
                         P1buttons &= ~(0b0000000000001000);
                     }
                 }
@@ -673,15 +795,24 @@ int main(int argc, char** argv) {
             //if (run) Cpu.bus.mem.I_STAT |= 1;
             // Update the ImGui frontend
             ImGuiFrame(&Cpu);
+            if (show_vram) RenderVRAMViewer(&Cpu);
             if (show_system_settings) SystemSettingsMenu(&Cpu);
             if (show_pad_settings) PadSettingsMenu();
             if (show_dialog) Dialog();
             if (show_ram_viewer) MemEditor.DrawWindow("RAM Viewer", Cpu.bus.mem.ram, 0x200000);
             if (show_cpu_registers) CpuDebugger(&Cpu);
             if (show_interrupt_debugger) InterruptDebugger(&Cpu);
-            UpdateVRAMViewer(&Cpu);
-            if (show_vram) RenderVRAMViewer();
             if (show_log) Cpu.log.Draw("Log");
+            if (show_shader_editor) {
+                auto programuntextured = ShaderEditUntextured.compile();
+                if (programuntextured.has_value()) Cpu.bus.Gpu.ShaderProgram = programuntextured.value();
+                ShaderEditUntextured.draw("Untextured primitives shader editor");
+            }
+            if (show_textured_primitives_shader_editor) {
+                auto programtextured = ShaderEditTextured.compile();
+                if (programtextured.has_value()) Cpu.bus.Gpu.TextureShaderProgram = programtextured.value();
+                ShaderEditTextured.draw("Textured primitives shader editor");
+            }
 
             // Render it
             ImGui::Render();

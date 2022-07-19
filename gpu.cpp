@@ -6,7 +6,7 @@ Bus* bus;
 gpu::gpu() {
 	// Initialize pixel array
 	pixels = new uint32_t[480 * 640];
-	debug = !true;
+	debug = false;
 }
 
 void connectBus(Bus *_bus) {
@@ -32,129 +32,9 @@ uint32_t gpu::get_status() {
 	return status;
 }
 
-static const GLchar* VertexShaderSource =
-R"(
-#version 330 core
-layout (location = 0) in ivec3 pos;
-layout (location = 1) in vec3 colour;
-layout (location = 2) in uint texpage;
-layout (location = 3) in uint clut;
-layout (location = 4) in vec2 texture_uv;
-layout (location = 5) in uint texture_enable;
-out vec4 frag_colour;
-
-void main() {
-	//pos += vec3(0.5, 0.5, 0.0);
-	gl_Position = vec4(float(pos.x + 0.5) / 320 - 1, -(1 - float(pos.y + 0.5) / 240), 0.0, 1.0);
-	frag_colour = vec4(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255, 1.f);
-}
-)";
-static const GLchar* TextureVertexShaderSource =
-R"(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aColor;
-layout (location = 2) in vec2 aTexCoord;
-layout (location = 3) in vec3 texpage;
-layout (location = 4) in vec2 clut;
-
-out vec3 ourColor;
-out vec2 TexCoord;
-out vec2 _texCoord;
-uniform int colourDepth;
-
-void main()
-{
-	gl_Position = vec4(float(aPos.x) / 320 - 1, -(1 - float(aPos.y) / 240), 0.0, 1.0);
-    //gl_Position = vec4(float(aPos.x + 0.5) / 320 - 1, -(1 - float(aPos.y + 0.5) / 240), 0.0, 1.0);
-    ourColor = aColor;
-	if(colourDepth == 0) {
-		TexCoord = vec2(float((aTexCoord.x / 4) + texpage.x) / 1024 - 1, -(1 - float(aTexCoord.y + texpage.y) / 512));
-		//TexCoord = vec2(float(((aTexCoord.x + 0.5) / 4) + texpage.x) / 1024 - 1, -(1 - float((aTexCoord.y + 0.5) + texpage.y) / 512));
-	} else if(colourDepth == 1) {
-		TexCoord = vec2(float((aTexCoord.x / 2) + texpage.x) / 1024 - 1, -(1 - float(aTexCoord.y + texpage.y) / 512));
-		//TexCoord = vec2(float(((aTexCoord.x + 0.5) / 2) + texpage.x) / 1024 - 1, -(1 - float((aTexCoord.y + 0.5) + texpage.y) / 512));
-	} else if(colourDepth == 2) {
-		TexCoord = vec2(float(aTexCoord.x + texpage.x) / 1024 - 1, -(1 - float(aTexCoord.y + texpage.y) / 512));
-		//TexCoord = vec2(float((aTexCoord.x + 0.5) + texpage.x) / 1024 - 1, -(1 - float((aTexCoord.y + 0.5) + texpage.y) / 512));
-	}
-	_texCoord = aTexCoord;
-}
-)";
-static const GLchar* FragmentShaderSource =
-R"(
-#version 330 core
-in vec4 frag_colour;
-
-out vec4 final_colour;
-
-void main() {
-	final_colour = frag_colour;
-} 
-)";
-
-static const GLchar* TextureFragmentShaderSource =
-R"(
-#version 430 core
-out vec4 FragColor;
-  
-in vec3 ourColor;
-in vec2 TexCoord;
-in vec2 _texCoord;
-layout(std430, binding = 10) buffer clutData
-{
-    int Clut[128];
-};
-uniform sampler2D vram;
-uniform sampler2D vram8;
-uniform sampler2D vram4;
-uniform int colourDepth;
-
-void main()
-{
-	vec4 pixel = vec4(0, 0, 0, 0);
-	if(colourDepth == 0) {
-		vec4 clutIdx = texture(vram4, TexCoord);
-		int _pixel;
-		if(int(_texCoord.x) % 4 == 0) {
-			_pixel = Clut[int(clutIdx.r * 255)];
-		}
-		if(int(_texCoord.x) % 4 == 1) {
-			_pixel = Clut[int(clutIdx.g * 255)];
-		}
-		if(int(_texCoord.x) % 4 == 2) {
-			_pixel = Clut[int(clutIdx.b * 255)];
-		}
-		if(int(_texCoord.x) % 4 == 3) {
-			_pixel = Clut[int(clutIdx.a * 255)];
-		}
-		pixel.r = (float(((_pixel >> 24) & 0xff)) / 255.0f);
-		pixel.g = (float(((_pixel >> 16) & 0xff)) / 255.0f);
-		pixel.b = (float(((_pixel >> 8) & 0xff)) / 255.0f);
-		pixel.a = 1.0f;
-	} else if(colourDepth == 1) {
-		vec4 clutIdx = texture(vram8, TexCoord);
-		int _pixel;
-		if(int(_texCoord.x) % 2 == 0) {
-			_pixel = Clut[int(clutIdx.r * 255)];
-		}
-		if(int(_texCoord.x) % 2 == 1) {
-			_pixel = Clut[int(clutIdx.g * 255)];
-		}
-		pixel.r = (float(((_pixel >> 24) & 0xff)) / 255.0f);
-		pixel.g = (float(((_pixel >> 16) & 0xff)) / 255.0f);
-		pixel.b = (float(((_pixel >> 8) & 0xff)) / 255.0f);
-		pixel.a = 1.0f;
-	} else if(colourDepth == 2) {
-		pixel = texture(vram, TexCoord);
-	}
-    if(pixel.r == 0 && pixel.g == 0 && pixel.b == 0) discard;
-	
-	FragColor = pixel;
-}
-)";
-
 void gpu::InitGL() {
+	//WriteBuffer.reserve(1024 * 512);
+	//WriteBuffer.clear();
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFBO);
 	glGenFramebuffers(1, &FBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
@@ -165,8 +45,8 @@ void gpu::InitGL() {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, id, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+	//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, id, 0);
+	//glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 
 	GLenum DrawBuffers[1] = { GL_COLOR_ATTACHMENT0 };
 	glDrawBuffers(1, DrawBuffers);
@@ -230,10 +110,21 @@ void gpu::InitGL() {
 
 	glGenTextures(1, &VramTexture);
 	glBindTexture(GL_TEXTURE_2D, VramTexture);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1024, 512);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, VramTexture, 0);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+	glPixelStorei(GL_PACK_ALIGNMENT, 2);
+	glClearColor(0.f, 0.f, 0.f, 1.f);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, vram_rgb);
+	glGenTextures(1, &SampleVramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1024, 512);
 
 	glGenTextures(1, &VramTexture8);
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
@@ -249,14 +140,21 @@ void gpu::InitGL() {
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, vram4);
 
-	int vramLocation = glGetUniformLocation(TextureShaderProgram, "vram");
-	int vram8Location = glGetUniformLocation(TextureShaderProgram, "vram8");
-	int vram4Location = glGetUniformLocation(TextureShaderProgram, "vram4");
-	colourDepthUniform = glGetUniformLocation(TextureShaderProgram, "colourDepth");
-	glUseProgram(TextureShaderProgram);
-	glUniform1i(vramLocation, 0);
-	glUniform1i(vram8Location, 1);
-	glUniform1i(vram4Location, 2);
+	//int vramLocation = glGetUniformLocation(TextureShaderProgram, "vram");
+	//int vram8Location = glGetUniformLocation(TextureShaderProgram, "vram8");
+	//int vram4Location = glGetUniformLocation(TextureShaderProgram, "vram4");
+	//colourDepthUniform = glGetUniformLocation(TextureShaderProgram, "colourDepth");
+	//glUseProgram(TextureShaderProgram);
+	//glUniform1i(vramLocation, 0);
+	//glUniform1i(vram8Location, 1);
+	//glUniform1i(vram4Location, 2);
+}
+
+void gpu::SyncVRAM() {
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 1024, 512);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 }
 
 void gpu::putpixel(point v1, uint32_t colour) {
@@ -270,7 +168,7 @@ void gpu::putpixel(point v1, uint32_t colour) {
 }
 
 void gpu::ClearScreen() {
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -287,6 +185,7 @@ void gpu::execute_gp0(uint32_t command) {
 			debug_printf("[GP0] NOP (0x%x)\n", command);
 			break;
 		case 0x01: {	// Clear Cache
+			SyncVRAM();
 			debug_printf("[GP0] Clear Cache\n");
 			break;
 		}
@@ -468,12 +367,14 @@ void gpu::execute_gp0(uint32_t command) {
 			break;
 		}
 		case 0xE3: {	// Set Drawing Area top left
-			// unimplemented
+			drawing_topleft_x = command & 1023;
+			drawing_topleft_y = (command >> 10) & 511;
 			debug_printf("[GP0] Set Drawing Area top left\n");
 			break;
 		}
 		case 0xE4: {	// Set Drawing Area bottom right
-			// unimplemented
+			drawing_bottomright_x = command & 1023;
+			drawing_bottomright_y = (command >> 10) & 511;
 			debug_printf("[GP0] Set Drawing Area bottom right\n");
 			break;
 		}
@@ -493,7 +394,7 @@ void gpu::execute_gp0(uint32_t command) {
 		}
 		default:
 			printf("\n[GP0] Unknown GP0 command: 0x%x (0x%x)\n", instr, command);
-			abort();
+			//abort();
 		}
 	}
 	else {
@@ -503,6 +404,8 @@ void gpu::execute_gp0(uint32_t command) {
 			fifo[cmd_length++] = command;
 
 			if (cmd_left == 0) {	// all the parameters are in, run command
+				glScissor(drawing_topleft_x, drawing_topleft_y, (drawing_bottomright_x - drawing_topleft_x), (drawing_bottomright_y - drawing_topleft_y));
+				glEnable(GL_SCISSOR_TEST);
 
 				switch ((fifo[0] >> 24) & 0xff) {
 
@@ -536,6 +439,8 @@ void gpu::execute_gp0(uint32_t command) {
 				default: printf("\n%d", fifo[0] >> 24); abort();
 				}
 			}
+			
+			glDisable(GL_SCISSOR_TEST);
 			break;
 		}
 		case 1: {	// load mode
@@ -546,88 +451,22 @@ void gpu::execute_gp0(uint32_t command) {
 			auto height = resolution >> 16;
 			if (width == 0) width = 1024;
 			if (height == 0) height = 512;
+
 			auto x = coords & 0xffff;
 			auto y = coords >> 16;
-			
-			xpos %= 1024;
-			ypos %= 512;
-			
-			uint32_t c = command & 0xffff;
-			uint32_t a = (c >> 15) & 1;
-			uint32_t b = (c >> 10) & 0b11111;
-			uint32_t g = (c >> 5) & 0b11111;
-			uint32_t r = c & 0b11111;
-			uint32_t rgba = ((r << 3) << 24) | ((g << 3) << 16) | ((b << 3) << 8) | 0xff;
-			int index = ((y + ypos) * 1024 + (x + xpos));
-			vram_rgb[index] = rgba;
 
-			vram[index] = command & 0xffff;
-
-			uint32_t pixel1 = (command & 0xff);
-			uint32_t pixel2 = ((command >> 8) & 0xff);
-			vram8[index] = (pixel2 << 8) | pixel1;
-
-			pixel1 = (command & 0xf);
-			pixel2 = ((command >> 4) & 0xf);
-			uint32_t pixel3 = ((command >> 8) & 0xf);
-			uint32_t pixel4 = ((command >> 12) & 0xf);
-			vram4[index] = (pixel4 << 24) | (pixel3 << 16) | (pixel2 << 8) | pixel1;
-
-			xpos++;
-
-			if (xpos == width) {
-				xpos = 0;
-				ypos++;
-
-				if (ypos == height) {
-					gp0_mode = 0;
-					glBindTexture(GL_TEXTURE_2D, VramTexture);
-					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram_rgb);
-					glBindTexture(GL_TEXTURE_2D, VramTexture8);
-					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram8);
-					glBindTexture(GL_TEXTURE_2D, VramTexture4);
-					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram4);
-					break;
-				}
+			if (cmd_left == 0) {
+				gp0_mode = 0;
+				glBindTexture(GL_TEXTURE_2D, VramTexture);
+				glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &WriteBuffer[0]);
+				for (int i = 0; i < (1024 * 512) / 2; i++) WriteBuffer[i] = 0;
+				//WriteBuffer.clear();
+				WriteBufferCnt = 0;
+				SyncVRAM();
+				break;
 			}
-
-			c = command >> 16;
-			a = (c >> 15) & 1;
-			b = (c >> 10) & 0b11111;
-			g = (c >> 5) & 0b11111;
-			r = c & 0b11111;
-			rgba = ((r << 3) << 24) | ((g << 3) << 16) | ((b << 3) << 8) | 0xff;
-			index = ((y + ypos) * 1024 + (x + xpos));
-			vram_rgb[index] = rgba;
-
-			vram[index] = (command >> 16);
-
-			pixel1 = ((command >> 16) & 0xff);
-			pixel2 = (((command >> 16) >> 8) & 0xff);
-			vram8[index] = (pixel2 << 8) | pixel1;
-
-			pixel1 = ((command >> 16) & 0xf);
-			pixel2 = (((command >> 16) >> 4) & 0xf);
-			pixel3 = (((command >> 16) >> 8) & 0xf);
-			pixel4 = (((command >> 16) >> 12) & 0xf);
-			vram4[index] = (pixel4 << 24) | (pixel2 << 16) | (pixel3 << 8) | pixel1;
-			xpos++;
-
-			if (xpos == width) {
-				xpos = 0;
-				ypos++;
-
-				if (ypos == height) {
-					gp0_mode = 0;
-					glBindTexture(GL_TEXTURE_2D, VramTexture);
-					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram_rgb);
-					glBindTexture(GL_TEXTURE_2D, VramTexture8);
-					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram8);
-					glBindTexture(GL_TEXTURE_2D, VramTexture4);
-					glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 1024, 512, GL_RGBA, GL_UNSIGNED_BYTE, vram4);
-					break;
-				}
-			}
+			//WriteBuffer.push_back(command);
+			WriteBuffer[WriteBufferCnt++] = command;
 			break;
 		}
 		case 2: {	// polyline mode
@@ -700,7 +539,7 @@ void gpu::monochrome_four_point_opaque_polygon() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
 	
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
@@ -725,7 +564,7 @@ void gpu::monochrome_four_point_opaque_polygon() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
@@ -805,11 +644,11 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -851,11 +690,11 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -948,11 +787,11 @@ void gpu::texture_four_point_opaque_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -994,11 +833,11 @@ void gpu::texture_four_point_opaque_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -1091,11 +930,11 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -1137,11 +976,11 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -1206,7 +1045,7 @@ void gpu::monochrome_four_point_semi_transparent_polygon() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
@@ -1231,7 +1070,7 @@ void gpu::monochrome_four_point_semi_transparent_polygon() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
@@ -1276,7 +1115,7 @@ void gpu::monochrome_three_point_opaque_polygon() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
@@ -1345,7 +1184,7 @@ void gpu::shaded_three_point_opaque_polygon() {
 		(((v2.c) >> 0) & 0xff), (((v2.c) >> 8) & 0xff), (((v2.c) >> 16) & 0xff),
 		(((v3.c) >> 0) & 0xff), (((v3.c) >> 8) & 0xff), (((v3.c) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
@@ -1422,7 +1261,7 @@ void gpu::shaded_four_point_opaque_polygon() {
 		(((v2.c) >> 0) & 0xff), (((v2.c) >> 8) & 0xff), (((v2.c) >> 16) & 0xff),
 		(((v3.c) >> 0) & 0xff), (((v3.c) >> 8) & 0xff), (((v3.c) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
@@ -1447,7 +1286,7 @@ void gpu::shaded_four_point_opaque_polygon() {
 		(((v3.c) >> 0) & 0xff), (((v3.c) >> 8) & 0xff), (((v3.c) >> 16) & 0xff),
 		(((v4.c) >> 0) & 0xff), (((v4.c) >> 8) & 0xff), (((v4.c) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
@@ -1554,11 +1393,11 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -1600,11 +1439,11 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -1669,7 +1508,7 @@ void gpu::monochrome_polyline_opaque() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 		};
 
-		glViewport(0, 0, 640, 480);
+		glViewport(0, 0, 1024, 512);
 		glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
@@ -1711,7 +1550,7 @@ void gpu::monochrome_polyline_opaque() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
@@ -1736,7 +1575,7 @@ void gpu::monochrome_polyline_opaque() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
@@ -1788,7 +1627,7 @@ void gpu::monochrome_rectangle_variable_size_opaque() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
@@ -1813,7 +1652,7 @@ void gpu::monochrome_rectangle_variable_size_opaque() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
@@ -1865,7 +1704,7 @@ void gpu::monochrome_rectangle_variable_size_semi_transparent() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
@@ -1890,7 +1729,7 @@ void gpu::monochrome_rectangle_variable_size_semi_transparent() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
@@ -1970,11 +1809,11 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2016,11 +1855,11 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2113,11 +1952,11 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2159,11 +1998,11 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2256,11 +2095,11 @@ void gpu::texture_rectangle_8x8_opaque() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2302,11 +2141,11 @@ void gpu::texture_rectangle_8x8_opaque() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2401,11 +2240,11 @@ void gpu::texture_rectangle_variable_size_opaque() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2447,11 +2286,11 @@ void gpu::texture_rectangle_variable_size_opaque() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2546,11 +2385,11 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2592,11 +2431,11 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
-	glBindTexture(GL_TEXTURE_2D, VramTexture);
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
 	glBindTexture(GL_TEXTURE_2D, VramTexture8);
 	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
@@ -2647,12 +2486,22 @@ void gpu::monochrome_rectangle_dot_opaque() {
 
 void gpu::fill_rectangle() {
 	debug_printf("[GP0] Fill Rectangle\n");
-	glViewport(0, 0, 640, 480);
+	glViewport(0, 0, 1024, 512);
+	uint8_t r = (fifo[0] & 0xff);
+	uint8_t g = ((fifo[0] >> 8) & 0xff);
+	uint8_t b = ((fifo[0] >> 16) & 0xff);
+	uint32_t x = fifo[1] & 0xffff;
+	uint32_t y = fifo[1] >> 16;
+	uint32_t width = fifo[2] & 0xffff;
+	uint32_t height = fifo[2] >> 16;
+
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-	glClearColor(0, 0, 0, 0);
+	glClearColor(r / 255.f, g / 255.f, b / 255.f, 1.f);
+	glScissor(x, y, width, height);
+	glEnable(GL_SCISSOR_TEST);
 	glClear(GL_COLOR_BUFFER_BIT);
+	glDisable(GL_SCISSOR_TEST);
 	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
-	//exit(1);
 	return;
 }
 

@@ -6,6 +6,14 @@
 // !!! If someone or something is teaching you GLUT today, you are being abused. Please show some resistance. !!!
 // !!! Nowadays, prefer using GLFW or SDL instead!
 
+// On Windows, you can install Freeglut using vcpkg:
+//   git clone https://github.com/Microsoft/vcpkg
+//   cd vcpkg
+//   bootstrap - vcpkg.bat
+//   vcpkg install freeglut --triplet=x86-windows   ; for win32
+//   vcpkg install freeglut --triplet=x64-windows   ; for win64
+//   vcpkg integrate install                        ; register include and libs in Visual Studio
+
 #include "imgui.h"
 #include "imgui_impl_glut.h"
 #include "imgui_impl_opengl2.h"
@@ -76,7 +84,7 @@ void glut_display_func()
     ImGui::Render();
     ImGuiIO& io = ImGui::GetIO();
     glViewport(0, 0, (GLsizei)io.DisplaySize.x, (GLsizei)io.DisplaySize.y);
-    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
     //glUseProgram(0); // You may want this if using this code in an OpenGL 3+ context where shaders may be bound, but prefer using the GL3+ code.
     ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
@@ -86,8 +94,8 @@ void glut_display_func()
 }
 
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
+// - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+// - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
 // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
 
 int main(int argc, char** argv)
@@ -117,6 +125,7 @@ int main(int argc, char** argv)
     //ImGui::StyleColorsClassic();
 
     // Setup Platform/Renderer backends
+    // FIXME: Consider reworking this example to install our own GLUT funcs + forward calls ImGui_ImplGLUT_XXX ones, instead of using ImGui_ImplGLUT_InstallFuncs().
     ImGui_ImplGLUT_Init();
     ImGui_ImplGLUT_InstallFuncs();
     ImGui_ImplOpenGL2_Init();

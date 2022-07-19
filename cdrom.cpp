@@ -45,6 +45,7 @@ void cdrom::execute(uint8_t command) {
 	case 0x15: SeekL(); break;
 	case 0x19: test(); break;
 	case 0x1A: GetID(); break;
+	case 0x1B: ReadS(); break;
 
 	default: debug_log("[CDROM] Unimplemented command: 0x%x\n", command); exit(0);
 
@@ -102,7 +103,7 @@ void cdrom::INT1(void* dataptr) {
 		}
 		cdromptr->response_length = cdromptr->queued_response_length;
 		cdromptr->status |= 0b00100000;
-
+		cdromptr->cd.bytes_read = 0;
 		cdromptr->Scheduler.push(&queuedRead, cdromptr->Scheduler.time + 5000, cdromptr);
 	}
 	return;
@@ -296,6 +297,7 @@ void cdrom::ReadN() {	// Read with retry
 	reading = true;
 	status |= 0b00001000;	// Set parameter fifo empty bit
 	debug_log("[CDROM] ReadN\n");
+	cd.bytes_read = 0;
 	cd.read(seekloc);
 	response_fifo[0] = get_stat();
 	response_length = 1;
@@ -309,6 +311,21 @@ void cdrom::ReadN() {	// Read with retry
 	Scheduler.push(&INT3, Scheduler.time + 4, this);
 	Scheduler.push(&INT1, Scheduler.time + ((33868800 / 100) / (DoubleSpeed ? 2 : 1)), this);
 	//queued_delay = 33868800 / 75;
+	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
+}
+void cdrom::ReadS() {	// Read without retry
+	status |= 0b00001000;	// Set parameter fifo empty bit
+	debug_log("[CDROM] ReadS\n");
+	cd.read(seekloc);
+	response_fifo[0] = get_stat();
+	reading = false; // To not make it retry
+	response_length = 1;
+
+	queued_fifo[0] = 0x22;
+	queued_response_length = 1;
+
+	Scheduler.push(&INT3, Scheduler.time + 4, this);
+	Scheduler.push(&INT1, Scheduler.time + ((33868800 / 100) / (DoubleSpeed ? 2 : 1)), this);
 	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
 }
 void cdrom::Pause() {

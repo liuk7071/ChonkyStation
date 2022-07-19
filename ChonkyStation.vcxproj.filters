@@ -13,6 +13,15 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="File di intestazione\zep">
+      <UniqueIdentifier>{576c057e-8c5f-4193-ac76-3ce1b6dee9d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="File di intestazione\zep\imgui">
+      <UniqueIdentifier>{8969a6f2-ba59-4956-98ec-bb923fb6e294}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="File di origine\zep">
+      <UniqueIdentifier>{564657b2-de77-4404-80a1-7110866d56e8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ChonkyStation.cpp">
@@ -74,6 +83,102 @@
     </ClCompile>
     <ClCompile Include="pad.cpp">
       <Filter>File di origine</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader Editor\shader-editor.cc">
+      <Filter>File di origine</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader Editor\ZepEditor.cc">
+      <Filter>File di origine</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\editor.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\filesystem.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mode_standard.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mode_vim.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\syntax.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\tab_window.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\theme.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\window.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\buffer.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\commands.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\display.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\glyph_iterator.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\indexer.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\keymap.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\line_widgets.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mode.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mode_search.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mode_tree.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\range_markers.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\regress.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\scroller.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\splits.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\syntax_markdown.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\syntax_providers.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\syntax_rainbow_brackets.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\syntax_tree.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mcommon\animation\timer.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mcommon\file\path.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mcommon\string\murmur_hash.cpp">
+      <Filter>File di origine\zep</Filter>
+    </ClCompile>
+    <ClCompile Include="zep\src\mcommon\string\stringutils.cpp">
+      <Filter>File di origine\zep</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -151,6 +256,42 @@
     </ClInclude>
     <ClInclude Include="xbyak\xbyak_util.h">
       <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader Editor\shader-editor.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader Editor\ZepEditor.h">
+      <Filter>File di intestazione</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\editor.h">
+      <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\filesystem.h">
+      <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\mode_standard.h">
+      <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\mode_vim.h">
+      <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\tab_window.h">
+      <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\theme.h">
+      <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\window.h">
+      <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\imgui\display_imgui.h">
+      <Filter>File di intestazione\zep\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\regress.h">
+      <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="zep\include\zep\syntax.h">
+      <Filter>File di intestazione\zep</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

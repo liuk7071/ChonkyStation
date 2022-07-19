@@ -22,9 +22,8 @@ public:
 	bool WholeSector = false;
 public:
 	FILE* iso;
-	int buff_left = 0;
+	int bytes_read = 0;
 	uint8_t SectorBuffer[SECTOR_SIZE];
-	uint8_t DataBuffer[CDXA_DATA_SIZE];
 	uint8_t drqsts = 0;
 };
 

@@ -61,6 +61,7 @@ public:
 	void SetLoc();
 	void SeekL();
 	void ReadN();
+	void ReadS();
 	void Pause();
 	void init();
 	void Demute();
@@ -72,15 +73,5 @@ public:
 	bool WholeSector = false;
 	bool CDDA = false;
 	
-public:
-	//const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\doukutsu_test5_2.iso";
-	const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\doukutsu_test2.iso";
-	//const char* CD_DIR = "H:\\Games\\roms\\PS1\\Bust-a-Move 2 - Arcade Edition [U] [SLUS-00233]\\Bust-a-Move 2 - Arcade Edition [U] [SLUS-00233].bin";
-	//const char* CD_DIR = "H:\\Games\\roms\\PS1\\Ridge Racer (USA)\\Ridge Racer (USA) (Track 01).bin";
-	//const char* CD_DIR = "F:\\Crash Bandicoot (Europe) (No EDC)\\Crash Bandicoot (Europe) (No EDC)\\Crash Bandicoot (Europe) (No EDC).bin";
-	//const char* CD_DIR = "H:\\Games\\roms\\PS1\\Ape Escape (SCES-01564)\\(PSX) Ape Escape (SCES-01564).bin";
-	//const char* CD_DIR = "H:\\Games\\roms\\PS1\\Crossroad Crisis (USA)\\Crossroad Crisis (USA).bin";
-	//const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\pawlov\\Pawlov\\Pawlov.bin";
-	//const char* CD_DIR = "C:\\Users\\zacse\\Downloads\\PadTest.1.0\\PadTest 1.0\\CD image\\padtest.bin";
 	CD cd = CD();
 };

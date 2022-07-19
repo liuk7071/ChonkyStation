@@ -2,6 +2,14 @@
 // If you are new to Dear ImGui, read documentation from the docs/ folder + read the top of imgui.cpp.
 // Read online: https://github.com/ocornut/imgui/tree/master/docs
 
+// On Windows, you can install Allegro5 using vcpkg:
+//   git clone https://github.com/Microsoft/vcpkg
+//   cd vcpkg
+//   bootstrap - vcpkg.bat
+//   vcpkg install allegro5 --triplet=x86-windows   ; for win32
+//   vcpkg install allegro5 --triplet=x64-windows   ; for win64
+//   vcpkg integrate install                        ; register include and libs in Visual Studio
+
 #include <stdint.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_primitives.h>
@@ -61,8 +69,8 @@ int main(int, char**)
     {
         // Poll and handle events (inputs, window resize, etc.)
         // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
-        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
-        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application.
+        // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
+        // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
         // Generally you may always pass all inputs to dear imgui, and hide them from your application based on those two flags.
         ALLEGRO_EVENT ev;
         while (al_get_next_event(queue, &ev))
@@ -121,7 +129,7 @@ int main(int, char**)
 
         // Rendering
         ImGui::Render();
-        al_clear_to_color(al_map_rgba_f(clear_color.x, clear_color.y, clear_color.z, clear_color.w));
+        al_clear_to_color(al_map_rgba_f(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w));
         ImGui_ImplAllegro5_RenderDrawData(ImGui::GetDrawData());
         al_flip_display();
     }
