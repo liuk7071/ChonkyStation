@@ -65,7 +65,9 @@ public:
 	void Pause();
 	void init();
 	void Demute();
+	void SetFilter();
 	void Setmode();
+	void GetLocL();
 
 	// setmode
 	bool DoubleSpeed = false;

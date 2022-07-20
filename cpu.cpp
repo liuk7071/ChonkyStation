@@ -123,11 +123,6 @@ void cpu::exception(exceptions exc) {
 	delay = false;
 }
 
-void DMAIRQ(void* dataptr) {
-	memory* memoryptr = (memory*)dataptr;
-	memoryptr->I_STAT |= 0b1000;
-}
-
 template<int channel>
 void cpu::do_dma() {
 	//debug = true;
@@ -160,7 +155,8 @@ void cpu::do_dma() {
 				//debug = false;
 				if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 					bus.mem.DICR |= (1 << 26);
-					should_service_dma_irq = true;
+					bus.mem.I_STAT |= 0b1000;
+					//should_service_dma_irq = true;
 				}
 				return;
 			case 0:
@@ -195,7 +191,8 @@ void cpu::do_dma() {
 				}
 				if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 					bus.mem.DICR |= (1 << 26);
-					should_service_dma_irq = true;
+					bus.mem.I_STAT |= 0b1000;
+					//should_service_dma_irq = true;
 				}
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				debug_log("[DMA] GPU Linked List transfer complete\n");
@@ -243,7 +240,8 @@ void cpu::do_dma() {
 						//debug = false;
 						if (((bus.mem.DICR >> 19) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 							bus.mem.DICR |= (1 << 27);
-							should_service_dma_irq = true;
+							bus.mem.I_STAT |= 0b1000;
+							//should_service_dma_irq = true;
 						}
 						//bus.mem.CDROM.queued_read = true;
 						//bus.mem.CDROM.delay = 2;
@@ -300,7 +298,8 @@ void cpu::do_dma() {
 						//debug = false;
 						if (((bus.mem.DICR >> 22) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 							bus.mem.DICR |= (1 << 30);
-							should_service_dma_irq = true;
+							bus.mem.I_STAT |= 0b1000;
+							//should_service_dma_irq = true;
 						}
 						return;
 					}

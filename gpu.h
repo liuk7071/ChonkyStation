@@ -111,12 +111,22 @@ public:		// trongle stuff
 			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
 		}
 
+		vec4 fetchTexel8Bit(ivec2 coords) {
+			int texel = sample16(ivec2(coords.x / 2, coords.y) + ivec2(texpageCoords));
+			int idx = (texel >> ((coords.x % 2) * 8)) & 0xff;
+			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
+		}
+
 		void main()
 		{
 			vec4 colour;
 			if(colourDepth == 0) {
 				colour = fetchTexel4Bit(ivec2(TexCoord));
-			} else if (colourDepth == 2) {
+			}
+			else if (colourDepth == 1) {
+				colour = fetchTexel8Bit(ivec2(TexCoord));
+			} 
+			else if (colourDepth == 2) {
 				vec2 TexCoords = vec2(float(TexCoord.x + texpageCoords.x) / 1024.f - 1, -(1 - float(TexCoord.y + texpageCoords.y) / 512.f));
 				colour = texture(vram, TexCoords);
 			} else colour = vec4(1.f, 0.f, 0.f, 1.f);
@@ -148,6 +158,7 @@ public:
 	uint16_t* vram = new uint16_t[1024 * 512];
 	//std::vector<uint32_t> WriteBuffer;
 	uint32_t* WriteBuffer = new uint32_t[(1024 * 512) / 2];
+	std::vector<uint32_t> ReadBuffer;
 	int WriteBufferCnt = 0;
 	uint32_t* vram8 = new uint32_t[1024 * 512];
 	uint32_t* vram4 = new uint32_t[1024 * 512];
@@ -207,14 +218,18 @@ public:	// commands
 	void shaded_four_point_opaque_polygon();
 	void shaded_four_point_semi_transparent_polygon();
 	void shaded_texture_blending_textured_four_point_opaque_polygon();
+	void texture_blending_four_point_polygon_semi_transparent();
 	void monochrome_rectangle_variable_size_opaque();
 	void monochrome_rectangle_variable_size_semi_transparent();
 	void texture_blending_rectangle_variable_size_opaque();
 	void texture_rectangle_variable_size_opaque();
 	void texture_blending_rectangle_variable_size_semi_transparent();
+	void textured_rectangle_variable_size_semi_transparent();
 	void texture_blending_rectangle_8x8_opaque();
 	void texture_rectangle_8x8_opaque();
+	void texture_blending_rectangle_16x16_opaque();
 	void monochrome_rectangle_dot_opaque();
+	void monochrome_rectangle_8x8_opaque();
 	void fill_rectangle();
 	void cpu_to_vram();
 	void vram_to_cpu();

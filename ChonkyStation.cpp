@@ -700,16 +700,18 @@ int main(int argc, char** argv) {
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
             if (tmr1irq) {
-                printf("[TIMERS] TMR1 IRQ\n");
-                tmr1irq = false;
-                Cpu.bus.mem.I_STAT |= 0b100000;
+                printf("[TIMERS] TMR2 IRQ\n");
+                //tmr1irq = false;
+                //Cpu.bus.mem.I_STAT |= 0b100000;
+                Cpu.bus.mem.I_STAT |= 0b1000000;
+                Cpu.bus.mem.tmr1_stub = 0;
             }
             Cpu.bus.mem.I_STAT |= 0b100000;
             //Cpu.bus.mem.I_STAT |= 0b1000000;
             if (Cpu.should_service_dma_irq) {
-                printf("[DMA] IRQ\n");
-                Cpu.bus.mem.I_STAT |= 0b1000;
-                Cpu.should_service_dma_irq = false;
+                //printf("[DMA] IRQ\n");
+                //Cpu.bus.mem.I_STAT |= 0b1000;
+                //Cpu.should_service_dma_irq = false;
             }
             //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             if (pad1_source == "Gamepad") {

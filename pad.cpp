@@ -109,7 +109,7 @@ void pad::WriteTXDATA(uint8_t data) {
 	case 0xff: break;
 	default:
 		printf("[PAD] Received unhandled command 0x%x\n", data);
-		exit(0);
+		//exit(0);
 	}
 }
 
