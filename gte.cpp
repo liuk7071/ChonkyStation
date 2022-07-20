@@ -27,6 +27,8 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 	case AVSZ3: cop2c[31] = 0; commandAVSZ3(); break;
 	case AVSZ4: cop2c[31] = 0; commandAVSZ4(); break;
 	case RTPT: cop2c[31] = 0; commandRTPT(); break;
+	case GPF: cop2c[31] = 0; commandGPF(); break;
+	case GPL: cop2c[31] = 0; commandGPL(); break;
 	default:
 		printf("Unimplemented GTE instruction: 0x%x\n", instr);
 		exit(1);
@@ -745,4 +747,28 @@ void gte::commandRTPT() {
 	MAC0 = (int32_t)(depth);
 	depth >>= 12;
 	IR0 = saturate((int16_t)(depth), 0, 0x1000);
+}
+
+void gte::commandGPF() {
+	const int shift = sf(instruction) * 12;
+	MAC1 = 0;
+	MAC2 = 0;
+	MAC3 = 0;
+
+	MAC1 = (int32_t)((IR1 * IR0) + MAC1) >> shift;
+	MAC2 = (int32_t)((IR2 * IR0) + MAC2) >> shift;
+	MAC3 = (int32_t)((IR3 * IR0) + MAC3) >> shift;
+	pushColour();
+}
+
+void gte::commandGPL() {
+	const int shift = sf(instruction) * 12;
+	MAC1 <<= shift;
+	MAC2 <<= shift;
+	MAC3 <<= shift;
+
+	MAC1 = (int32_t)((IR1 * IR0) + MAC1) >> shift;
+	MAC2 = (int32_t)((IR2 * IR0) + MAC2) >> shift;
+	MAC3 = (int32_t)((IR3 * IR0) + MAC3) >> shift;
+	pushColour();
 }

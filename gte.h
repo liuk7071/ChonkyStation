@@ -182,7 +182,9 @@ public:
 		NCT = 0x20,
 		AVSZ3 = 0x2d,
 		AVSZ4 = 0x2e,
-		RTPT = 0x30
+		RTPT = 0x30,
+		GPF = 0x3d,
+		GPL = 0x3e
 	};
 	enum Move {
 		MFC2 = 0,
@@ -208,6 +210,8 @@ public:
 	void commandAVSZ3();
 	void commandAVSZ4();
 	void commandRTPT();
+	void commandGPF();
+	void commandGPL();
 	
 	// Helpers
 	static uint32_t countLeadingZeros16(uint16_t value) {
