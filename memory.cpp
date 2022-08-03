@@ -230,7 +230,7 @@ uint16_t memory::read16(uint32_t addr) {
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
 		uint16_t data = pads.joy_stat;
-		printf("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, pc);
+		//printf("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, pc);
 		//return rand() & 0b111;
 		return data;
 	}

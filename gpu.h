@@ -183,6 +183,21 @@ public:
 	int32_t xoffset = 0;
 	int32_t yoffset = 0;
 	
+	struct {
+		struct {
+			uint16_t x;
+			uint16_t y;
+		} origin;
+		uint16_t width;
+		uint16_t height;
+	} display_area;
+	int width_divisor = 0;
+	uint16_t x1 = 0;
+	uint16_t x2 = 0;
+	uint16_t y1 = 0;
+	uint16_t y2 = 0;
+	void update_hres();
+	void update_vres();
 
 	// GPUSTAT
 	uint8_t page_base_x = 0;
@@ -193,11 +208,12 @@ public:
 	bool allow_display_drawing = false;
 	bool mask_bit = false;
 	bool disallow_masked_pixels_drawing = false;
-	uint8_t interlace_field = 0;
+	bool interlacing = false;
 	bool texture_disable = false;
 	uint8_t hres2 = 0;
 	uint8_t hres1 = 0;
 	uint8_t vres = 0;
+	uint8_t video_mode = 0;
 	uint8_t dma_direction = 0;
 	uint16_t texpage_raw = 0;
 

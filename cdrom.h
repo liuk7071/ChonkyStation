@@ -62,6 +62,7 @@ public:
 	void SeekL();
 	void ReadN();
 	void ReadS();
+	void Stop();
 	void Pause();
 	void init();
 	void Demute();

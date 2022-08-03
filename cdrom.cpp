@@ -36,6 +36,7 @@ void cdrom::execute(uint8_t command) {
 	case 0x01: GetStat(); break;
 	case 0x02: SetLoc(); break;
 	case 0x06: ReadN(); break;
+	case 0x08: Stop(); break;
 	case 0x09: Pause(); break;
 	case 0x0A: init(); break;
 	case 0x0C: Demute(); break;
@@ -347,6 +348,21 @@ void cdrom::ReadS() {	// Read without retry
 
 	Scheduler.push(&INT3, Scheduler.time + 4, this);
 	Scheduler.push(&INT1, Scheduler.time + ((33868800 / 75) / (DoubleSpeed ? 2 : 1)), this);
+	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
+}
+void cdrom::Stop() {
+	status |= 0b00001000;	// Set parameter fifo empty bit
+	debug_log("[CDROM] Stop\n");
+	response_fifo[0] = get_stat();
+	response_length = 1;
+	reading = false;
+	queued_fifo[0] = get_stat() & ~2;
+	queued_response_length = 1;
+	queued_INT2 = true;
+
+	Scheduler.push(&INT3, Scheduler.time + 400, this);
+	Scheduler.push(&INT2, Scheduler.time + 35000, this);
+	//queued_delay = 50000;
 	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
 }
 void cdrom::Pause() {

@@ -556,8 +556,8 @@ void ImGuiFrame(cpu *Cpu) {
     ImVec2 image_size(x, y);
     ImVec2 centered((ImGui::GetWindowSize().x - image_size.x) * 0.5, (ImGui::GetWindowSize().y - image_size.y) * 0.5);
     ImGui::SetCursorPos(centered);
-    ImVec2 uv0 = ImVec2(Cpu->bus.Gpu.drawing_topleft_x / 1024.f, Cpu->bus.Gpu.drawing_topleft_y / 512.f);
-    ImVec2 uv1 = ImVec2(Cpu->bus.Gpu.drawing_bottomright_x / 1024.f, Cpu->bus.Gpu.drawing_bottomright_y / 512.f);
+    ImVec2 uv0 = ImVec2(Cpu->bus.Gpu.display_area.origin.x / 1024.f, Cpu->bus.Gpu.display_area.origin.y / 512.f);
+    ImVec2 uv1 = ImVec2((Cpu->bus.Gpu.display_area.origin.x + Cpu->bus.Gpu.display_area.width) / 1024.f, (Cpu->bus.Gpu.display_area.origin.y + Cpu->bus.Gpu.display_area.height) / 512.f);
     ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(Cpu->bus.Gpu.VramTexture)), image_size, uv0, uv1);
     ImGui::End();
 

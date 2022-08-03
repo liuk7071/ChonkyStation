@@ -539,19 +539,73 @@ void gpu::execute_gp0(uint32_t command) {
 	}
 }
 
+void gpu::update_hres() {
+	display_area.width = (((x2 - x1) / width_divisor) + 2) & ~3;
+}
+void gpu::update_vres() {
+	display_area.height = y2 - y1;
+	if (interlacing) display_area.height *= 2;
+}
+
 void gpu::execute_gp1(uint32_t command) {
 	uint8_t instr = (command >> 24) & 0xff;
 
 	switch (instr) {
-	case 0x0:	// reset gpu
+	case 0x0: {	// reset gpu
+		hres1 = 1;
+		int res_divisors[] = { 10, 8, 5, 4 };
+		width_divisor = res_divisors[hres1]; // NTSC: 3413 video cycles per scanline
+
+		x1 = 0x200;
+		x2 = 0x200 + 256 * 10;
+		y1 = 0x10;
+		y2 = 0x10 + 240;
+		update_hres();
+		update_vres();
 		debug_printf("[GP1] Reset Gpu\n");
 		break;
+	}
 	case 0x1: // reset command buffer
 		debug_printf("[GP1] Reset Command Buffer\n");
 		break;
 	case 0x4: { // set dma direction
 		debug_printf("[GP1] Set DMA Direction to %d\n", command & 0b11);
 		dma_direction = command & 0b11;
+		break;
+	}
+	case 0x5: { // Start of Display area
+		display_area.origin.x = command & 0x3ff;
+		display_area.origin.y = (command >> 10) & 0x1ff;
+		update_hres();
+		update_vres();
+		break;
+	}
+	case 0x6: { // Horizontal Display range
+		x1 = command & 0xfff;
+		x2 = (command >> 12) & 0xfff;
+		update_hres();
+		break;
+	}
+	case 0x7: { // Vertical Display range
+		y1 = command & 0x3ff;
+		y2 = (command >> 10) & 0x3ff;
+		update_vres();
+		break;
+	}
+	case 0x8: { // Display mode
+		hres1 = command & 3;
+		vres = (command >> 2) & 1;
+		video_mode = (command >> 3) & 1;
+		if (interlacing && !((command >> 5) & 1)) {
+			display_area.height /= 2;
+		}
+		interlacing = (command >> 5) & 1;
+		hres2 = (command >> 6) & 1;
+		int res_divisors[] = { 10, 8, 5, 4 };
+		width_divisor = res_divisors[hres1]; // NTSC: 3413 video cycles per scanline
+		if (hres2) width_divisor = 7;
+		update_hres();
+		update_vres();
 		break;
 	}
 	default:
