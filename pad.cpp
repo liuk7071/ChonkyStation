@@ -28,21 +28,23 @@ void pad::WriteTXDATA(uint8_t data) {
 	}
 	switch (data) {
 	case 0:
-		if (mem_transfer) {
-			irq = true;
-			//read_response = true;
-			break;
-		}
+		irq = true;
+		joy_stat |= 0b010;
 		break;
 	case 1:
 		bytes_read = 0;
 		joy_stat |= 0b010;
-		rx_data_fifo[0] = 0;
+		joy_stat |= (1 << 7);
+		irq = true;
+		rx_data_fifo[0] = 0xff;
+		rx_data_fifo[1] = 0xff;
+		read_response = true;
+		response_length = 0;
 		break;
 	case 0x81:
 		bytes_read = 0;
-		irq = true;
-		mem_transfer = true;
+		//irq = true;
+		//mem_transfer = true;
 		break;
 	case 0x52:
 		bytes_read = 0;
@@ -56,6 +58,7 @@ void pad::WriteTXDATA(uint8_t data) {
 	case 0x43: {
 		bytes_read = 0;
 		joy_stat |= 0b010;
+		irq = true;
 		read_response = true;
 		if ((joy_ctrl & 0x2002) == 2) {
 			if (pad1_connected) {
@@ -64,6 +67,7 @@ void pad::WriteTXDATA(uint8_t data) {
 					rx_data_fifo[1] = 0x5A;
 					rx_data_fifo[2] = P1buttons & 0xff;
 					rx_data_fifo[3] = (P1buttons >> 8) & 0xff;
+					response_length = 3;
 				}
 				else if (pad1_type == "Mouse") {
 					auto& io = ImGui::GetIO();
@@ -76,6 +80,8 @@ void pad::WriteTXDATA(uint8_t data) {
 					rx_data_fifo[3] = 0xf0 | (buttons << 2);
 					rx_data_fifo[4] = io.MouseDelta.x;
 					rx_data_fifo[5] = io.MouseDelta.y;
+
+					response_length = 5;
 				}
 			}
 		}
@@ -86,6 +92,7 @@ void pad::WriteTXDATA(uint8_t data) {
 					rx_data_fifo[1] = 0x5A;
 					rx_data_fifo[2] = P2buttons & 0xff;
 					rx_data_fifo[3] = (P2buttons >> 8) & 0xff;
+					response_length = 3;
 				}
 				else if (pad2_type == "Mouse") {
 					auto& io = ImGui::GetIO();
@@ -98,6 +105,7 @@ void pad::WriteTXDATA(uint8_t data) {
 					rx_data_fifo[3] = 0xf0 | (buttons << 2);
 					rx_data_fifo[4] = io.MouseDelta.x;
 					rx_data_fifo[5] = io.MouseDelta.y;
+					response_length = 5;
 				}
 			}
 		}
@@ -115,7 +123,7 @@ void pad::WriteTXDATA(uint8_t data) {
 
 uint8_t pad::ReadRXFIFO() {
 	if (read_response) {
-		//joy_stat &= ~0b010;
+		if(bytes_read == response_length) joy_stat &= ~0b010;
 		uint8_t byte = rx_data_fifo[bytes_read++];
 		if (byte == 0x5d) {
 			mem_receive_addrmsb = true;

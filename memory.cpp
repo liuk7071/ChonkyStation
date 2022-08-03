@@ -21,7 +21,7 @@ void TMR1IRQ(void* dataptr) {
 	memory* memoryptr = (memory*)dataptr;
 	memoryptr->I_STAT |= 0b100000;
 	memoryptr->CDROM.Scheduler.push(&TMR1IRQ, memoryptr->CDROM.Scheduler.time + 5000, memoryptr);
-	////printf("[TIMER]] Sending TMR1 IRQ (stub)\n");
+	//printf("[TIMER]] Sending TMR1 IRQ (stub)\n");
 }
 void TMR2IRQ(void* dataptr) { 
 	memory* memoryptr = (memory*)dataptr;
@@ -107,7 +107,7 @@ uint8_t memory::read(uint32_t addr) {
 	// controller
 	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
 		uint8_t data = pads.ReadRXFIFO();
-		debug_warn("[PAD] Read JOY_RX_DATA (0x%x)\n", data);
+		printf("[PAD] Read JOY_RX_DATA (0x%x)\n", data);
 		return data;
 	}
 
@@ -117,8 +117,8 @@ uint8_t memory::read(uint32_t addr) {
 	}
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
-		//printf("[CDROM] Status register read\n");
-		return rand() % 0xff;
+		printf("[CDROM] Status register read\n");
+		//return rand() % 0xff;
 		return CDROM.status | (CDROM.cd.drqsts << 6);
 	}
 
@@ -192,36 +192,36 @@ uint16_t memory::read16(uint32_t addr) {
 	
 	// Timer 0 current value
 	if (masked_addr == 0x1f801100) {
-		//printf("[TIMER] Read timer 0 current value\n");
-		tmr1_stub += rand() % 4;
-		return tmr1_stub;
+		printf("[TIMER] Read timer 0 current value\n");
+		tmr0.current_value += rand() % 4;
+		return tmr0.current_value;
 	}
 	// Timer 1 current value
 	if (masked_addr == 0x1f801110) {
-		//printf("[TIMER] Read timer 1 current value (stubbed)\n");
-		tmr1_stub += rand() % 4;
-		return tmr1_stub;
+		printf("[TIMER] Read timer 1 current value (stubbed)\n");
+		tmr1.current_value += rand() % 4;
+		return tmr1.current_value;
 	}
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
-		//printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
-		return 0;
+		printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
+		return tmr1.counter_mode;
 	}
 
 	if (masked_addr == 0x1f801120) {	// timer 2 stuff
 		//printf("[TIMER] Read timer 2 current value (stubbed)\n");
-		tmr1_stub += rand() % 4;
-		return tmr1_stub;
+		tmr2.current_value += rand() % 4;
+		return tmr2.current_value;
 	}
 
 	if (masked_addr == 0x1f801124) {
-		//printf("[TIMER] Read timer 2 counter mode (stubbed)\n");
-		return 0;
+		//printf("[TIMER] Read timer 2 counter mode\n");
+		return tmr2.counter_mode;
 	}
 
 	if (masked_addr == 0x1f801128) {
-		//printf("[TIMER] Read timer 2 counter target (stubbed)\n");
-		return 0;
+		//printf("[TIMER] Read timer 2 counter target\n");
+		return tmr2.target_value;
 	}
 
 	// What is this?
@@ -230,13 +230,13 @@ uint16_t memory::read16(uint32_t addr) {
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
 		uint16_t data = pads.joy_stat;
-		debug_warn("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, pc);
+		printf("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, pc);
 		//return rand() & 0b111;
 		return data;
 	}
 
 	if (masked_addr == 0x1f80104a) {	// JOY_CTRL
-		debug_warn("[PAD] Read JOY_CTRL\n");
+		printf("[PAD] Read 0x%x from JOY_CTRL\n", pads.joy_ctrl);
 		return pads.joy_ctrl;
 	}
 
@@ -289,6 +289,11 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0xffff;
 	}
 
+	// SPU
+	if (masked_addr >= 0x1F801E00 && masked_addr <= 0x1F801Eff) {
+		return 0;
+	}
+
 	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
 	exit(0);
 }
@@ -306,7 +311,7 @@ uint32_t memory::read32(uint32_t addr) {
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
 		printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
-		return 0;
+		return tmr1.counter_mode;
 	}
 
 	if (masked_addr == 0x1f801014) return 0;
@@ -317,10 +322,10 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f802080) return 0x58534350; // "Also return 0x58534350 for 32-bit reads from 0x1f802080"  - peach
 
-	if (masked_addr == 0x1f801110) {	// timer 1 stuff
+	if (masked_addr == 0x1f801110) {
 		//printf("[TIMER] Read timer 1 current value\n");
-		tmr1_stub += rand() % 4;
-		return tmr1_stub;
+		tmr1.current_value += rand() % 4;
+		return tmr1.current_value;
 	}
 
 	if (masked_addr == 0x1f80101c) {
@@ -419,6 +424,14 @@ uint32_t memory::read32(uint32_t addr) {
 	}
 #endif
 
+	if (masked_addr == 0x1f801044) { // JOY_STAT
+		pads.joy_baud -= rand() % 1024;
+		uint32_t data = pads.joy_stat | (pads.joy_baud << 11);
+		debug_warn("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, pc);
+		//return rand() & 0b111;
+		return data;
+	}
+
 	// SPU
 	if (masked_addr == 0x1F801D9C) {
 		printf("[SPU] Read Voice 0..23 ON/OFF (stubbed)\n");
@@ -453,7 +466,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 
 	// controllers
 	if (masked_addr == 0x1f801040) {
-		debug_warn("[PAD] Write 0x%x to JOY_TX_DATA\n", data);
+		printf("[PAD] Write 0x%x to JOY_TX_DATA\n", data);
 		pads.WriteTXDATA(data);
 		return;
 	}
@@ -523,11 +536,6 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	if (masked_addr == 0x1f802080) {
 		printf("%c", data);
 		logwnd->AddLog("%c", data);
-		return;
-	}
-
-	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
-		////printf("[TIMER]] Write timer 0/1 regs (0x%08x)\n", masked_addr);
 		return;
 	}
 
@@ -609,6 +617,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	if (masked_addr == 0x1f8010f4) { // DICR
 		DICR = data;
 		DICR &= ~(data & 0x7f000000);
+		if (DICR & (1 << 15)) abort();
 		if (debug) debug_log(" Write 0x%.8x to dicr", data);
 		return;
 	}
@@ -687,7 +696,6 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		return; 
 	}
 	if (masked_addr == 0x1f8010c8) {
-		CDROM.Scheduler.push(&DMAIRQ, CDROM.Scheduler.time + 5000, this);
 		Ch4.CHCR = data;
 		return;
 	}
@@ -707,16 +715,54 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		return;
 	}
 	
-	if (masked_addr == 0x1f801114) {
-		//////printf("[TIMER]] Sending TMR1 IRQ (stub)\n");
-		printf("[TIMER] Write timer 2 counter mode\n");
-		tmr1_stub = 0;
-		//CDROM.Scheduler.push(&TMR1IRQ, CDROM.Scheduler.time + 5000, this);
+	if (masked_addr == 0x1f801100) {
+		printf("[TIMER] Write timer 0 counter value\n");
+		tmr0.current_value = data;
+		return;
+	}
+	if (masked_addr == 0x1f801104) {
+		printf("[TIMER] Write timer 0 counter mode\n");
+		tmr0.counter_mode = data;
+		tmr0.current_value = 0;
+		return;
+	}
+	if (masked_addr == 0x1f801108) {
+		printf("[TIMER] Write timer 0 counter target\n");
+		tmr0.target_value = data;
 		return;
 	}
 
-	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118) {
-		////printf("[TIMER]] Write timer 0/1 regs (0x%08x)\n", masked_addr);
+	if (masked_addr == 0x1f801110) {
+		printf("[TIMER] Write timer 1 counter value\n");
+		tmr1.current_value = data;
+		return;
+	}
+	if (masked_addr == 0x1f801114) {
+		printf("[TIMER] Write timer 1 counter mode\n");
+		tmr1.counter_mode = data;
+		tmr1.current_value = 0;
+		return;
+	}
+	if (masked_addr == 0x1f801118) {
+		printf("[TIMER] Write timer 1 counter target\n");
+		tmr1.target_value = data;
+		return;
+	}
+
+	if (masked_addr == 0x1f801120) {
+		printf("[TIMER] Write timer 2 counter value\n");
+		tmr2.current_value = data;
+		return;
+	}
+	if (masked_addr == 0x1f801124) {
+		printf("[TIMER] Write timer 2 counter mode\n");
+		tmr2.counter_mode = data;
+		tmr2.current_value = 0;
+		return;
+	}
+	if (masked_addr == 0x1f801128) {
+		printf("[TIMER] Write timer 2 counter target\n");
+		tmr2.target_value = data;
 		return;
 	}
 
@@ -789,14 +835,65 @@ void memory::write16(uint32_t addr, uint16_t data) {
 		return;
 	}
 
-	if (masked_addr == 0x1f801110) {
-		printf("[TIMER] Write timer 1 current value\n");
-		tmr1_stub = data;
+	if (masked_addr == 0x1f801100) {
+		printf("[TIMER] Write timer 0 current value\n");
+		tmr0.current_value = data;
 		return;
 	}
 
-	if (masked_addr == 0x1f801104 || masked_addr == 0x1f801108 || masked_addr == 0x1f801100 || masked_addr == 0x1f801114 || masked_addr == 0x1f801118 || masked_addr == 0x1f801110 || masked_addr == 0x1f801124 || masked_addr == masked_addr == 0x1f801124 || masked_addr == 0x1f801128 || masked_addr == 0x1f801120) {
-		printf("[TIMER] Write timer regs\n");
+	if (masked_addr == 0x1f801104) {
+		printf("[TIMER] Write timer 0 counter mode\n");
+		tmr0.counter_mode = data;
+		tmr0.current_value = 0;
+		return;
+	}
+
+	if (masked_addr == 0x1f801108) {
+		printf("[TIMER] Write timer 0 counter target\n");
+		tmr0.target_value = data;
+		return;
+	}
+
+	if (masked_addr == 0x1f801110) {
+		printf("[TIMER] Write timer 1 current value\n");
+		tmr1.current_value = data;
+		return;
+	}
+
+	if (masked_addr == 0x1f801114) {
+		printf("[TIMER] Write timer 1 counter mode\n");
+		tmr1.counter_mode = data;
+		tmr1.current_value = 0;
+		return;
+	}
+
+	if (masked_addr == 0x1f801118) {
+		printf("[TIMER] Write timer 1 counter target\n");
+		tmr1.target_value = data;
+		return;
+	}
+	
+	if (masked_addr == 0x1f801120) {
+		printf("[TIMER] Write timer 2 current value\n");
+		tmr2.current_value = data;
+		return;
+	}
+
+	if (masked_addr == 0x1f801124) {
+		printf("[TIMER] Write timer 2 counter mode\n");
+		tmr2.counter_mode = data;
+		tmr2.current_value = 0;
+		return;
+	}
+
+	if (masked_addr == 0x1f801128) {
+		printf("[TIMER] Write timer 2 counter target\n");
+		tmr2.target_value = data;
+		return;
+	}
+
+	if (masked_addr == 0x1f801da6) {
+		spu_ram_transfer_address = data;
 		return;
 	}
 

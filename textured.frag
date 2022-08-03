@@ -34,17 +34,29 @@
 			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
 		}
 
+		vec4 fetchTexel8Bit(ivec2 coords) {
+			int texel = sample16(ivec2(coords.x / 2, coords.y) + ivec2(texpageCoords));
+			int idx = (texel >> ((coords.x % 2) * 8)) & 0xff;
+			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
+		}
+
 		void main()
 		{
 			vec4 colour;
 			if(colourDepth == 0) {
+				//discard;
 				colour = fetchTexel4Bit(ivec2(TexCoord));
-			} else if (colourDepth == 2) {
+			}
+			else if (colourDepth == 1) {
+				colour = fetchTexel8Bit(ivec2(TexCoord));
+			} 
+			else if (colourDepth == 2) {
 				vec2 TexCoords = vec2(float(TexCoord.x + texpageCoords.x) / 1024.f - 1, -(1 - float(TexCoord.y + texpageCoords.y) / 512.f));
 				colour = texture(vram, TexCoords);
 			} else colour = vec4(1.f, 0.f, 0.f, 1.f);
-			//if(colour.rgb == vec3(0.f, 0.f, 0.f)) discard;
+			if(colour.rgb == vec3(0.f, 0.f, 0.f)) discard;
 			colour.a = 1.f;
+			//discard;
 			FragColor = colour;
 		}
 		

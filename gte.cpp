@@ -17,13 +17,16 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 	}
 	case RTPS: cop2c[31] = 0; commandRTPS(); break;
 	case NCLIP: cop2c[31] = 0; commandNCLIP(); break;
+	case OP: cop2c[31] = 0; commandOP(); break;
 	case DPCS: cop2c[31] = 0; commandDPCS(); break;
 	case INTPL: cop2c[31] = 0; commandINTPL(); break;
 	case MVMVA: cop2c[31] = 0; commandMVMVA(); break;
 	case NCDS: cop2c[31] = 0; commandNCDS(); break;
 	case NCDT: cop2c[31] = 0; commandNCDT(); break;
+	case NCCS: cop2c[31] = 0; commandNCCS(); break;
 	case NCS: cop2c[31] = 0; commandNCS(); break;
 	case NCT: cop2c[31] = 0; commandNCT(); break;
+	case SQR: cop2c[31] = 0; commandSQR(); break;
 	case AVSZ3: cop2c[31] = 0; commandAVSZ3(); break;
 	case AVSZ4: cop2c[31] = 0; commandAVSZ4(); break;
 	case RTPT: cop2c[31] = 0; commandRTPT(); break;
@@ -314,8 +317,8 @@ void gte::commandRTPS() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
-	_proj_factor = gte_divide(H, SZ3);
+	//int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
+	int32_t _proj_factor = gte_divide(H, SZ3);
 	int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
@@ -552,6 +555,37 @@ void gte::commandNCDT() {
 	pushColour();
 }
 
+void gte::commandNCCS() {
+	const int shift = sf(instruction) * 12;
+	const int lm = this->lm(instruction);
+	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX0) + (int64_t)((int16_t)L12 * (int16_t)VY0) + (int64_t)((int16_t)L13 * (int16_t)VZ0)) >> shift;
+	MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX0) + (int64_t)((int16_t)L22 * (int16_t)VY0) + (int64_t)((int16_t)L23 * (int16_t)VZ0)) >> shift;
+	MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX0) + (int64_t)((int16_t)L32 * (int16_t)VY0) + (int64_t)((int16_t)L33 * (int16_t)VZ0)) >> shift;
+	//setIRFromMAC();
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
+	MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
+	MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
+	//setIRFromMAC();
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	MAC1 = ((int64_t)R * (int16_t)IR1) << 4;
+	MAC2 = ((int64_t)G * (int16_t)IR2) << 4;
+	MAC3 = ((int64_t)B * (int16_t)IR3) << 4;
+
+	MAC1 = (int32_t)MAC1 >> shift;
+	MAC2 = (int32_t)MAC2 >> shift;
+	MAC3 = (int32_t)MAC3 >> shift;
+
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	pushColour();
+}
+
 void gte::commandNCS() {
 	//printf("ncds\n");
 	const int shift = sf(instruction) * 12;
@@ -626,6 +660,17 @@ void gte::commandNCT() {
 	pushColour();
 }
 
+void gte::commandSQR() {
+	const int shift = sf(instruction) * 12;
+	MAC1 = (IR1 * IR1) >> shift;
+	MAC2 = (IR2 * IR2) >> shift;
+	MAC3 = (IR3 * IR3) >> shift;
+
+	IR1 = saturate(MAC1, 0, 0x7fff);
+	IR2 = saturate(MAC2, 0, 0x7fff);
+	IR3 = saturate(MAC3, 0, 0x7fff);
+}
+
 void gte::commandNCLIP() {
 	//printf("nclip\n");
 	MAC0 = (int64_t)((int32_t)(SX0) * (int32_t)(SY1)) + ((int32_t)(SX1) * (int32_t)(SY2)) + ((int32_t)(SX2) * (int32_t)(SY0)) - ((int32_t)(SX0) * (int32_t)(SY2)) - ((int32_t)(SX1) * (int32_t)(SY0)) - ((int32_t)(SX2) * (int32_t)(SY1));
@@ -637,6 +682,18 @@ void gte::commandNCLIP() {
 	//MAC0 = (int32_t)(a + b + c);
 	//MAC0 = 0x1500000;
 	//printf("%d\n", MAC0);
+}
+
+void gte::commandOP() {
+	const int shift = sf(instruction) * 12;
+	const int lm = this->lm(instruction);
+	MAC1 = (int16_t)(((int16_t)IR3 * (int16_t)RT22) - ((int16_t)IR2 * (int16_t)RT33)) >> shift;
+	MAC2 = (int16_t)(((int16_t)IR1 * (int16_t)RT33) - ((int16_t)IR3 * (int16_t)RT11)) >> shift;
+	MAC3 = (int16_t)(((int16_t)IR2 * (int16_t)RT11) - ((int16_t)IR1 * (int16_t)RT22)) >> shift;
+
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
 }
 
 void gte::commandAVSZ3() {
@@ -667,8 +724,8 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
-	_proj_factor = gte_divide(H, SZ3);
+	//int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
+	int32_t _proj_factor = gte_divide(H, SZ3);
 	int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
@@ -698,7 +755,7 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
+	//_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
 	_proj_factor = gte_divide(H, SZ3);
 	proj_factor = (int64_t)(_proj_factor);
 	_x = (int64_t)(int16_t)(IR1);
@@ -728,7 +785,7 @@ void gte::commandRTPT() {
 	SXY0 = SXY1;
 	SXY1 = SXY2;
 	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
+	//_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
 	_proj_factor = gte_divide(H, SZ3);
 	proj_factor = (int64_t)(_proj_factor);
 	_x = (int64_t)(int16_t)(IR1);

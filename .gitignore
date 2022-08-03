@@ -6,6 +6,10 @@
 *.bin
 *.idb
 *.bin.idb
+*.bin.id0
+*.bin.id1
+*.bin.nam
+*.bin.til
 
 # User-specific files
 *.rsuser

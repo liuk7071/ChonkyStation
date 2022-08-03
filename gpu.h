@@ -204,6 +204,18 @@ public:
 	uint32_t get_status();
 
 public:	// commands
+	enum {
+		MONOCHROME,
+		GOURAUD
+	};
+
+	enum {
+		SOLID,
+		SEMI_TRANSPARENT
+	};
+
+	void draw_untextured_tri(int shading, int transparency);
+
 	void monochrome_line_opaque();
 	void monochrome_polyline_opaque();
 	void monochrome_four_point_opaque_polygon();
@@ -218,6 +230,7 @@ public:	// commands
 	void shaded_four_point_opaque_polygon();
 	void shaded_four_point_semi_transparent_polygon();
 	void shaded_texture_blending_textured_four_point_opaque_polygon();
+	void shaded_texture_blending_textured_four_point_semi_transparent_polygon();
 	void texture_blending_four_point_polygon_semi_transparent();
 	void monochrome_rectangle_variable_size_opaque();
 	void monochrome_rectangle_variable_size_semi_transparent();

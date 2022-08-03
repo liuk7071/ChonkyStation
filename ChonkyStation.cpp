@@ -30,6 +30,9 @@ bool show_vram = false;
 bool show_log = false;
 bool show_shader_editor = false;
 bool show_textured_primitives_shader_editor = false;
+bool show_timer0_debugger = false;
+bool show_timer1_debugger = false;
+bool show_timer2_debugger = false;
 bool started = false;
 bool sideload = false;
 bool run = false;
@@ -75,6 +78,8 @@ const char* FilterPatternsExe[1] = { "*.exe" };
 unsigned int vram_viewer;
 bool test = false;
 bool tmr1irq = false;
+bool spuirq = false;
+bool padirq = false;
 
 static MemoryEditor MemEditor;
 
@@ -107,6 +112,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     // Timer 1 stub
     if (key == GLFW_KEY_U && action == GLFW_PRESS) {
         tmr1irq = true;
+    }
+    if (key == GLFW_KEY_I && action == GLFW_PRESS) {
+        spuirq = !spuirq;
+    }
+    if (key == GLFW_KEY_O && action == GLFW_PRESS) {
+        padirq = true;
     }
 
     // pad1
@@ -215,7 +226,7 @@ void Reset(const char* rom_dir, const char* bios_dir, cpu *Cpu) {
         show_dialog = true;
     }
     else {
-        Cpu->bus.mem.CDROM.Scheduler.push(&ScheduleVBLANK, Cpu->bus.mem.CDROM.Scheduler.time + (33868800 / 60), &Cpu->bus.mem);
+        //Cpu->bus.mem.CDROM.Scheduler.push(&ScheduleVBLANK, Cpu->bus.mem.CDROM.Scheduler.time + (33868800 / 60), &Cpu->bus.mem);
         if (run) {
             *Cpu = cpu(sideload ? binary_path : "", bios_path, false);
             Cpu->bus.Gpu.InitGL();
@@ -415,6 +426,109 @@ void InterruptDebugger(cpu* Cpu) {
     ImGui::End();
 }
 
+template<int timer>
+void TimerDebugger(cpu* Cpu) {
+    uint16_t current_value = 0;
+    uint16_t counter_mode = 0;
+    uint16_t target_value = 0;
+    
+    std::string title;
+    if constexpr (timer == 0) {
+        current_value = Cpu->bus.mem.tmr0.current_value;
+        counter_mode = Cpu->bus.mem.tmr0.counter_mode;
+        target_value = Cpu->bus.mem.tmr0.target_value;
+        title = "Timer 0 Debugger";
+    }
+    else if constexpr (timer == 1) {
+        current_value = Cpu->bus.mem.tmr1.current_value;
+        counter_mode = Cpu->bus.mem.tmr1.counter_mode;
+        target_value = Cpu->bus.mem.tmr1.target_value;
+        title = "Timer 1 Debugger";
+    }
+    else if constexpr (timer == 2) {
+        current_value = Cpu->bus.mem.tmr2.current_value;
+        counter_mode = Cpu->bus.mem.tmr2.counter_mode;
+        target_value = Cpu->bus.mem.tmr2.target_value;
+        title = "Timer 2 Debugger";
+    }
+
+    ImGui::Begin(title.c_str());
+    ImGui::Text("Current value: 0x%04x\n", current_value);
+    ImGui::Text("Target value: 0x%04x\n", target_value);
+
+    auto sync_enable = counter_mode & 1;
+    auto sync_mode = (counter_mode >> 1) & 3;
+    auto reset_counter = (counter_mode >> 3) & 1;
+    auto irq_when_target = (counter_mode >> 4) & 1;
+    auto irq_when_ffff = (counter_mode >> 5) & 1;
+    auto irq_repeat_mode = (counter_mode >> 6) & 1;
+    auto irq_pulse_or_toggle = (counter_mode >> 7) & 1;
+    auto clock_source = (counter_mode >> 8) & 3;
+
+    ImGui::Text("Sync mode: ");
+    ImGui::SameLine();
+    if (sync_enable == 0) ImGui::Text("Off (Free run)\n");
+    else if constexpr (timer == 0) {
+        if (sync_mode == 0) ImGui::Text("Pause during Hblank\n");
+        else if (sync_mode == 1) ImGui::Text("Reset to 0 at Hblank\n");
+        else if (sync_mode == 2) ImGui::Text("Pause outside Hblank and reset to 0 at the start of Hblank\n");
+        else if (sync_mode == 3) ImGui::Text("Pause until the next Hblank, then switch to Free run\n");
+    }
+    else if constexpr (timer == 1) {
+        if (sync_mode == 0) ImGui::Text("Pause during Vblank\n");
+        else if (sync_mode == 1) ImGui::Text("Reset to 0 at Vblank\n");
+        else if (sync_mode == 2) ImGui::Text("Pause outside Vblank and reset to 0 at the start of Vblank\n");
+        else if (sync_mode == 3) ImGui::Text("Pause until the next Vblank, then switch to Free run\n");
+    }
+    else if constexpr (timer == 2) {
+        if ((sync_mode == 0) || (sync_mode == 3)) ImGui::Text("Stopped\n");
+        else if ((sync_mode == 1) || (sync_mode == 2)) ImGui::Text("Off (Free run\n");
+    }
+
+    ImGui::Text("Reset counter to 0 if: ");
+    ImGui::SameLine();
+    if (reset_counter == 0) ImGui::Text("Counter hits 0xFFFF\n");
+    else if (reset_counter == 1) ImGui::Text("Counter hits target\n");
+
+    ImGui::Text("Fire IRQ if: ");
+    ImGui::SameLine();
+    if (!irq_when_target && !irq_when_ffff) ImGui::Text("Never\n");
+    else {
+        if (irq_when_target) ImGui::Text("counter==target");
+        if (irq_when_ffff) {
+            if (!irq_when_target) ImGui::Text("counter==0xFFFF\n");
+            else ImGui::Text(" or counter==0xFFFF\n");
+        }
+    }
+
+    ImGui::Text("Fire IRQ repeatedly: ");
+    ImGui::SameLine();
+    if (irq_repeat_mode) ImGui::Text("Yes\n");
+    else ImGui::Text("No\n");
+
+    ImGui::Text("Interrupt Request bit pulse/toggle: ");
+    ImGui::SameLine();
+    if (irq_pulse_or_toggle) ImGui::Text("Toggle\n");
+    else ImGui::Text("Pulse\n");
+
+    ImGui::Text("Clock source: ");
+    ImGui::SameLine();
+    if constexpr (timer == 0) {
+        if ((clock_source == 0) || (clock_source == 2)) ImGui::Text("System Clock\n");
+        else if ((clock_source == 1) || (clock_source == 3)) ImGui::Text("Dotclock\n");
+    }
+    else if constexpr (timer == 1) {
+        if ((clock_source == 0) || (clock_source == 2)) ImGui::Text("System Clock\n");
+        else if ((clock_source == 1) || (clock_source == 3)) ImGui::Text("Hblank\n");
+    }
+    else if constexpr (timer == 2) {
+        if ((clock_source == 0) || (clock_source == 1)) ImGui::Text("System Clock\n");
+        else if ((clock_source == 2) || (clock_source == 3)) ImGui::Text("System Clock/8\n");
+    }
+
+    ImGui::End();
+}
+
 void Dialog() {
     ImGui::Begin("", &show_dialog);
     ImGui::Text(dialog_message);
@@ -510,6 +624,18 @@ void ImGuiFrame(cpu *Cpu) {
 #endif
             if (ImGui::MenuItem("Interrupts")) {
                 show_interrupt_debugger = !show_interrupt_debugger;
+            }
+            if (ImGui::BeginMenu("Timers")) {
+                if (ImGui::MenuItem("Timer 0")) {
+                    show_timer0_debugger = !show_timer0_debugger;
+                }
+                if (ImGui::MenuItem("Timer 1")) {
+                    show_timer1_debugger = !show_timer1_debugger;
+                }
+                if (ImGui::MenuItem("Timer 2")) {
+                    show_timer2_debugger = !show_timer2_debugger;
+                }
+                ImGui::EndMenu();
             }
             if (ImGui::MenuItem("Log")) {
                 show_log = !show_log;
@@ -699,12 +825,22 @@ int main(int argc, char** argv) {
     int frameCount = 0;
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
+            if(run) Cpu.bus.mem.I_STAT |= 1;
             if (tmr1irq) {
                 printf("[TIMERS] TMR2 IRQ\n");
                 //tmr1irq = false;
                 //Cpu.bus.mem.I_STAT |= 0b100000;
                 Cpu.bus.mem.I_STAT |= 0b1000000;
                 Cpu.bus.mem.tmr1_stub = 0;
+            }
+            if (spuirq) {
+                printf("[SPU] IRQ\n");
+                Cpu.bus.mem.I_STAT |= (1 << 9);
+                //spuirq = false;
+            }
+            if (padirq) {
+                printf("[PAD] IRQ\n");
+                Cpu.bus.mem.I_STAT |= (1 << 7);
             }
             Cpu.bus.mem.I_STAT |= 0b100000;
             //Cpu.bus.mem.I_STAT |= 0b1000000;
@@ -804,6 +940,9 @@ int main(int argc, char** argv) {
             if (show_ram_viewer) MemEditor.DrawWindow("RAM Viewer", Cpu.bus.mem.ram, 0x200000);
             if (show_cpu_registers) CpuDebugger(&Cpu);
             if (show_interrupt_debugger) InterruptDebugger(&Cpu);
+            if (show_timer0_debugger) TimerDebugger<0>(&Cpu);
+            if (show_timer1_debugger) TimerDebugger<1>(&Cpu);
+            if (show_timer2_debugger) TimerDebugger<2>(&Cpu);
             if (show_log) Cpu.log.Draw("Log");
             if (show_shader_editor) {
                 auto programuntextured = ShaderEditUntextured.compile();

@@ -224,29 +224,9 @@ void cpu::do_dma() {
 				debug_log("[DMA] Transfer direction: device to ram\n");
 				debug_log("[DMA] MADR: 0x%x\n", addr);
 				debug_log("[DMA] Transfer size: %d words\n", words);
-				while (words >= 0) {
+				while (words > 0) {
 					current_addr = addr & 0x1ffffc;
-					if (words == 1) {
-						uint8_t b1 = bus.mem.CDROM.cd.ReadDataByte();
-						uint8_t b2 = bus.mem.CDROM.cd.ReadDataByte();
-						uint8_t b3 = bus.mem.CDROM.cd.ReadDataByte();
-						uint8_t b4 = bus.mem.CDROM.cd.ReadDataByte();
-						uint32_t word = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
-						bus.mem.write32(current_addr, word);
-						printf("[DMA] CDROM Block Copy completed (pc = 0x%08x)\n", pc);
-						bus.mem.CDROM.status &= ~(0b10000000); // DRQSTS
-						bus.mem.Ch3.CHCR &= ~(1 << 24);
-						bus.mem.Ch3.CHCR &= ~(1 << 28);
-						//debug = false;
-						if (((bus.mem.DICR >> 19) & 1) && ((bus.mem.DICR >> 23) & 1)) {
-							bus.mem.DICR |= (1 << 27);
-							bus.mem.I_STAT |= 0b1000;
-							//should_service_dma_irq = true;
-						}
-						//bus.mem.CDROM.queued_read = true;
-						//bus.mem.CDROM.delay = 2;
-						return;
-					}
+
 					uint8_t b1 = bus.mem.CDROM.cd.ReadDataByte();
 					uint8_t b2 = bus.mem.CDROM.cd.ReadDataByte();
 					uint8_t b3 = bus.mem.CDROM.cd.ReadDataByte();
@@ -256,7 +236,17 @@ void cpu::do_dma() {
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
 				}
-				break;
+				printf("[DMA] CDROM Block Copy completed (pc = 0x%08x)\n", pc);
+				bus.mem.CDROM.status &= ~(0b10000000); // DRQSTS
+				bus.mem.Ch3.CHCR &= ~(1 << 24);
+				bus.mem.Ch3.CHCR &= ~(1 << 28);
+				//debug = false;
+				if (((bus.mem.DICR >> 19) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+					bus.mem.DICR |= (1 << 27);
+					bus.mem.I_STAT |= 0b1000;
+					//should_service_dma_irq = true;
+				}
+				return;
 			default:
 				printf("[DMA] Unhandled Direction (CDROM Block Copy)\n");
 				exit(0);
@@ -268,7 +258,91 @@ void cpu::do_dma() {
 			printf("[DMA] Unhandled sync mode (CDROM: %d)", sync_mode);
 			exit(0);
 		}
-		printf("\nd");
+		printf("\n");
+		exit(0);
+		break;
+	}
+
+	case 4: {			// SPU
+		auto sync_mode = (bus.mem.Ch4.CHCR >> 9) & 0b11;
+		bool incrementing = ((bus.mem.Ch4.CHCR >> 1) & 1) == 0;
+		uint16_t words = (bus.mem.Ch4.BCR) & 0xffff;
+		words *= (bus.mem.Ch2.BCR >> 16);
+		auto direction = (bus.mem.Ch4.CHCR) & 1;
+		uint32_t addr = bus.mem.Ch4.MADR;
+
+		switch (sync_mode) {	// switch on the sync mode
+		case 1: {			// block dma
+			debug_log("[DMA] Start SPU Block Copy (stubbed)\n");
+			uint32_t current_addr = addr & 0x1ffffc;
+			uint32_t spu_addr = bus.mem.spu_ram_transfer_address * 8;
+			switch (direction) {
+			case 1:
+				debug_log("[DMA] Transfer direction: ram to device\n");
+				debug_log("[DMA] MADR: 0x%x\n", addr);
+				debug_log("[DMA] Transfer size: %d words\n", words);
+				while (words > 0) {
+					current_addr = addr & 0x1ffffc;
+
+					uint32_t word = bus.mem.read32(current_addr);
+					uint16_t halfword1 = (word >> 16);
+					uint16_t halfword2 = (word & 0xffff);
+					bus.mem.spu_ram[spu_addr + 0] = (halfword1 >> 8);
+					bus.mem.spu_ram[spu_addr + 1] = (halfword1 & 0xff);
+					bus.mem.spu_ram[spu_addr + 2] = (halfword2 >> 8);
+					bus.mem.spu_ram[spu_addr + 3] = (halfword2 & 0xff);
+					
+					spu_addr += 4;
+					if (incrementing) addr += 4; else addr -= 4;
+					words--;
+				}
+
+				printf("[DMA] SPU Block Copy completed (pc = 0x%08x)\n", pc);
+				bus.mem.Ch4.CHCR &= ~(1 << 24);
+				bus.mem.Ch4.CHCR &= ~(1 << 28);
+				if (((bus.mem.DICR >> 20) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+					bus.mem.DICR |= (1 << 28);
+					bus.mem.I_STAT |= 0b1000;
+				}
+				return;
+			case 0:
+				debug_log("[DMA] Transfer direction: device to ram\n");
+				debug_log("[DMA] MADR: 0x%x\n", addr);
+				debug_log("[DMA] Transfer size: %d words\n", words);
+				while (words > 0) {
+					current_addr = addr & 0x1ffffc;
+
+					uint8_t b1 = bus.mem.spu_ram[spu_addr + 0];
+					uint8_t b2 = bus.mem.spu_ram[spu_addr + 1];
+					uint8_t b3 = bus.mem.spu_ram[spu_addr + 2];
+					uint8_t b4 = bus.mem.spu_ram[spu_addr + 3];
+					uint32_t word = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
+					bus.mem.write32(current_addr, word);
+
+					spu_addr += 4;
+					if (incrementing) addr += 4; else addr -= 4;
+					words--;
+				}
+				printf("[DMA] SPU Block Copy completed (pc = 0x%08x)\n", pc);
+				bus.mem.Ch4.CHCR &= ~(1 << 24);
+				bus.mem.Ch4.CHCR &= ~(1 << 28);
+				if (((bus.mem.DICR >> 20) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+					bus.mem.DICR |= (1 << 28);
+					bus.mem.I_STAT |= 0b1000;
+				}
+				return;
+			default:
+				printf("[DMA] Unhandled Direction (SPU Block Copy)\n");
+				exit(0);
+			}
+			printf("\n");
+			exit(0);
+		}
+		default:
+			printf("[DMA] Unhandled sync mode (SPU: %d)", sync_mode);
+			exit(0);
+		}
+		printf("\n");
 		exit(0);
 		break;
 	}
@@ -345,6 +419,13 @@ void cpu::check_dma() {
 	triggered = !(sync_mode == 0 && !trigger);
 	if (enabled && triggered) { do_dma<3>(); return; }
 
+	enabled = ((bus.mem.Ch4.CHCR >> 24) & 1) == 1;
+	trigger = ((bus.mem.Ch4.CHCR >> 28) & 1) == 1;
+	sync_mode = (bus.mem.Ch4.CHCR >> 9) & 0b11;
+
+	triggered = !(sync_mode == 0 && !trigger);
+	if (enabled && triggered) { do_dma<4>(); return; }
+
 	enabled = ((bus.mem.Ch6.CHCR >> 24) & 1) == 1;
 	trigger = ((bus.mem.Ch6.CHCR >> 28) & 1) == 1;
 	sync_mode = (bus.mem.Ch6.CHCR >> 9) & 0b11;
@@ -371,22 +452,6 @@ void cpu::execute(uint32_t instr) {
 		if (log_kernel) printf("\nkernel call B(0x%x)", regs[9]);
 		if (regs[9] == 0x3d)
 			if (tty) { printf("%c", regs[4]); log.AddLog("%c", regs[4]); }
-		if (regs[9] == 0x12) { // OutdatedPadInitAndStart(type,button_dest,unused,unused)
-			patch_b0_12h = true;
-			button_dest = regs[4];
-			bus.mem.button_dest = regs[4];
-			pc = regs[31];
-			//Cpu.bus.mem.write(Cpu.button_dest + 0, 0x00, false);
-			//Cpu.bus.mem.write(Cpu.button_dest + 1, 0x41, false);
-			//Cpu.bus.mem.write(Cpu.button_dest + 2, ((P1buttons >> 8) & 0xff), false);
-			//Cpu.bus.mem.write(Cpu.button_dest + 3, (P1buttons & 0xff), false);
-			printf("OutdatedPadInitAndStart: button_dest = 0x%x\n", button_dest);
-		}
-		if (regs[9] == 0x4f) {
-			pc = regs[31];
-			regs[2] = 1;
-			bus.mem.read_card_sector(regs[4], regs[5], regs[6]);
-		}
 	}
 	if (pc == 0xC0 || pc == 0x800000C0 || pc == 0xA00000C0) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);
@@ -1053,7 +1118,7 @@ void cpu::check_CDROM_IRQ() {
 void IRQ7(void* dataptr) {
 	cpu* cpuptr = (cpu*)dataptr;
 	cpuptr->bus.mem.I_STAT |= (1 << 7);
-	//printf("[IRQ] IRQ7\n");
+	printf("[IRQ] IRQ7\n");
 }
 void cpu::step() {
 	check_dma(); // TODO: Only check DMA when control registers are written to   
@@ -1074,7 +1139,11 @@ void cpu::step() {
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag)
 		bus.mem.I_STAT |= (1 << 2);
 	if (bus.mem.pads.irq) {
-		bus.mem.CDROM.Scheduler.push(&IRQ7, bus.mem.CDROM.Scheduler.time + 10000, this);
+		printf("[PAD] ACK\n");
+		bus.mem.CDROM.Scheduler.push(&IRQ7, bus.mem.CDROM.Scheduler.time + 1000, this);
+		bus.mem.pads.irq = false;
+		bus.mem.pads.joy_stat |= (1 << 7);
+		bus.mem.pads.joy_stat |= (1 << 9);
 		bus.mem.pads.irq = false;
 	}
 }

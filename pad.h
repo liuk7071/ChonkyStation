@@ -12,9 +12,10 @@ public:
 	uint16_t joy_tx_data = 0;
 	uint8_t rx_data_fifo[16];
 	int bytes_read = 0;
+	int response_length = 0;
 	bool read_response = false;
 	uint8_t ReadRXFIFO();
-	uint16_t joy_stat = 0b111;
+	uint16_t joy_stat = 0b101;
 	uint16_t joy_mode = 0;
 	uint16_t joy_ctrl = 0;
 	uint16_t joy_baud = 0;

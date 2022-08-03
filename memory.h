@@ -29,6 +29,7 @@ public:
 	uint32_t pc = 0;
 	uint32_t* regs;
 	uint8_t* ram = new uint8_t[0x200000];
+	uint8_t* spu_ram = new uint8_t[0x80000];
 	uint8_t* scratchpad = new uint8_t[1024];
 	uint8_t* exp1 = new uint8_t[1024000];
 	uint8_t* exp2 = new uint8_t[8000];
@@ -48,7 +49,12 @@ public:
 	uint32_t DICR = 0;
 
 	// timer
+	uint16_t tmr0_stub = 0;
 	uint16_t tmr1_stub = 0;
+	uint16_t tmr2_stub = 0;
+
+	// spu
+	uint16_t spu_ram_transfer_address = 0;
 
 
 	typedef struct DMA {
@@ -58,6 +64,14 @@ public:
 	};
 
 	DMA Ch2, Ch3, Ch4, Ch6;
+
+	typedef struct Timer {
+		uint16_t current_value;
+		uint16_t counter_mode;
+		uint16_t target_value;
+	};
+
+	Timer tmr0, tmr1, tmr2;
 
 
 	uint32_t gpuread = 0;
