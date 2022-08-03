@@ -596,9 +596,6 @@ void gpu::execute_gp1(uint32_t command) {
 		hres1 = command & 3;
 		vres = (command >> 2) & 1;
 		video_mode = (command >> 3) & 1;
-		if (interlacing && !((command >> 5) & 1)) {
-			display_area.height /= 2;
-		}
 		interlacing = (command >> 5) & 1;
 		hres2 = (command >> 6) & 1;
 		int res_divisors[] = { 10, 8, 5, 4 };
