@@ -158,8 +158,9 @@ public:
 	uint16_t* vram = new uint16_t[1024 * 512];
 	//std::vector<uint32_t> WriteBuffer;
 	uint32_t* WriteBuffer = new uint32_t[(1024 * 512) / 2];
-	std::vector<uint32_t> ReadBuffer;
+	uint32_t* ReadBuffer = new uint32_t[(1024 * 512) / 2];
 	int WriteBufferCnt = 0;
+	int ReadBufferCnt = 0;
 	uint32_t* vram8 = new uint32_t[1024 * 512];
 	uint32_t* vram4 = new uint32_t[1024 * 512];
 	uint32_t* vram_rgb = new uint32_t[1024 * 512];

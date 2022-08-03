@@ -346,7 +346,8 @@ uint32_t memory::read32(uint32_t addr) {
 	}
 
 	if (masked_addr == 0x1f801810) { // GPUREAD
-		return gpuread;
+		printf("[GPU] GPUREAD: 0x%08x\n", Gpu->ReadBuffer[Gpu->ReadBufferCnt]);
+		return Gpu->ReadBuffer[Gpu->ReadBufferCnt++];
 	}
 
 	// dma

@@ -8,12 +8,15 @@
 #include <fstream>
 #include "logwindow.h"
 #include "pad.h"
+#include "gpu.h"
 
 class memory
 {
 public:
 	memory();
 	~memory();
+
+	gpu* Gpu;
 
 	uint32_t button_dest = 0;
 

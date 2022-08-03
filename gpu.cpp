@@ -3288,4 +3288,12 @@ void gpu::vram_to_cpu() {
 	uint32_t size = width * height;
 	size += 1;
 	size &= ~1;
+
+	size /= 2;
+
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
+	ReadBufferCnt = 0;
 }

@@ -160,9 +160,23 @@ void cpu::do_dma() {
 				}
 				return;
 			case 0:
-				printf("[DMA] GPU to RAM block copy (unimplemented)\n");
+				debug_log("[DMA] Transfer direction: device to ram\n");
+				debug_log("[DMA] Transfer size: %d words\n", words);
+				while (words > 0) {
+					uint32_t current_addr = addr & 0x1ffffc;
+					bus.mem.write32(current_addr, bus.Gpu.ReadBuffer[bus.Gpu.ReadBufferCnt++]);
+					if (incrementing) addr += 4; else addr -= 4;
+					words--;
+				}
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				bus.mem.Ch2.CHCR &= ~(1 << 28);
+				//debug = false;
+				if (((bus.mem.DICR >> 18) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+					bus.mem.DICR |= (1 << 26);
+					bus.mem.I_STAT |= 0b1000;
+					//should_service_dma_irq = true;
+				}
+				return;
 				return;
 			default:
 				printf("[DMA] Unhandled Direction (GPU Block Copy)");
