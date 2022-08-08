@@ -948,6 +948,10 @@ int main(int argc, char** argv) {
             if (show_timer0_debugger) TimerDebugger<0>(&Cpu);
             if (show_timer1_debugger) TimerDebugger<1>(&Cpu);
             if (show_timer2_debugger) TimerDebugger<2>(&Cpu);
+            auto sync_mode = (Cpu.bus.mem.tmr1.counter_mode >> 1) & 3;
+            if (sync_mode == 3) {
+                Cpu.bus.mem.tmr1.counter_mode &= ~1;
+            }
             if (show_log) Cpu.log.Draw("Log");
             if (show_shader_editor) {
                 auto programuntextured = ShaderEditUntextured.compile();

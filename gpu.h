@@ -146,7 +146,7 @@ public:		// trongle stuff
 	
 	struct point {		// vertex struct
 		int16_t x = 0, y = 0;	// coordinates
-		uint32_t c = 0;		// BGR colour
+		uint32_t c = 0;		// BGR colour 
 		uint8_t r = c & 0xff;
 		uint8_t g = (c >> 8) & 0xff;
 		uint8_t b = (c >> 16) & 0xff;
@@ -160,7 +160,7 @@ public:
 	void ClearScreen();
 	uint16_t* vram = new uint16_t[1024 * 512];
 	//std::vector<uint32_t> WriteBuffer;
-	uint32_t* WriteBuffer = new uint32_t[(1024 * 512) / 2];
+	uint32_t* WriteBuffer = new uint32_t[(1024 * 512)];
 	uint32_t* ReadBuffer = new uint32_t[(1024 * 512) / 2];
 	int WriteBufferCnt = 0;
 	int ReadBufferCnt = 0;

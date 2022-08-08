@@ -336,7 +336,7 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f802080) return 0x58534350; // "Also return 0x58534350 for 32-bit reads from 0x1f802080"  - peach
 
 	if (masked_addr == 0x1f801110) {
-		////printf("[TIMER] Read timer 1 current value\n");
+		//printf("[TIMER] Read timer 1 current value\n");
 		return tmr1.current_value;
 	}
 
@@ -499,7 +499,7 @@ uint32_t memory::read32(uint32_t addr) {
 void memory::write(uint32_t addr, uint8_t data, bool log) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-	
+
 	if (masked_addr == 0x1f8010f6) return;
 
 	// controllers
@@ -620,8 +620,6 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 void memory::write32(uint32_t addr, uint32_t data) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-
-	// if (masked_addr == 0x00fffffc) return;
 
 	if (masked_addr == 0x1f802084) {	// Openbios stuff
 		return;

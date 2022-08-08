@@ -323,6 +323,7 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 2;
 			break;
 		}
+		case 0x63:
 		case 0x62: { // Monochrome Rectangle (variable size) (semi-transparent)
 			fifo[0] = command;
 			cmd_length++;
@@ -510,6 +511,7 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x41:
 				case 0x40: gpu::monochrome_line_opaque(); break;
 				case 0x60: gpu::monochrome_rectangle_variable_size_opaque(); break;
+				case 0x63:
 				case 0x62: gpu::monochrome_rectangle_variable_size_semi_transparent(); break;
 				case 0x64: gpu::texture_blending_rectangle_variable_size_opaque(); break;
 				case 0x65: gpu::texture_rectangle_variable_size_opaque(); break;
@@ -540,7 +542,8 @@ void gpu::execute_gp0(uint32_t command) {
 			auto height = resolution >> 16;
 			if (width == 0) width = 1024;
 			if (height == 0) height = 512;
-
+			width &= 0x3ff;
+			height &= 0x1ff;
 			auto x = coords & 0xffff;
 			auto y = coords >> 16;
 
@@ -548,7 +551,7 @@ void gpu::execute_gp0(uint32_t command) {
 				gp0_mode = 0;
 				glBindTexture(GL_TEXTURE_2D, VramTexture);
 				glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &WriteBuffer[0]);
-				for (int i = 0; i < (1024 * 512) / 2; i++) WriteBuffer[i] = 0;
+				for (int i = 0; i < (1024 * 512); i++) WriteBuffer[i] = 0;
 				//WriteBuffer.clear();
 				WriteBufferCnt = 0;
 				SyncVRAM();
@@ -899,16 +902,7 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	texpage = fifo[4] >> 16;
 	//printf("texpage: 0x%x\n", texpage);
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
@@ -961,7 +955,7 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1006,7 +1000,7 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1043,16 +1037,7 @@ void gpu::texture_four_point_opaque_polygon() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -1104,7 +1089,7 @@ void gpu::texture_four_point_opaque_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1149,7 +1134,7 @@ void gpu::texture_four_point_opaque_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1186,16 +1171,7 @@ void gpu::texture_blending_four_point_polygon_semi_transparent() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -1247,7 +1223,7 @@ void gpu::texture_blending_four_point_polygon_semi_transparent() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1292,7 +1268,7 @@ void gpu::texture_blending_four_point_polygon_semi_transparent() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1329,16 +1305,7 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -1390,7 +1357,7 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1435,7 +1402,7 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1472,16 +1439,7 @@ void gpu::shaded_texture_blending_three_point_opaque_polygon() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	texpage = fifo[5] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -1529,7 +1487,7 @@ void gpu::shaded_texture_blending_three_point_opaque_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1567,16 +1525,7 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	texpage = fifo[5] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -1628,7 +1577,7 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1673,7 +1622,7 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1710,16 +1659,7 @@ void gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon()
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	texpage = fifo[5] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -1771,7 +1711,7 @@ void gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -1816,7 +1756,7 @@ void gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon()
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2124,16 +2064,7 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -2187,7 +2118,7 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2232,7 +2163,7 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2269,16 +2200,7 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -2330,7 +2252,7 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2375,7 +2297,7 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2412,16 +2334,7 @@ void gpu::texture_rectangle_8x8_opaque() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -2473,7 +2386,7 @@ void gpu::texture_rectangle_8x8_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2518,7 +2431,7 @@ void gpu::texture_rectangle_8x8_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2555,16 +2468,7 @@ void gpu::texture_blending_rectangle_16x16_opaque() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -2616,7 +2520,7 @@ void gpu::texture_blending_rectangle_16x16_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2661,7 +2565,7 @@ void gpu::texture_blending_rectangle_16x16_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2698,16 +2602,7 @@ void gpu::texture_rectangle_16x16_opaque() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -2759,7 +2654,7 @@ void gpu::texture_rectangle_16x16_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2804,7 +2699,7 @@ void gpu::texture_rectangle_16x16_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2841,16 +2736,7 @@ void gpu::texture_rectangle_16x16_semi_transparent() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -2902,7 +2788,7 @@ void gpu::texture_rectangle_16x16_semi_transparent() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2947,7 +2833,7 @@ void gpu::texture_rectangle_16x16_semi_transparent() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -2984,16 +2870,7 @@ void gpu::texture_rectangle_variable_size_opaque() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -3047,7 +2924,7 @@ void gpu::texture_rectangle_variable_size_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -3092,7 +2969,7 @@ void gpu::texture_rectangle_variable_size_opaque() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -3129,16 +3006,7 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -3192,7 +3060,7 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -3237,7 +3105,7 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -3274,16 +3142,7 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 	uint32_t clutX = (clut & 0x3f);
 	clutX *= 16;
 	uint32_t clutY = (clut >> 6);
-	int Clut[256];
-	for (int i = 0; i < 256; i++) {
-		Clut[i] = vram_rgb[clutY * 1024 + clutX + i];
-	}
-	GLuint ssbo;
-	GLuint binding = 10;
-	glGenBuffers(1, &ssbo);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * sizeof(int), Clut, GL_STATIC_READ);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, ssbo);
+	
 	//texpage = fifo[4] >> 16;
 	uint32_t texpageX = ((texpage & 0b1111) * 64);
 	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
@@ -3337,7 +3196,7 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -3382,7 +3241,7 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
-	glVertexAttribPointer(0, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)0);
+	glVertexAttribPointer(0, 3, GL_INT, GL_FALSE, 13 * sizeof(int32_t), (void*)0);
 	glEnableVertexAttribArray(0);
 	// Colour attribute
 	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 13 * sizeof(uint32_t), (void*)(3 * sizeof(uint32_t)));
@@ -3408,19 +3267,77 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 }
 
 void gpu::monochrome_rectangle_dot_opaque() {
-	uint16_t x = fifo[1] & 0xffff;
-	uint16_t y = fifo[1] >> 16;
 	uint32_t colour = fifo[0] & 0xffffff;
-	debug_printf("[GP0] 1x1 Draw Opaque Monochrome Rectangle (coords: %d;%d colour: 0x%x)\n", x, y, colour);
-	uint32_t a = (colour >> 15) & 1;
-	uint32_t b = (((colour) >> 16) & 0xff);
-	uint32_t g = (((colour) >> 8) & 0xff);
-	uint32_t r = (((colour) >> 0) & 0xff);
-	uint32_t rgba = (r << 24) | (g << 16) | (b << 8) | 0xff;
-	//vram_rgb[(y * 1024) + x] = rgba;
+	debug_printf("[GP0] Monochrome Rectangle (1x1) (opaque) (colour: 0x%x)\n", colour);
+	point v1, res, v2, v3, v4;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = v1.x + 1;
+	v2.y = v1.y;
+	v3.x = v1.x;
+	v3.y = v1.y + 1;
+	v4.x = v1.x + 1;
+	v4.y = v1.y + 1;
 
-	// TODO: OpenGL implementation
-	return;
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0,
+		v2.x, v2.y, 0,
+		v3.x, v3.y, 0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+
+	glViewport(0, 0, 1024, 512);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribIPointer(0, 3, GL_INT, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+
+	uint32_t Vertices2[]{
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+		v4.x, v4.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glViewport(0, 0, 1024, 512);
+	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+	glBindVertexArray(VAO);
+	glVertexAttribIPointer(0, 3, GL_INT, 3 * sizeof(uint32_t), (void*)0);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(1, 3, GL_UNSIGNED_INT, GL_FALSE, 3 * sizeof(uint32_t), (void*)(9 * sizeof(uint32_t)));
+	glEnableVertexAttribArray(1);
+	glUseProgram(ShaderProgram);
+	glBindVertexArray(VAO);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 }
 
 void gpu::monochrome_rectangle_8x8_opaque() {
@@ -3568,6 +3485,8 @@ void gpu::vram_to_cpu() {
 	auto x = coords & 0x3ff;
 	auto y = (coords >> 16) & 0x1ff;
 
+	width &= 0x3ff;
+	height &= 0x1ff;
 	uint32_t size = width * height;
 	size += 1;
 	size &= ~1;

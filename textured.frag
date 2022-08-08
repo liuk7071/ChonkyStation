@@ -43,8 +43,8 @@
 
 		void main()
 		{
-			//ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
-			ivec2 UV = ivec2(TexCoord);
+			ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
+
 			vec4 colour;
 			if(colourDepth == 0) {
 				colour = fetchTexel4Bit(UV);

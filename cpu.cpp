@@ -1139,16 +1139,27 @@ void cpu::step() {
 	frame_cycles += 2;
 
 	auto clock_source = (bus.mem.tmr1.counter_mode >> 8) & 3;
+	auto reset_counter = (bus.mem.tmr1.counter_mode >> 3) & 1;
+	auto irq_when_target = (bus.mem.tmr1.counter_mode >> 4) & 1;
+	auto sync_mode = (bus.mem.tmr1.counter_mode >> 1) & 3;
 	bus.mem.tmr0.current_value += 2;
-	if ((clock_source == 1) || (clock_source == 3)) {
-		bus.mem.tmr1_stub += 2;
-		if (bus.mem.tmr1_stub > 2160) {
-			bus.mem.tmr1.current_value += 2;
-			bus.mem.tmr1_stub = 0;
+	if (!(bus.mem.tmr1.counter_mode & 1) || (sync_mode != 3)) {
+		if ((clock_source == 1) || (clock_source == 3)) {
+			bus.mem.tmr1_stub += 2;
+			if (bus.mem.tmr1_stub > 2160) {
+				bus.mem.tmr1.current_value += 2;
+				bus.mem.tmr1_stub = 0;
+			}
 		}
-	} else 	bus.mem.tmr1.current_value += 2;
-	auto reset_counter = (bus.mem.tmr2.counter_mode >> 3) & 1;
-	auto irq_when_target = (bus.mem.tmr2.counter_mode >> 4) & 1;
+		else bus.mem.tmr1.current_value += 2;
+	}
+	if (irq_when_target && (bus.mem.tmr1.current_value >= bus.mem.tmr1.target_value)) {
+		bus.mem.I_STAT |= 0b100000;
+	}
+	if (reset_counter && (bus.mem.tmr1.current_value >= bus.mem.tmr1.target_value)) bus.mem.tmr1.current_value = 0;
+
+	reset_counter = (bus.mem.tmr2.counter_mode >> 3) & 1;
+	irq_when_target = (bus.mem.tmr2.counter_mode >> 4) & 1;
 	if (irq_when_target && (bus.mem.tmr2.current_value >= bus.mem.tmr2.target_value)) {
 		bus.mem.I_STAT |= 0b1000000;
 	}

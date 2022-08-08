@@ -290,7 +290,7 @@ void gte::commandRTPS() {
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
 	//int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
-	int32_t proj_factor = gte_divide(H, SZ3);
+	int64_t proj_factor = gte_divide(H, SZ3);
 	//int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
@@ -305,7 +305,7 @@ void gte::commandRTPS() {
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
 	int64_t depth = ((int64_t)DQB + ((int64_t)DQA * proj_factor));
-	MAC0 = (int32_t)(depth);
+	MAC0 = depth;
 	IR0 = saturate((depth >> 12), 0, 0x1000);
 }
 
@@ -363,9 +363,6 @@ void gte::commandINTPL() {
 	pushColour();
 }
 
-#define CV1(n) (n < 3 ? PCSX::g_emulator->m_cpu->m_regs.CP2C.p[(n << 3) + 5].sd : 0)
-#define CV2(n) (n < 3 ? PCSX::g_emulator->m_cpu->m_regs.CP2C.p[(n << 3) + 6].sd : 0)
-#define CV3(n) (n < 3 ? PCSX::g_emulator->m_cpu->m_regs.CP2C.p[(n << 3) + 7].sd : 0)
 void gte::commandMVMVA() {
 	const int lm = this->lm(instruction);
 	const int shift = sf(instruction) * 12;
@@ -836,7 +833,7 @@ void gte::commandRTPT() {
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
 	int64_t depth = ((int64_t)DQB + ((int64_t)DQA * proj_factor));
-	MAC0 = (int32_t)(depth);
+	MAC0 = depth;
 	IR0 = saturate((depth >> 12), 0, 0x1000);
 }
 
