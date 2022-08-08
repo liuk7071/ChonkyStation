@@ -9,7 +9,6 @@
 		out vec4 frag_colour;
 
 		void main() {
-			//pos += vec3(0.5, 0.5, 0.0);
 			gl_Position = vec4(float(pos.x + 0.5) / 512 - 1, -(1 - float(pos.y + 0.5) / 256), 0.0, 1.0);
 			frag_colour = vec4(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255, 1.f);
 		}
