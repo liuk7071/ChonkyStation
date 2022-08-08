@@ -297,6 +297,7 @@ void cpu::do_dma() {
 				debug_log("[DMA] Transfer size: %d words\n", words);
 				while (words > 0) {
 					current_addr = addr & 0x1ffffc;
+					spu_addr &= 0x7ffff;
 
 					uint32_t word = bus.mem.read32(current_addr);
 					uint16_t halfword1 = (word >> 16);
@@ -305,7 +306,7 @@ void cpu::do_dma() {
 					bus.mem.spu_ram[spu_addr + 1] = (halfword1 & 0xff);
 					bus.mem.spu_ram[spu_addr + 2] = (halfword2 >> 8);
 					bus.mem.spu_ram[spu_addr + 3] = (halfword2 & 0xff);
-					
+
 					spu_addr += 4;
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
@@ -325,6 +326,7 @@ void cpu::do_dma() {
 				debug_log("[DMA] Transfer size: %d words\n", words);
 				while (words > 0) {
 					current_addr = addr & 0x1ffffc;
+					spu_addr &= 0x7ffff;
 
 					uint8_t b1 = bus.mem.spu_ram[spu_addr + 0];
 					uint8_t b2 = bus.mem.spu_ram[spu_addr + 1];
@@ -451,13 +453,6 @@ void cpu::check_dma() {
 void cpu::execute(uint32_t instr) {
 	regs[0] = 0; // $zero
 
-	if (pc == 0x80026ac8) {
-		printf("$a0 is 0x%08x\n", regs[4]);
-	}
-	if (regs[4] == 0xffffa61c) {
-		printf("$a0 became 0xffffa61c @ 0x%08x\n", pc);
-	}
-
 #ifdef log_kernel_tty
 	if (pc == 0xA0 || pc == 0x800000A0 || pc == 0xA00000A0) {
 		if (log_kernel) printf("\nkernel call A(0x%x)", regs[9]);
@@ -482,16 +477,6 @@ void cpu::execute(uint32_t instr) {
 	
 	bus.mem.pc = pc;
 	bus.mem.regs = regs;
-
-	/*if (pc == 0x800595c4) {
-		std::ofstream file("ramdumpchonky.bin", std::ios::binary);
-		file.write((const char*)bus.mem.ram, 0x200000);
-		FILE* ramdump;
-		ramdump = fopen("./ramdump2.bin", "r");
-		fseek(ramdump, 0, SEEK_SET);
-		fread(bus.mem.ram, sizeof(uint8_t), 0x200000, ramdump);
-		printf("Loaded ram dump\n");
-	}*/
 
 	if (delay) {	// branch delay slot
 		pc = jump - 4;
@@ -1131,33 +1116,52 @@ void cpu::check_CDROM_IRQ() {
 }
 void IRQ7(void* dataptr) {
 	cpu* cpuptr = (cpu*)dataptr;
-	cpuptr->bus.mem.I_STAT |= (1 << 7);
-	printf("[IRQ] IRQ7\n");
+	if (!cpuptr->bus.mem.pads.abort_irq) {
+		cpuptr->bus.mem.I_STAT |= (1 << 7);
+		//printf("[IRQ] IRQ7\n");
+	}
+	else cpuptr->bus.mem.pads.abort_irq = false;
 }
 void cpu::step() {
 	check_dma(); // TODO: Only check DMA when control registers are written to   
 	if (bus.mem.I_STAT & bus.mem.I_MASK) {
 		COP0.regs[13] |= (1 << 10);
 		if ((COP0.regs[12] & 1) && (COP0.regs[12] & (1 << 10))) {
-			printf("[IRQ] Interrupt fired\n");
+			//printf("[IRQ] Interrupt fired\n");
 			exception(exceptions::INT);
 		}
 	}
 	const auto instr = bus.mem.read32(pc);;
 #ifdef log_cpu
-	debug_log("0x%.8X | 0x%.8X: ", pc, instr);
+	//debug_log("0x%.8X | 0x%.8X: ", pc, instr);
 #endif
 	execute(instr);
 	frame_cycles += 2;
+
+	auto clock_source = (bus.mem.tmr1.counter_mode >> 8) & 3;
+	bus.mem.tmr0.current_value += 2;
+	if ((clock_source == 1) || (clock_source == 3)) {
+		bus.mem.tmr1_stub += 2;
+		if (bus.mem.tmr1_stub > 2160) {
+			bus.mem.tmr1.current_value += 2;
+			bus.mem.tmr1_stub = 0;
+		}
+	} else 	bus.mem.tmr1.current_value += 2;
+	auto reset_counter = (bus.mem.tmr2.counter_mode >> 3) & 1;
+	auto irq_when_target = (bus.mem.tmr2.counter_mode >> 4) & 1;
+	if (irq_when_target && (bus.mem.tmr2.current_value >= bus.mem.tmr2.target_value)) {
+		bus.mem.I_STAT |= 0b1000000;
+	}
+	if (reset_counter && (bus.mem.tmr2.current_value >= bus.mem.tmr2.target_value)) bus.mem.tmr2.current_value = 0;
+	bus.mem.tmr2.current_value += 2;
 	bus.mem.CDROM.Scheduler.tick(2);
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag)
 		bus.mem.I_STAT |= (1 << 2);
 	if (bus.mem.pads.irq) {
-		printf("[PAD] ACK\n");
-		bus.mem.CDROM.Scheduler.push(&IRQ7, bus.mem.CDROM.Scheduler.time + 1000, this);
+		//printf("[PAD] ACK\n");
+		bus.mem.CDROM.Scheduler.push(&IRQ7, bus.mem.CDROM.Scheduler.time + 1500, this);
 		bus.mem.pads.irq = false;
-		bus.mem.pads.joy_stat |= (1 << 7);
+		bus.mem.pads.joy_stat &= ~(1 << 7);
 		bus.mem.pads.joy_stat |= (1 << 9);
-		bus.mem.pads.irq = false;
 	}
 }

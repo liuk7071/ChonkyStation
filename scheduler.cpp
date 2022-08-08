@@ -28,7 +28,7 @@ void scheduler::tick(uint64_t cycles) {
 	int executed = 0;
 	for (int i = 0; i < scheduled; i++) {
 		if (time >= events[i].time) {
-			(*events[i].function_ptr)(events[i].data);
+ 			(*events[i].function_ptr)(events[i].data);
 			executed++;
 		}
 	}

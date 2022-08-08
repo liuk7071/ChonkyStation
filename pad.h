@@ -10,7 +10,9 @@ public:
 	pad();
 	void WriteTXDATA(uint8_t data);
 	uint16_t joy_tx_data = 0;
-	uint8_t rx_data_fifo[16];
+	uint8_t rx_data_fifo[130];
+	uint8_t checksum = 0;
+	bool calculate_checksum = false;
 	int bytes_read = 0;
 	int response_length = 0;
 	bool read_response = false;
@@ -28,9 +30,11 @@ public:
 	uint16_t P2buttons = 0xffff;
 
 	bool irq = false;
+	bool abort_irq = false;
 	bool mem_transfer = false;
 	bool mem_receive_addrmsb = false;
 	bool mem_receive_addrlsb = false;
+	bool reading_sector = false;
 	uint16_t mem_sector = 0;
 
 	const char* memcard1_dir = "./memcard1.mcd";

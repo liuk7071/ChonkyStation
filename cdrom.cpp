@@ -35,6 +35,7 @@ void cdrom::execute(uint8_t command) {
 
 	case 0x01: GetStat(); break;
 	case 0x02: SetLoc(); break;
+	case 0x03: Play(); break;
 	case 0x06: ReadN(); break;
 	case 0x08: Stop(); break;
 	case 0x09: Pause(); break;
@@ -109,7 +110,7 @@ void cdrom::INT1(void* dataptr) {
 			cdromptr->status |= 0b00100000;
 			cdromptr->cd.bytes_read = 0;
 		}
-		cdromptr->Scheduler.push(&queuedRead, cdromptr->Scheduler.time + ((33868800 / 75) / (cdromptr->DoubleSpeed ? 1 : 1)), cdromptr);
+		cdromptr->Scheduler.push(&queuedRead, cdromptr->Scheduler.time + ((33868800 / 75) / (cdromptr->DoubleSpeed ? 2 : 1)), cdromptr);
 	}
 	return;
 }
@@ -299,6 +300,19 @@ void cdrom::SetLoc() { // Sets the seek target
 	Scheduler.push(&INT3, Scheduler.time + 5000, this);
 	status |= 0b00100000;
 }
+void cdrom::Play() {
+	status |= 0b00001000;
+	mm = bcd_dec(fifo[0]);
+	ss = bcd_dec(fifo[1]);
+	ff = bcd_dec(fifo[2]);
+
+	printf("[CDROM] Play (stubbed)\n");
+	response_fifo[0] = get_stat();
+	response_length = 1;
+
+	Scheduler.push(&INT3, Scheduler.time + 5000, this);
+	status |= 0b00100000;
+}
 void cdrom::SeekL() {	// Seek to the seek target (SetLoc)
 	status |= 0b00001000;
 	debug_log("[CDROM] SeekL\n");
@@ -331,7 +345,7 @@ void cdrom::ReadN() {	// Read with retry
 	//queued_INT1 = true;
 
 	Scheduler.push(&INT3, Scheduler.time + 4, this);
-	Scheduler.push(&INT1, Scheduler.time + ((33868800 / 75) / (DoubleSpeed ? 1 : 1)), this);
+	Scheduler.push(&INT1, Scheduler.time + ((33868800 / 75) / (DoubleSpeed ? 2 : 1)), this);
 	//queued_delay = 33868800 / 75;
 	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
 }

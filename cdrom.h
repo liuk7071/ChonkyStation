@@ -59,6 +59,7 @@ public:
 	void GetTD();
 	void GetID();
 	void SetLoc();
+	void Play();
 	void SeekL();
 	void ReadN();
 	void ReadS();

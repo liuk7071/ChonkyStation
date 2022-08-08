@@ -111,7 +111,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     
     // Timer 1 stub
     if (key == GLFW_KEY_U && action == GLFW_PRESS) {
-        tmr1irq = true;
+        tmr1irq = !tmr1irq;
     }
     if (key == GLFW_KEY_I && action == GLFW_PRESS) {
         spuirq = !spuirq;
@@ -823,6 +823,11 @@ int main(int argc, char** argv) {
 
     double prevTime = glfwGetTime();
     int frameCount = 0;
+
+    Cpu.GTE.cop2d.raw[0] = 0x12346969;
+    printf("0x%x\n", Cpu.GTE.cop2d.regs.vx0);
+    printf("0x%x\n", Cpu.GTE.cop2d.regs.vy0);
+
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
             if(run) Cpu.bus.mem.I_STAT |= 1;
@@ -834,12 +839,12 @@ int main(int argc, char** argv) {
                 Cpu.bus.mem.tmr1_stub = 0;
             }
             if (spuirq) {
-                printf("[SPU] IRQ\n");
+                //printf("[SPU] IRQ\n");
                 Cpu.bus.mem.I_STAT |= (1 << 9);
                 //spuirq = false;
             }
             if (padirq) {
-                printf("[PAD] IRQ\n");
+               //printf("[PAD] IRQ\n");
                 Cpu.bus.mem.I_STAT |= (1 << 7);
             }
             Cpu.bus.mem.I_STAT |= 0b100000;
@@ -957,7 +962,7 @@ int main(int argc, char** argv) {
 
             // Render it
             ImGui::Render();
-            int display_w, display_h;
+            int display_w = 0, display_h = 0;
             glfwGetFramebufferSize(window, &display_w, &display_h);
             glViewport(0, 0, display_w, display_h);
             glClearColor(0, 0, 0, 0);

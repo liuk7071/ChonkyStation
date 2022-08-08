@@ -15,23 +15,24 @@ void gte::execute(uint32_t instr, uint32_t* gpr) {
 		}
 		break;
 	}
-	case RTPS: cop2c[31] = 0; commandRTPS(); break;
-	case NCLIP: cop2c[31] = 0; commandNCLIP(); break;
-	case OP: cop2c[31] = 0; commandOP(); break;
-	case DPCS: cop2c[31] = 0; commandDPCS(); break;
-	case INTPL: cop2c[31] = 0; commandINTPL(); break;
-	case MVMVA: cop2c[31] = 0; commandMVMVA(); break;
-	case NCDS: cop2c[31] = 0; commandNCDS(); break;
-	case NCDT: cop2c[31] = 0; commandNCDT(); break;
-	case NCCS: cop2c[31] = 0; commandNCCS(); break;
-	case NCS: cop2c[31] = 0; commandNCS(); break;
-	case NCT: cop2c[31] = 0; commandNCT(); break;
-	case SQR: cop2c[31] = 0; commandSQR(); break;
-	case AVSZ3: cop2c[31] = 0; commandAVSZ3(); break;
-	case AVSZ4: cop2c[31] = 0; commandAVSZ4(); break;
-	case RTPT: cop2c[31] = 0; commandRTPT(); break;
-	case GPF: cop2c[31] = 0; commandGPF(); break;
-	case GPL: cop2c[31] = 0; commandGPL(); break;
+	case RTPS: cop2c.raw[31] = 0; commandRTPS(); break;
+	case NCLIP: cop2c.raw[31] = 0; commandNCLIP(); break;
+	case OP: cop2c.raw[31] = 0; commandOP(); break;
+	case DPCS: cop2c.raw[31] = 0; commandDPCS(); break;
+	case INTPL: cop2c.raw[31] = 0; commandINTPL(); break;
+	case MVMVA: cop2c.raw[31] = 0; commandMVMVA(); break;
+	case NCDS: cop2c.raw[31] = 0; commandNCDS(); break;
+	case NCDT: cop2c.raw[31] = 0; commandNCDT(); break;
+	case NCCS: cop2c.raw[31] = 0; commandNCCS(); break;
+	case NCS: cop2c.raw[31] = 0; commandNCS(); break;
+	case NCT: cop2c.raw[31] = 0; commandNCT(); break;
+	case SQR: cop2c.raw[31] = 0; commandSQR(); break;
+	case AVSZ3: cop2c.raw[31] = 0; commandAVSZ3(); break;
+	case AVSZ4: cop2c.raw[31] = 0; commandAVSZ4(); break;
+	case RTPT: cop2c.raw[31] = 0; commandRTPT(); break;
+	case GPF: cop2c.raw[31] = 0; commandGPF(); break;
+	case GPL: cop2c.raw[31] = 0; commandGPL(); break;
+	case NCCT: cop2c.raw[31] = 0; commandNCCT(); break;
 	default:
 		printf("Unimplemented GTE instruction: 0x%x\n", instr);
 		exit(1);
@@ -166,36 +167,21 @@ uint32_t gte::readCop2d(uint32_t reg) {
 	case 9:
 	case 10:
 	case 11:
-		return (uint32_t)(int16_t)cop2d[reg];
+		return (int32_t)cop2d.r[reg].sw.l;
 	
 	case 7:
 	case 16:
 	case 17:
 	case 18:
 	case 19:
-		return cop2d[reg] & 0xffff;
+		return (uint32_t)cop2d.r[reg].w.l;
 
 	case 15: // SXYP returns SXY2
-		return cop2d[14];
+		return cop2d.raw[14];
 	
 	default:
-		return cop2d[reg];
+		return cop2d.r[reg].d;
 	}
-
-	/*switch (reg) {
-	case 12:
-	case 13:
-	case 14:
-	case 22: {
-		return cop2d[reg];
-	}
-	case 8: {
-		return (uint32_t)(int16_t)(cop2d[reg]);
-	}
-	default:
-		printf("Unhandled cop2d read %d\n", reg);
-		exit(1);
-	}*/
 }
 void gte::writeCop2d(uint32_t reg, uint32_t value) {
 	switch (reg) {
@@ -203,17 +189,29 @@ void gte::writeCop2d(uint32_t reg, uint32_t value) {
 	case 2:
 	case 4:
 	case 6: {
-		cop2d[reg] = value;
+		cop2d.raw[reg] = value;
 		break;
 	}
 	case 1:
 	case 3:
 	case 5: {
-		cop2d[reg] = (uint32_t)(int16_t)(value);
+		cop2d.raw[reg] = (value);
+		break;
+	}
+	case 15: {
+		SXY0 = SXY1;
+		SXY1 = SXY2;
+		SXY2 = value;
+		break;
+	}
+	case 28: {
+		IR1 = (value & 0x1f) << 7;
+		IR2 = (value & 0x3e0) << 2;
+		IR3 = (value & 0x7c00) >> 3;
 		break;
 	}
 	default:
-		cop2d[reg] = value;
+		cop2d.raw[reg] = value;
 		break;
 	}
 }
@@ -227,10 +225,11 @@ void gte::writeCop2c(uint32_t reg, uint32_t value) {
 	case 27:
 	case 29:
 	case 30:
-		cop2c[reg] = (uint32_t)(int16_t)value;
+		cop2c.r[reg].d = (int32_t)(int16_t)value;
 		break;
+	case 31: cop2c.r[reg].d = value & 0x7ffff000; break;
 	default:
-		cop2c[reg] = value;
+		cop2c.r[reg].d = value;
 		break;
 	}
 }
@@ -260,43 +259,13 @@ void gte::setIRFromMAC(bool lm) {
 
 // Commands
 void gte::moveMFC2(uint32_t* gpr) {
-	//printf("mfc2 (r%d <- cop2r%d)\n", (instruction >> 16) & 0x1f, (instruction >> 11) & 0x1f);
 	gpr[(instruction >> 16) & 0x1f] = readCop2d((instruction >> 11) & 0x1f);
-	/*switch ((instruction >> 11) & 0x1f) {
-	case 7: {
-		//printf("cop2r%d (0x%x) -> r%d\n", (instruction >> 11) & 0x1f, cop2d[(instruction >> 11) & 0x1f], (instruction >> 16) & 0x1f);
-		gpr[(instruction >> 16) & 0x1f] = cop2d[(instruction >> 11) & 0x1f];
-		break;
-	}
-	case 24: {
-		//printf("cop2r%d (0x%x) -> r%d\n", (instruction >> 11) & 0x1f, cop2d[(instruction >> 11) & 0x1f], (instruction >> 16) & 0x1f);
-		gpr[(instruction >> 16) & 0x1f] = cop2d[(instruction >> 11) & 0x1f];
-		//gpr[(instruction >> 16) & 0x1f] = 200;
-		break;
-	}
-	default:
-		printf("Unimplemented MFC2 destination: %d\n", (instruction >> 11) & 0x1f);
-		//exit(1);
-	}*/
 }
 void gte::moveMTC2(uint32_t* gpr) {
-	//printf("mtc2 (cop2r%d <- r%d)\n", (instruction >> 11) & 0x1f, (instruction >> 16) & 0x1f);
 	writeCop2d((instruction >> 11) & 0x1f, gpr[(instruction >> 16) & 0x1f]);
-	/*switch ((instruction >> 11) & 0x1f) {
-	case 8: {
-		//printf("0x%x -> cop2r%d\n", (uint32_t)(int16_t)gpr[(instruction >> 16) & 0x1f], (instruction >> 11) & 0x1f);
-		cop2d[(instruction >> 11) & 0x1f] = (uint32_t)(int16_t)(gpr[(instruction >> 16) & 0x1f]);
-		break;
-	}
-	default:
-		printf("Unimplemented MTC2 destination: %d\n", (instruction >> 11) & 0x1f);
-		//exit(1);
-	}*/
 }
 void gte::moveCFC2(uint32_t* gpr) {
-	//printf("cfc2 (r%d <- cnt%d)\n", (instruction >> 16) & 0x1f, (instruction >> 11) & 0x1f);
-	//printf("cnt%d (0x%x) -> r%d\n", (instruction >> 11) & 0x1f, cop2c[(instruction >> 11) & 0x1f], (instruction >> 16) & 0x1f);
-	gpr[(instruction >> 16) & 0x1f] = cop2c[(instruction >> 11) & 0x1f];
+	gpr[(instruction >> 16) & 0x1f] = cop2c.r[(instruction >> 11) & 0x1f].d;
 }
 void gte::moveCTC2(uint32_t* gpr) {
 	//printf("ctc2 (cnt%d <- r%d)\n", (instruction >> 11) & 0x1f, (instruction >> 16) & 0x1f);
@@ -307,9 +276,9 @@ void gte::commandRTPS() {
 	//printf("rtps\n");
 	const int lm = 0;
 	const int shift = sf(instruction) * 12;
-	MAC1 = int64_t(((int64_t)(int32_t)TRX * 0x1000) + ((int16_t)RT11 * (int16_t)VX0) + ((int16_t)RT12 * (int16_t)VY0) + ((int16_t)RT13 * (int16_t)VZ0)) >> shift;
-	MAC2 = int64_t(((int64_t)(int32_t)TRY * 0x1000) + ((int16_t)RT21 * (int16_t)VX0) + ((int16_t)RT22 * (int16_t)VY0) + ((int16_t)RT23 * (int16_t)VZ0)) >> shift;
-	MAC3 = int64_t(((int64_t)(int32_t)TRZ * 0x1000) + ((int16_t)RT31 * (int16_t)VX0) + ((int16_t)RT32 * (int16_t)VY0) + ((int16_t)RT33 * (int16_t)VZ0)) >> shift;
+	MAC1 = int64_t(((int64_t)(int32_t)(TRX) * 0x1000) + ((int16_t)RT11 * (int16_t)VX0) + ((int16_t)RT12 * (int16_t)VY0) + ((int16_t)RT13 * (int16_t)VZ0)) >> shift;
+	MAC2 = int64_t(((int64_t)(int32_t)(TRY) * 0x1000) + ((int16_t)RT21 * (int16_t)VX0) + ((int16_t)RT22 * (int16_t)VY0) + ((int16_t)RT23 * (int16_t)VZ0)) >> shift;
+	MAC3 = int64_t(((int64_t)(int32_t)(TRZ) * 0x1000) + ((int16_t)RT31 * (int16_t)VX0) + ((int16_t)RT32 * (int16_t)VY0) + ((int16_t)RT33 * (int16_t)VZ0)) >> shift;
 	setIRFromMAC(lm);
 	auto newZ = int32_t(MAC3) >> ((1 - sf(instruction)) * 12);
 	pushZ(newZ);
@@ -318,17 +287,17 @@ void gte::commandRTPS() {
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
 	//int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
-	int32_t _proj_factor = gte_divide(H, SZ3);
-	int64_t proj_factor = (int64_t)(_proj_factor);
+	int32_t proj_factor = gte_divide(H, SZ3);
+	//int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
-	int64_t x = ((_x * proj_factor) + (int64_t)(int32_t)(OFX));
-	int64_t y = ((_y * proj_factor) + (int64_t)(int32_t)(OFY));
+	int32_t x = ((IR1 * proj_factor) + OFX);
+	int32_t y = ((IR2 * proj_factor) + OFY);
 	x = saturate((x >> 16), -0x400, 0x3ff);
 	y = saturate((y >> 16), -0x400, 0x3ff);
-	SETSX2(x);
-	SETSY2(y);
-	SXY2 = (y << 16) | x;
+
+	SX2 = x;
+	SY2 = y;
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR1)) + OFX; SETSX2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
@@ -339,6 +308,7 @@ void gte::commandRTPS() {
 }
 
 void gte::commandDPCS() {
+	printf("DPCS\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 	MAC1 = (uint32_t)R << 16;
@@ -346,18 +316,18 @@ void gte::commandDPCS() {
 	MAC3 = (uint32_t)B << 16;
 
 	// Interpolate colour
-	uint32_t _MAC1 = MAC1;
-	uint32_t _MAC2 = MAC2;
-	uint32_t _MAC3 = MAC3;
-	MAC1 = (int32_t)((((int64_t)RFC << 12) - (int32_t)MAC1) >> shift);
-	MAC2 = (int32_t)((((int64_t)GFC << 12) - (int32_t)MAC2) >> shift);
-	MAC3 = (int32_t)((((int64_t)BFC << 12) - (int32_t)MAC3) >> shift);
-	IR1 = (int16_t)saturate(MAC1, -0x8000, 0x7fff);
-	IR2 = (int16_t)saturate(MAC2, -0x8000, 0x7fff);
-	IR3 = (int16_t)saturate(MAC3, -0x8000, 0x7fff);
-	MAC1 = (int32_t)(((int64_t)IR1 * IR0) + (int32_t)_MAC1) >> shift;
-	MAC2 = (int32_t)(((int64_t)IR2 * IR0) + (int32_t)_MAC2) >> shift;
-	MAC3 = (int32_t)(((int64_t)IR3 * IR0) + (int32_t)_MAC3) >> shift;
+	int32_t _MAC1 = MAC1;
+	int32_t _MAC2 = MAC2;
+	int32_t _MAC3 = MAC3;
+	MAC1 = ((((int64_t)RFC << 12) - MAC1) >> shift);
+	MAC2 = ((((int64_t)GFC << 12) - MAC2) >> shift);
+	MAC3 = ((((int64_t)BFC << 12) - MAC3) >> shift);
+	IR1 = saturate(MAC1, -0x8000, 0x7fff);
+	IR2 = saturate(MAC2, -0x8000, 0x7fff);
+	IR3 = saturate(MAC3, -0x8000, 0x7fff);
+	MAC1 = (((int64_t)IR1 * IR0) + _MAC1) >> shift;
+	MAC2 = (((int64_t)IR2 * IR0) + _MAC2) >> shift;
+	MAC3 = (((int64_t)IR3 * IR0) + _MAC3) >> shift;
 	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
@@ -365,25 +335,26 @@ void gte::commandDPCS() {
 }
 
 void gte::commandINTPL() {
+	printf("INTPL\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
-	MAC1 = (int32_t)IR1 << 12;
-	MAC2 = (int32_t)IR2 << 12;
-	MAC3 = (int32_t)IR3 << 12;
+	MAC1 = (int64_t)IR1 << 12;
+	MAC2 = (int64_t)IR2 << 12;
+	MAC3 = (int64_t)IR3 << 12;
 
 	// Interpolate colour
-	uint32_t _MAC1 = MAC1;
-	uint32_t _MAC2 = MAC2;
-	uint32_t _MAC3 = MAC3;
-	MAC1 = (int32_t)((((int64_t)RFC << 12) - (int32_t)MAC1) >> shift);
-	MAC2 = (int32_t)((((int64_t)GFC << 12) - (int32_t)MAC2) >> shift);
-	MAC3 = (int32_t)((((int64_t)BFC << 12) - (int32_t)MAC3) >> shift);
-	IR1 = (int16_t)saturate(MAC1, -0x8000, 0x7fff);
-	IR2 = (int16_t)saturate(MAC2, -0x8000, 0x7fff);
-	IR3 = (int16_t)saturate(MAC3, -0x8000, 0x7fff);
-	MAC1 = (int32_t)(((int64_t)IR1 * IR0) + (int32_t)_MAC1) >> shift;
-	MAC2 = (int32_t)(((int64_t)IR2 * IR0) + (int32_t)_MAC2) >> shift;
-	MAC3 = (int32_t)(((int64_t)IR3 * IR0) + (int32_t)_MAC3) >> shift;
+	int32_t _MAC1 = MAC1;
+	int32_t _MAC2 = MAC2;
+	int32_t _MAC3 = MAC3;
+	MAC1 = ((((int64_t)RFC << 12) - MAC1) >> shift);
+	MAC2 = ((((int64_t)GFC << 12) - MAC2) >> shift);
+	MAC3 = ((((int64_t)BFC << 12) - MAC3) >> shift);
+	IR1 = saturate(MAC1, -0x8000, 0x7fff);
+	IR2 = saturate(MAC2, -0x8000, 0x7fff);
+	IR3 = saturate(MAC3, -0x8000, 0x7fff);
+	MAC1 = (((int64_t)IR1 * IR0) + _MAC1) >> shift;
+	MAC2 = (((int64_t)IR2 * IR0) + _MAC2) >> shift;
+	MAC3 = (((int64_t)IR3 * IR0) + _MAC3) >> shift;
 	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
@@ -396,14 +367,14 @@ void gte::commandMVMVA() {
 	const int m = this->m(instruction);
 	const int v = this->v(instruction);
 	const int cv = this->cv(instruction);
-	MAC1 = int64_t(((int64_t)(int32_t)tx(m, 0) * 0x1000) + ((int16_t)mx(m, 11) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 12) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 13) * (int16_t)vx(v, 2))) >> shift;
-	MAC2 = int64_t(((int64_t)(int32_t)tx(m, 1) * 0x1000) + ((int16_t)mx(m, 21) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 22) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 23) * (int16_t)vx(v, 2))) >> shift;
-	MAC3 = int64_t(((int64_t)(int32_t)tx(m, 2) * 0x1000) + ((int16_t)mx(m, 31) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 32) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 33) * (int16_t)vx(v, 2))) >> shift;
+	MAC1 = int64_t(((int64_t)tx(m, 0) * 0x1000) + ((int16_t)mx(m, 11) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 12) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 13) * (int16_t)vx(v, 2))) >> shift;
+	MAC2 = int64_t(((int64_t)tx(m, 1) * 0x1000) + ((int16_t)mx(m, 21) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 22) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 23) * (int16_t)vx(v, 2))) >> shift;
+	MAC3 = int64_t(((int64_t)tx(m, 2) * 0x1000) + ((int16_t)mx(m, 31) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 32) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 33) * (int16_t)vx(v, 2))) >> shift;
 	setIRFromMAC(lm);
 }
 
 void gte::commandNCDS() {
-	//printf("ncds\n");
+	//printf("NCDS\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX0) + (int64_t)((int16_t)L12 * (int16_t)VY0) + (int64_t)((int16_t)L13 * (int16_t)VZ0)) >> shift;
@@ -444,6 +415,7 @@ void gte::commandNCDS() {
 }
 
 void gte::commandNCDT() {
+	printf("NCDT\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX0) + (int64_t)((int16_t)L12 * (int16_t)VY0) + (int64_t)((int16_t)L13 * (int16_t)VZ0)) >> shift;
@@ -587,19 +559,25 @@ void gte::commandNCCS() {
 }
 
 void gte::commandNCS() {
-	//printf("ncds\n");
+	printf("ncs\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
-	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX0) + (int64_t)((int16_t)L12 * (int16_t)VY0) + (int64_t)((int16_t)L13 * (int16_t)VZ0)) >> shift;
-	MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX0) + (int64_t)((int16_t)L22 * (int16_t)VY0) + (int64_t)((int16_t)L23 * (int16_t)VZ0)) >> shift;
-	MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX0) + (int64_t)((int16_t)L32 * (int16_t)VY0) + (int64_t)((int16_t)L33 * (int16_t)VZ0)) >> shift;
+	MAC1 = (int64_t)(L11 * VX0 + L12 * VY0 + L13 * VZ0) >> shift;
+	MAC1 = (int64_t)(L21 * VX0 + L22 * VY0 + L23 * VZ0) >> shift;
+	MAC1 = (int64_t)(L31 * VX0 + L32 * VY0 + L33 * VZ0) >> shift;
+	//MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX0) + (int64_t)((int16_t)L12 * (int16_t)VY0) + (int64_t)((int16_t)L13 * (int16_t)VZ0)) >> shift;
+	//MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX0) + (int64_t)((int16_t)L22 * (int16_t)VY0) + (int64_t)((int16_t)L23 * (int16_t)VZ0)) >> shift;
+	//MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX0) + (int64_t)((int16_t)L32 * (int16_t)VY0) + (int64_t)((int16_t)L33 * (int16_t)VZ0)) >> shift;
 	//setIRFromMAC();
 	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
-	MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
-	MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
-	MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
+	MAC1 = (int64_t)((((int64_t)(RBK * 0x1000 + LR1 * IR1)) + (int64_t)(LR2 * IR2)) + (int64_t)(LR3 * IR3)) >> shift;
+	MAC2 = (int64_t)((((int64_t)(GBK * 0x1000 + LG1 * IR1)) + (int64_t)(LG2 * IR2)) + (int64_t)(LG3 * IR3)) >> shift;
+	MAC3 = (int64_t)((((int64_t)(BBK * 0x1000 + LB1 * IR1)) + (int64_t)(LB2 * IR2)) + (int64_t)(LB3 * IR3)) >> shift;
+	//MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
+	//MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
+	//MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
 	//setIRFromMAC();
 	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
@@ -608,9 +586,12 @@ void gte::commandNCS() {
 }
 
 void gte::commandNCT() {
-	//printf("ncds\n");
+	printf("nct\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
+	//MAC1 = (int64_t)(L11 * VX0 + L12 * VY0 + L13 * VZ0) >> shift;
+	//MAC1 = (int64_t)(L21 * VX0 + L22 * VY0 + L23 * VZ0) >> shift;
+	//MAC1 = (int64_t)(L31 * VX0 + L32 * VY0 + L33 * VZ0) >> shift;
 	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX0) + (int64_t)((int16_t)L12 * (int16_t)VY0) + (int64_t)((int16_t)L13 * (int16_t)VZ0)) >> shift;
 	MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX0) + (int64_t)((int16_t)L22 * (int16_t)VY0) + (int64_t)((int16_t)L23 * (int16_t)VZ0)) >> shift;
 	MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX0) + (int64_t)((int16_t)L32 * (int16_t)VY0) + (int64_t)((int16_t)L33 * (int16_t)VZ0)) >> shift;
@@ -618,6 +599,9 @@ void gte::commandNCT() {
 	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	//MAC1 = (int64_t)((((int64_t)(RBK * 0x1000 + LR1 * IR1)) + (int64_t)(LR2 * IR2)) + (int64_t)(LR3 * IR3)) >> shift;
+	//MAC2 = (int64_t)((((int64_t)(GBK * 0x1000 + LG1 * IR1)) + (int64_t)(LG2 * IR2)) + (int64_t)(LG3 * IR3)) >> shift;
+	//MAC3 = (int64_t)((((int64_t)(BBK * 0x1000 + LB1 * IR1)) + (int64_t)(LB2 * IR2)) + (int64_t)(LB3 * IR3)) >> shift;
 	MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
 	MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
 	MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
@@ -627,6 +611,9 @@ void gte::commandNCT() {
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	pushColour();
 
+	//MAC1 = (int64_t)(L11 * VX0 + L12 * VY0 + L13 * VZ0) >> shift;
+	//MAC1 = (int64_t)(L21 * VX0 + L22 * VY0 + L23 * VZ0) >> shift;
+	//MAC1 = (int64_t)(L31 * VX0 + L32 * VY0 + L33 * VZ0) >> shift;
 	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX1) + (int64_t)((int16_t)L12 * (int16_t)VY1) + (int64_t)((int16_t)L13 * (int16_t)VZ1)) >> shift;
 	MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX1) + (int64_t)((int16_t)L22 * (int16_t)VY1) + (int64_t)((int16_t)L23 * (int16_t)VZ1)) >> shift;
 	MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX1) + (int64_t)((int16_t)L32 * (int16_t)VY1) + (int64_t)((int16_t)L33 * (int16_t)VZ1)) >> shift;
@@ -634,6 +621,9 @@ void gte::commandNCT() {
 	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	//MAC1 = (int64_t)((((int64_t)(RBK * 0x1000 + LR1 * IR1)) + (int64_t)(LR2 * IR2)) + (int64_t)(LR3 * IR3)) >> shift;
+	//MAC2 = (int64_t)((((int64_t)(GBK * 0x1000 + LG1 * IR1)) + (int64_t)(LG2 * IR2)) + (int64_t)(LG3 * IR3)) >> shift;
+	//MAC3 = (int64_t)((((int64_t)(BBK * 0x1000 + LB1 * IR1)) + (int64_t)(LB2 * IR2)) + (int64_t)(LB3 * IR3)) >> shift;
 	MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
 	MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
 	MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
@@ -643,6 +633,9 @@ void gte::commandNCT() {
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	pushColour();
 
+	//MAC1 = (int64_t)(L11 * VX0 + L12 * VY0 + L13 * VZ0) >> shift;
+	//MAC1 = (int64_t)(L21 * VX0 + L22 * VY0 + L23 * VZ0) >> shift;
+	//MAC1 = (int64_t)(L31 * VX0 + L32 * VY0 + L33 * VZ0) >> shift;
 	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX2) + (int64_t)((int16_t)L12 * (int16_t)VY2) + (int64_t)((int16_t)L13 * (int16_t)VZ2)) >> shift;
 	MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX2) + (int64_t)((int16_t)L22 * (int16_t)VY2) + (int64_t)((int16_t)L23 * (int16_t)VZ2)) >> shift;
 	MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX2) + (int64_t)((int16_t)L32 * (int16_t)VY2) + (int64_t)((int16_t)L33 * (int16_t)VZ2)) >> shift;
@@ -650,6 +643,9 @@ void gte::commandNCT() {
 	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	//MAC1 = (int64_t)((((int64_t)(RBK * 0x1000 + LR1 * IR1)) + (int64_t)(LR2 * IR2)) + (int64_t)(LR3 * IR3)) >> shift;
+	//MAC2 = (int64_t)((((int64_t)(GBK * 0x1000 + LG1 * IR1)) + (int64_t)(LG2 * IR2)) + (int64_t)(LG3 * IR3)) >> shift;
+	//MAC3 = (int64_t)((((int64_t)(BBK * 0x1000 + LB1 * IR1)) + (int64_t)(LB2 * IR2)) + (int64_t)(LB3 * IR3)) >> shift;
 	MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
 	MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
 	MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
@@ -661,6 +657,7 @@ void gte::commandNCT() {
 }
 
 void gte::commandSQR() {
+	printf("SQR\n");
 	const int shift = sf(instruction) * 12;
 	MAC1 = (IR1 * IR1) >> shift;
 	MAC2 = (IR2 * IR2) >> shift;
@@ -685,11 +682,15 @@ void gte::commandNCLIP() {
 }
 
 void gte::commandOP() {
+	printf("OP\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
-	MAC1 = (int16_t)(((int16_t)IR3 * (int16_t)RT22) - ((int16_t)IR2 * (int16_t)RT33)) >> shift;
-	MAC2 = (int16_t)(((int16_t)IR1 * (int16_t)RT33) - ((int16_t)IR3 * (int16_t)RT11)) >> shift;
-	MAC3 = (int16_t)(((int16_t)IR2 * (int16_t)RT11) - ((int16_t)IR1 * (int16_t)RT22)) >> shift;
+	MAC1 = (int64_t)((RT22 * IR3) - (RT33 * IR2));
+	MAC2 = (int64_t)((RT33 * IR1) - (RT11 * IR3));
+	MAC3 = (int64_t)((RT11 * IR2) - (RT22 * IR1));
+	MAC1 = (int64_t)MAC1 >> shift;
+	MAC2 = (int64_t)MAC2 >> shift;
+	MAC3 = (int64_t)MAC3 >> shift;
 
 	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
@@ -725,17 +726,18 @@ void gte::commandRTPT() {
 	SXY1 = SXY2;
 	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
 	//int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
-	int32_t _proj_factor = gte_divide(H, SZ3);
-	int64_t proj_factor = (int64_t)(_proj_factor);
+	int32_t proj_factor = gte_divide(H, SZ3);
+	//int64_t proj_factor = (int64_t)(_proj_factor);
 	int64_t _x = (int64_t)(int16_t)(IR1);
 	int64_t _y = (int64_t)(int16_t)(IR2);
-	int64_t x = ((_x * proj_factor) + (int64_t)(int32_t)(OFX));
-	int64_t y = ((_y * proj_factor) + (int64_t)(int32_t)(OFY));
+	int32_t x = ((IR1 * proj_factor) + OFX);
+	int32_t y = ((IR2 * proj_factor) + OFY);
 	x = saturate((x >> 16), -0x400, 0x3ff);
 	y = saturate((y >> 16), -0x400, 0x3ff);
-	SETSX2(x);
-	SETSY2(y);
-	SXY2 = (y << 16) | x;
+
+	SX2 = x;
+	SY2 = y;
+
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR1)) + OFX; SETSX2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
@@ -756,17 +758,17 @@ void gte::commandRTPT() {
 	SXY1 = SXY2;
 	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
 	//_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
-	_proj_factor = gte_divide(H, SZ3);
-	proj_factor = (int64_t)(_proj_factor);
+	proj_factor = gte_divide(H, SZ3);
+	//proj_factor = (int64_t)(_proj_factor);
 	_x = (int64_t)(int16_t)(IR1);
 	_y = (int64_t)(int16_t)(IR2);
-	x = ((_x * proj_factor) + (int64_t)(int32_t)(OFX));
-	y = ((_y * proj_factor) + (int64_t)(int32_t)(OFY));
+	x = ((IR1 * proj_factor) + OFX);
+	y = ((IR2 * proj_factor) + OFY);
 	x = saturate((x >> 16), -0x400, 0x3ff);
 	y = saturate((y >> 16), -0x400, 0x3ff);
-	SETSX2(x);
-	SETSY2(y);
-	SXY2 = (y << 16) | x;
+
+	SX2 = x;
+	SY2 = y;
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR1)) + OFX; SETSX2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
@@ -786,17 +788,17 @@ void gte::commandRTPT() {
 	SXY1 = SXY2;
 	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
 	//_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
-	_proj_factor = gte_divide(H, SZ3);
-	proj_factor = (int64_t)(_proj_factor);
+	proj_factor = gte_divide(H, SZ3);
+	//proj_factor = (int64_t)(_proj_factor);
 	_x = (int64_t)(int16_t)(IR1);
 	_y = (int64_t)(int16_t)(IR2);
-	x = ((_x * proj_factor) + (int64_t)(int32_t)(OFX));
-	y = ((_y * proj_factor) + (int64_t)(int32_t)(OFY));
+	x = ((IR1 * proj_factor) + OFX);
+	y = ((IR2 * proj_factor) + OFY);
 	x = saturate((x >> 16), -0x400, 0x3ff);
 	y = saturate((y >> 16), -0x400, 0x3ff);
-	SETSX2(x);
-	SETSY2(y);
-	SXY2 = (y << 16) | x;
+
+	SX2 = x;
+	SY2 = y;
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR1)) + OFX; SETSX2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
 	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
@@ -808,6 +810,7 @@ void gte::commandRTPT() {
 
 void gte::commandGPF() {
 	const int shift = sf(instruction) * 12;
+	const int lm = this->lm(instruction);
 	MAC1 = 0;
 	MAC2 = 0;
 	MAC3 = 0;
@@ -815,11 +818,13 @@ void gte::commandGPF() {
 	MAC1 = (int32_t)((IR1 * IR0) + MAC1) >> shift;
 	MAC2 = (int32_t)((IR2 * IR0) + MAC2) >> shift;
 	MAC3 = (int32_t)((IR3 * IR0) + MAC3) >> shift;
+	setIRFromMAC(lm);
 	pushColour();
 }
 
 void gte::commandGPL() {
 	const int shift = sf(instruction) * 12;
+	const int lm = this->lm(instruction);
 	MAC1 <<= shift;
 	MAC2 <<= shift;
 	MAC3 <<= shift;
@@ -827,5 +832,91 @@ void gte::commandGPL() {
 	MAC1 = (int32_t)((IR1 * IR0) + MAC1) >> shift;
 	MAC2 = (int32_t)((IR2 * IR0) + MAC2) >> shift;
 	MAC3 = (int32_t)((IR3 * IR0) + MAC3) >> shift;
+	setIRFromMAC(lm);
+	pushColour();
+}
+
+void gte::commandNCCT() {
+	const int shift = sf(instruction) * 12;
+	const int lm = this->lm(instruction);
+	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX0) + (int64_t)((int16_t)L12 * (int16_t)VY0) + (int64_t)((int16_t)L13 * (int16_t)VZ0)) >> shift;
+	MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX0) + (int64_t)((int16_t)L22 * (int16_t)VY0) + (int64_t)((int16_t)L23 * (int16_t)VZ0)) >> shift;
+	MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX0) + (int64_t)((int16_t)L32 * (int16_t)VY0) + (int64_t)((int16_t)L33 * (int16_t)VZ0)) >> shift;
+	//setIRFromMAC();
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
+	MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
+	MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
+	//setIRFromMAC();
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	MAC1 = ((int64_t)R * (int16_t)IR1) << 4;
+	MAC2 = ((int64_t)G * (int16_t)IR2) << 4;
+	MAC3 = ((int64_t)B * (int16_t)IR3) << 4;
+
+	MAC1 = (int32_t)MAC1 >> shift;
+	MAC2 = (int32_t)MAC2 >> shift;
+	MAC3 = (int32_t)MAC3 >> shift;
+
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	pushColour();
+
+	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX1) + (int64_t)((int16_t)L12 * (int16_t)VY1) + (int64_t)((int16_t)L13 * (int16_t)VZ1)) >> shift;
+	MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX1) + (int64_t)((int16_t)L22 * (int16_t)VY1) + (int64_t)((int16_t)L23 * (int16_t)VZ1)) >> shift;
+	MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX1) + (int64_t)((int16_t)L32 * (int16_t)VY1) + (int64_t)((int16_t)L33 * (int16_t)VZ1)) >> shift;
+	//setIRFromMAC();
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
+	MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
+	MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
+	//setIRFromMAC();
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	MAC1 = ((int64_t)R * (int16_t)IR1) << 4;
+	MAC2 = ((int64_t)G * (int16_t)IR2) << 4;
+	MAC3 = ((int64_t)B * (int16_t)IR3) << 4;
+
+	MAC1 = (int32_t)MAC1 >> shift;
+	MAC2 = (int32_t)MAC2 >> shift;
+	MAC3 = (int32_t)MAC3 >> shift;
+
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	pushColour();
+
+	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX2) + (int64_t)((int16_t)L12 * (int16_t)VY2) + (int64_t)((int16_t)L13 * (int16_t)VZ2)) >> shift;
+	MAC2 = int32_t((int64_t)((int16_t)L21 * (int16_t)VX2) + (int64_t)((int16_t)L22 * (int16_t)VY2) + (int64_t)((int16_t)L23 * (int16_t)VZ2)) >> shift;
+	MAC3 = int32_t((int64_t)((int16_t)L31 * (int16_t)VX2) + (int64_t)((int16_t)L32 * (int16_t)VY2) + (int64_t)((int16_t)L33 * (int16_t)VZ2)) >> shift;
+	//setIRFromMAC();
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	MAC1 = int32_t(((int64_t)RBK * 0x1000) + ((int64_t)((int16_t)LR1 * (int16_t)IR1) + (int64_t)((int16_t)LR2 * (int16_t)IR2) + (int64_t)((int16_t)LR3 * (int16_t)IR3))) >> shift;
+	MAC2 = int32_t(((int64_t)GBK * 0x1000) + ((int64_t)((int16_t)LG1 * (int16_t)IR1) + (int64_t)((int16_t)LG2 * (int16_t)IR2) + (int64_t)((int16_t)LG3 * (int16_t)IR3))) >> shift;
+	MAC3 = int32_t(((int64_t)BBK * 0x1000) + ((int64_t)((int16_t)LB1 * (int16_t)IR1) + (int64_t)((int16_t)LB2 * (int16_t)IR2) + (int64_t)((int16_t)LB3 * (int16_t)IR3))) >> shift;
+	//setIRFromMAC();
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	MAC1 = ((int64_t)R * (int16_t)IR1) << 4;
+	MAC2 = ((int64_t)G * (int16_t)IR2) << 4;
+	MAC3 = ((int64_t)B * (int16_t)IR3) << 4;
+
+	MAC1 = (int32_t)MAC1 >> shift;
+	MAC2 = (int32_t)MAC2 >> shift;
+	MAC3 = (int32_t)MAC3 >> shift;
+
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(MAC3, -0x8000 * (lm ? 0 : 1), 0x7fff);
 	pushColour();
 }

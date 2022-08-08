@@ -8,135 +8,109 @@
 
 #define TEST_GTE
 
-#define VY0 ((int16_t)(cop2d[0] >> 16))
-#define VX0 ((int16_t)(cop2d[0] & 0xffff))
-#define VZ0 ((int16_t)cop2d[1])
+#define VX0 (cop2d.r[0].sw.l)
+#define VY0 (cop2d.r[0].sw.h)
+#define VZ0 (cop2d.r[1].sw.l)
+#define VX1 (cop2d.r[2].w.l)
+#define VY1 (cop2d.r[2].w.h)
+#define VZ1 (cop2d.r[3].w.l)
+#define VX2 (cop2d.r[4].w.l)
+#define VY2 (cop2d.r[4].w.h)
+#define VZ2 (cop2d.r[5].w.l)
 
-#define VY1 ((int16_t)(cop2d[2] >> 16))
-#define VX1 ((int16_t)(cop2d[2] & 0xffff))
-#define VZ1 ((int16_t)(cop2d[3]))
+#define RGBC cop2d.raw[6]
+#define R (cop2d.r[6].b.l)
+#define G (cop2d.r[6].b.h)
+#define B (cop2d.r[6].b.h2)
+#define CD2 (cop2d.r[6].b.h3)
 
-#define VY2 ((int16_t)(cop2d[4] >> 16))
-#define VX2 ((int16_t)(cop2d[4] & 0xffff))
-#define VZ2 ((int16_t)cop2d[5])
+#define OTZ (cop2d.r[7].w.l)
 
-#define RGBC cop2d[6]
-#define R (cop2d[6] & 0xff)
-#define G ((cop2d[6] >> 8) & 0xff)
-#define B ((cop2d[6] >> 16) & 0xff)
-#define CD2 ((cop2d[6] >> 24) & 0xff)
+#define IR0 (cop2d.r[8].sw.l)
+#define IR1 (cop2d.r[9].sw.l)
+#define IR2 (cop2d.r[10].sw.l)
+#define IR3 (cop2d.r[11].sw.l)
 
-#define OTZ (cop2d[7])
+#define SXY0 (cop2d.r[12].d)
+#define SX0 (cop2d.r[12].sw.l)
+#define SY0 (cop2d.r[12].sw.h)
+#define SXY1 (cop2d.r[13].d)
+#define SX1 (cop2d.r[13].sw.l)
+#define SY1 (cop2d.r[13].sw.h)
+#define SXY2 (cop2d.r[14].d)
+#define SX2 (cop2d.r[14].sw.l)
+#define SY2 (cop2d.r[14].sw.h)
+#define SXYP (cop2d.r[15].d)
+#define SXP (cop2d.r[15].sw.l)
+#define SYP (cop2d.r[15].sw.h)
 
-#define IR0 cop2d[8]
-#define IR1 cop2d[9]
-#define IR2 cop2d[10]
-#define IR3 cop2d[11]
+#define SZ0 (cop2d.r[16].w.l)
+#define SZ1 (cop2d.r[17].w.l)
+#define SZ2 (cop2d.r[18].w.l)
+#define SZ3 (cop2d.r[19].w.l)
 
-#define SETSY0(value)	    \
-cop2d[12] &= ~0xffff0000;   \
-cop2d[12] |= ((value) << 16) 
-#define SETSX0(value)	    \
-cop2d[12] &= ~0xffff;       \
-cop2d[12] |= ((uint16_t)(value)) 
+#define RGB0 (cop2d.r[20].d)
+#define RGB1 (cop2d.r[21].d)
+#define RGB2 (cop2d.r[22].d)
 
-#define SY0 ((int16_t)(cop2d[12] >> 16))
-#define SX0 ((int16_t)(cop2d[12] & 0xffff))
-
-#define SETSY1(value)	    \
-cop2d[13] &= ~0xffff0000;   \
-cop2d[13] |= ((value) << 16) 
-#define SETSX1(value)	    \
-cop2d[13] &= ~0xffff;       \
-cop2d[13] |= ((uint16_t)(value)) 
-
-#define SY1 ((int16_t)(cop2d[13] >> 16))
-#define SX1 ((int16_t)(cop2d[13] & 0xffff))
-
-#define SETSY2(value)	    \
-cop2d[14] &= ~0xffff0000;   \
-cop2d[14] |= ((value) << 16) 
-#define SETSX2(value)	    \
-cop2d[14] &= ~0xffff;       \
-cop2d[14] |= ((uint16_t)(value))
-
-#define SY2 ((int16_t)(cop2d[14] >> 16))
-#define SX2 ((int16_t)(cop2d[14] & 0xffff))
-
-#define SYP ((int16_t)(cop2d[15] >> 16))
-#define SXP ((int16_t)(cop2d[15] & 0xffff))
-
-#define SXY0 (cop2d[12])
-#define SXY1 (cop2d[13])
-#define SXY2 (cop2d[14])
-
-#define SZ0 cop2d[16]
-#define SZ1 cop2d[17]
-#define SZ2 cop2d[18]
-#define SZ3 cop2d[19]
-
-#define RGB0 cop2d[20]
-#define RGB1 cop2d[21]
-#define RGB2 cop2d[22]
-
-#define MAC0 cop2d[24]
-#define MAC1 cop2d[25]
-#define MAC2 cop2d[26]
-#define MAC3 cop2d[27]
+#define MAC0 (cop2d.r[24].sd)
+#define MAC1 (cop2d.r[25].sd)
+#define MAC2 (cop2d.r[26].sd)
+#define MAC3 (cop2d.r[27].sd)
 
 
-#define RT12 ((int16_t)(cop2c[0] >> 16))
-#define RT11 ((int16_t)(cop2c[0] & 0xffff))
-#define RT21 ((int16_t)(cop2c[1] >> 16))
-#define RT13 ((int16_t)(cop2c[1] & 0xffff))
-#define RT23 ((int16_t)(cop2c[2] >> 16))
-#define RT22 ((int16_t)(cop2c[2] & 0xffff))
-#define RT32 ((int16_t)(cop2c[3] >> 16))
-#define RT31 ((int16_t)(cop2c[3] & 0xffff))
-#define RT33 ((int16_t)(cop2c[4] & 0xffff))
+#define RT11 (cop2c.r[0].sw.l)
+#define RT12 (cop2c.r[0].sw.h)
+#define RT13 (cop2c.r[1].sw.l)
+#define RT21 (cop2c.r[1].sw.h)
+#define RT22 (cop2c.r[2].sw.l)
+#define RT23 (cop2c.r[2].sw.h)
+#define RT31 (cop2c.r[3].sw.l)
+#define RT32 (cop2c.r[3].sw.h)
+#define RT33 (cop2c.r[4].sw.l)
 
-#define TRX cop2c[5]
-#define TRY cop2c[6]
-#define TRZ cop2c[7]
+#define TRX (cop2c.r[5].sd)
+#define TRY (cop2c.r[6].sd)
+#define TRZ (cop2c.r[7].sd)
 
-#define L12 ((int16_t)(cop2c[8] >> 16))
-#define L11 ((int16_t)(cop2c[8] & 0xffff))
-#define L21 ((int16_t)(cop2c[9] >> 16))
-#define L13 ((int16_t)(cop2c[9] & 0xffff))
-#define L23 ((int16_t)(cop2c[10] >> 16))
-#define L22 ((int16_t)(cop2c[10] & 0xffff))
-#define L32 ((int16_t)(cop2c[11] >> 16))
-#define L31 ((int16_t)(cop2c[11] & 0xffff))
-#define L33 ((int16_t)(cop2c[12] & 0xffff))
+#define L11 (cop2c.r[8].sw.l)
+#define L12 (cop2c.r[8].sw.h)
+#define L13 (cop2c.r[9].sw.l)
+#define L21 (cop2c.r[9].sw.h)
+#define L22 (cop2c.r[10].sw.l)
+#define L23 (cop2c.r[10].sw.h)
+#define L31 (cop2c.r[11].sw.l)
+#define L32 (cop2c.r[11].sw.h)
+#define L33 (cop2c.r[12].sw.l)
 
-#define RBK cop2c[13]
-#define GBK cop2c[14]
-#define BBK cop2c[15]
+#define RBK (cop2c.r[13].sd)
+#define GBK (cop2c.r[14].sd)
+#define BBK (cop2c.r[15].sd)
 
-#define LR2 ((int16_t)(cop2c[16] >> 16))
-#define LR1 ((int16_t)(cop2c[16] & 0xffff))
-#define LG1 ((int16_t)(cop2c[17] >> 16))
-#define LR3 ((int16_t)(cop2c[17] & 0xffff))
-#define LG3 ((int16_t)(cop2c[18] >> 16))
-#define LG2 ((int16_t)(cop2c[18] & 0xffff))
-#define LB2 ((int16_t)(cop2c[19] >> 16))
-#define LB1 ((int16_t)(cop2c[19] & 0xffff))
-#define LB3 ((int16_t)(cop2c[20] & 0xffff))
+#define LR1 (cop2c.r[16].sw.l)
+#define LR2 (cop2c.r[16].sw.h)
+#define LR3 (cop2c.r[17].sw.l)
+#define LG1 (cop2c.r[17].sw.h)
+#define LG2 (cop2c.r[18].sw.l)
+#define LG3 (cop2c.r[18].sw.h)
+#define LB1 (cop2c.r[19].sw.l)
+#define LB2 (cop2c.r[19].sw.h)
+#define LB3 (cop2c.r[20].sw.l)
 
-#define RFC cop2c[21]
-#define GFC cop2c[22]
-#define BFC cop2c[23]
+#define RFC (cop2c.r[21].sd)
+#define GFC (cop2c.r[22].sd)
+#define BFC (cop2c.r[23].sd)
 
-#define OFX cop2c[24]
-#define OFY cop2c[25]
+#define OFX (cop2c.r[24].sd)
+#define OFY (cop2c.r[25].sd)
 
-#define H ((uint16_t)cop2c[26])
+#define H (cop2c.r[26].sw.l)
 
-#define DQA ((int16_t)cop2c[27])
-#define DQB cop2c[28]
+#define DQA (cop2c.r[27].sw.l)
+#define DQB (cop2c.r[28].sd)
 
-#define ZSF3 (int16_t)cop2c[29]
-#define ZSF4 (int16_t)cop2c[30]
+#define ZSF3 (cop2c.r[29].sw.l)
+#define ZSF4 (cop2c.r[30].sw.l)
 
 class gte
 {
@@ -144,9 +118,67 @@ public:
 	gte() {
 
 	}
+	typedef union {
+		struct {
+			uint8_t l, h, h2, h3;
+		} b;
+		struct {
+			uint16_t l, h;
+		} w;
+		struct {
+			int8_t l, h, h2, h3;
+		} sb;
+		struct {
+			int16_t l, h;
+		} sw;
+		uint32_t d;
+		int32_t sd;
+	} pair;
+	union {
+		struct {
+			int16_t vx0, vy0, vz0;
+			int16_t vx1, vy1, vz1;
+			int16_t vx2, vy2, vz2;
+			uint8_t r, g, b, c;
+			int32_t otz;
+			int32_t ir0, ir1, ir2, ir3;
+			int16_t sx0, sy0;
+			int16_t sx1, sy1;
+			int16_t sx2, sy2;
+			int16_t sz0, n0;
+			int16_t sz1, n1;
+			int16_t sz2, n2;
+			uint8_t r0, g0, b0, c0;
+			uint8_t r1, g1, b1, c1;
+			uint8_t r2, g2, b2, c2;
+			int32_t reserved;
+			int32_t mac0, mac1, mac2, mac3;
+			uint32_t irgb, orgb;
+			int32_t lzcs, lzcr;
+		} regs;
+		uint32_t raw[32];
+		pair r[32];
+	} cop2d;
 
-	uint32_t cop2c[32];
-	uint32_t cop2d[32];
+	union {
+		struct {
+			int16_t r11, r12, r13, r21, r22, r23, r31, r32, r33, n0;
+			int32_t trX, trY, trZ;
+			int16_t l11, l12, l13, l21, l22, l23, l31, l32, l33, n1;
+			int32_t rbk, gbk, bbk;
+			int16_t lr1, lr2, lr3, lg1, lg2, lg3, lb1, lb2, lb3, n2;
+			int32_t rfc, gfc, bfc;
+			int32_t ofx, ofy;
+			int32_t h;
+			int32_t dqa, dqb;
+			int32_t zsf3, zsf4;
+			int32_t flag;
+		} regs;
+		uint32_t raw[32];
+		pair r[32];
+	} cop2c;
+
+	//uint32_t cop2d.raw[32];
 	std::string cop2cNames[32] = {
 	"r11r12", "r13r21", "r22r23", "r31r32", "r33", "trx",  "try",  "trz",   // 00
 	"l11l12", "l13l21", "l22l23", "l31l32", "l33", "rbk",  "gbk",  "bbk",   // 08
@@ -187,7 +219,8 @@ public:
 		AVSZ4 = 0x2e,
 		RTPT = 0x30,
 		GPF = 0x3d,
-		GPL = 0x3e
+		GPL = 0x3e,
+		NCCT = 0x3f
 	};
 	enum Move {
 		MFC2 = 0,
@@ -218,6 +251,7 @@ public:
 	void commandRTPT();
 	void commandGPF();
 	void commandGPL();
+	void commandNCCT();
 	
 	// Helpers
 	static uint32_t countLeadingZeros16(uint16_t value) {

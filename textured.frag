@@ -14,6 +14,7 @@
 		uniform sampler2D vram8;
 		uniform sampler2D vram4;
 		uniform int colourDepth;
+		uniform ivec4 texWindow;
 
 		int floatToU5(float f) {
 			return int(floor(f * 31.0 + 0.5));
@@ -42,21 +43,21 @@
 
 		void main()
 		{
+			//ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
+			ivec2 UV = ivec2(TexCoord);
 			vec4 colour;
 			if(colourDepth == 0) {
-				//discard;
-				colour = fetchTexel4Bit(ivec2(TexCoord));
+				colour = fetchTexel4Bit(UV);
 			}
 			else if (colourDepth == 1) {
-				colour = fetchTexel8Bit(ivec2(TexCoord));
+				colour = fetchTexel8Bit(UV);
 			} 
 			else if (colourDepth == 2) {
-				vec2 TexCoords = vec2(float(TexCoord.x + texpageCoords.x) / 1024.f - 1, -(1 - float(TexCoord.y + texpageCoords.y) / 512.f));
+				vec2 TexCoords = vec2(float(UV.x + texpageCoords.x) / 1024.f - 1, -(1 - float(UV.y + texpageCoords.y) / 512.f));
 				colour = texture(vram, TexCoords);
 			} else colour = vec4(1.f, 0.f, 0.f, 1.f);
 			if(colour.rgb == vec3(0.f, 0.f, 0.f)) discard;
 			colour.a = 1.f;
-			//discard;
 			FragColor = colour;
 		}
 		

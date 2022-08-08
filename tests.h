@@ -8,14 +8,14 @@ public:
     uint32_t command; // To pass to the GTE
     void assignRegisters(uint32_t* cop2c, uint32_t* cop2d) {
         for (int i = 0; i < 32; i++) {
-            GTE.cop2c[i] = cop2c[i];
-            GTE.cop2d[i] = cop2d[i];
+            GTE.cop2c.raw[i] = cop2c[i];
+            GTE.cop2d.raw[i] = cop2d[i];
         }
     }
     virtual void checkResult(uint32_t* resCop2c, uint32_t* resCop2d) {
         for (int i = 0; i < 32; i++) {
-            if (GTE.cop2c[i] != resCop2c[i]) {
-                printf("%s register mismatch: got 0x%08x expected 0x%08x\n", GTE.cop2cNames[i].c_str(), GTE.cop2c[i], resCop2c[i]);
+            if (GTE.cop2c.raw[i] != resCop2c[i]) {
+                printf("%s register mismatch: got 0x%08x expected 0x%08x\n", GTE.cop2cNames[i].c_str(), GTE.cop2c.raw[i], resCop2c[i]);
             }
         }
         for (int i = 0; i < 32; i++) {

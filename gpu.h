@@ -91,6 +91,7 @@ public:		// trongle stuff
 		uniform sampler2D vram8;
 		uniform sampler2D vram4;
 		uniform int colourDepth;
+		uniform ivec4 texWindow;
 
 		int floatToU5(float f) {
 			return int(floor(f * 31.0 + 0.5));
@@ -119,15 +120,17 @@ public:		// trongle stuff
 
 		void main()
 		{
+			ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
+
 			vec4 colour;
 			if(colourDepth == 0) {
-				colour = fetchTexel4Bit(ivec2(TexCoord));
+				colour = fetchTexel4Bit(UV);
 			}
 			else if (colourDepth == 1) {
-				colour = fetchTexel8Bit(ivec2(TexCoord));
+				colour = fetchTexel8Bit(UV);
 			} 
 			else if (colourDepth == 2) {
-				vec2 TexCoords = vec2(float(TexCoord.x + texpageCoords.x) / 1024.f - 1, -(1 - float(TexCoord.y + texpageCoords.y) / 512.f));
+				vec2 TexCoords = vec2(float(UV.x + texpageCoords.x) / 1024.f - 1, -(1 - float(UV.y + texpageCoords.y) / 512.f));
 				colour = texture(vram, TexCoords);
 			} else colour = vec4(1.f, 0.f, 0.f, 1.f);
 			if(colour.rgb == vec3(0.f, 0.f, 0.f)) discard;
@@ -232,20 +235,14 @@ public:	// commands
 	};
 
 	void draw_untextured_tri(int shading, int transparency);
+	void draw_untextured_quad(int shading, int transparency);
 
 	void monochrome_line_opaque();
 	void monochrome_polyline_opaque();
-	void monochrome_four_point_opaque_polygon();
-	void monochrome_four_point_semi_transparent_polygon();
-	void monochrome_three_point_opaque_polygon();
-	void monochrome_three_point_semi_transparent_polygon();
 	void texture_blending_four_point_opaque_polygon();
 	void texture_four_point_opaque_polygon();
 	void texture_four_point_semi_transparent_polygon();
-	void shaded_three_point_opaque_polygon();
-	void shaded_three_point_semi_transparent_polygon();
-	void shaded_four_point_opaque_polygon();
-	void shaded_four_point_semi_transparent_polygon();
+	void shaded_texture_blending_three_point_opaque_polygon();
 	void shaded_texture_blending_textured_four_point_opaque_polygon();
 	void shaded_texture_blending_textured_four_point_semi_transparent_polygon();
 	void texture_blending_four_point_polygon_semi_transparent();
@@ -258,9 +255,12 @@ public:	// commands
 	void texture_blending_rectangle_8x8_opaque();
 	void texture_rectangle_8x8_opaque();
 	void texture_blending_rectangle_16x16_opaque();
+	void texture_rectangle_16x16_opaque();
+	void texture_rectangle_16x16_semi_transparent();
 	void monochrome_rectangle_dot_opaque();
 	void monochrome_rectangle_8x8_opaque();
 	void fill_rectangle();
+	void vram_to_vram();
 	void cpu_to_vram();
 	void vram_to_cpu();
 public:
