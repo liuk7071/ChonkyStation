@@ -3417,7 +3417,7 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	uint32_t g = (((colour) >> 8) & 0xff);
 	uint32_t r = (((colour) >> 0) & 0xff);
 	uint32_t rgba = (r << 24) | (g << 16) | (b << 8) | 0xff;
-	vram_rgb[(y * 1024) + x] = rgba;
+	//vram_rgb[(y * 1024) + x] = rgba;
 
 	// TODO: OpenGL implementation
 	return;

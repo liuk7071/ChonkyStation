@@ -238,7 +238,7 @@ uint16_t memory::read16(uint32_t addr) {
 	}
 
 	// What is this?
-	if (masked_addr == 0x1f801130) abort();
+	if (masked_addr == 0x1f801130) return 0;
 
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT

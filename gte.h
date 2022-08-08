@@ -50,6 +50,9 @@
 #define SZ3 (cop2d.r[19].w.l)
 
 #define RGB0 (cop2d.r[20].d)
+#define R0 (cop2d.r[20].b.l)
+#define G0 (cop2d.r[20].b.h)
+#define B0 (cop2d.r[20].b.h2)
 #define RGB1 (cop2d.r[21].d)
 #define RGB2 (cop2d.r[22].d)
 
@@ -197,9 +200,9 @@ public:
 	uint32_t m(uint32_t instr) { return ((instr >> 17) & 3); }
 	uint32_t v(uint32_t instr) { return ((instr >> 15) & 3); }
 	uint32_t cv(uint32_t instr) { return ((instr >> 13) & 3); }
-	uint32_t mx(int x, int i);
-	uint32_t vx(int x, int i);
-	uint32_t tx(int x, int i);
+	int16_t mx(int x, int i);
+	int16_t vx(int x, int i);
+	int64_t tx(int x, int i);
 	uint32_t instruction = 0;
 	enum Commands {
 		MOVE,
@@ -215,6 +218,7 @@ public:
 		NCS = 0x1e,
 		NCT = 0x20,
 		SQR = 0x28,
+		DPCT = 0x2a,
 		AVSZ3 = 0x2d,
 		AVSZ4 = 0x2e,
 		RTPT = 0x30,
@@ -246,6 +250,7 @@ public:
 	void commandNCS();
 	void commandNCT();
 	void commandSQR();
+	void commandDPCT();
 	void commandAVSZ3();
 	void commandAVSZ4();
 	void commandRTPT();
