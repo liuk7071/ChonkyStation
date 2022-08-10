@@ -12,6 +12,12 @@
 
 class memory
 {
+	// Our memory implementation uses software fastmem
+	// Splitting the address space into 64KiB (2^16) pages, so 0x10000 pages
+	// Here are our page tables
+	std::vector<uintptr_t> readTable;
+	std::vector<uintptr_t> writeTable;
+
 public:
 	memory();
 	~memory();
@@ -28,9 +34,9 @@ public:
 	std::vector <uint8_t> bios;
 	uint32_t adler32bios = 0;
 
-public:
-	uint32_t pc = 0;
+	uint32_t* pc;
 	uint32_t* regs;
+	bool* shouldCheckDMA;
 	uint8_t* ram = new uint8_t[0x200000];
 	uint8_t* spu_ram = new uint8_t[0x80000];
 	uint8_t* scratchpad = new uint8_t[1024];
@@ -78,7 +84,6 @@ public:
 
 
 	uint32_t gpuread = 0;
-public:
 	bool debug;
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	void debug_log(const char* fmt, ...);

@@ -21,6 +21,9 @@ cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_
 	delay = false;
 
 	bus.mem.logwnd = &log;
+	bus.mem.regs = regs;
+	bus.mem.pc = &pc;
+	bus.mem.shouldCheckDMA = &shouldCheckDMA;
 
 	// tests
 #ifdef TEST_GTE
@@ -42,7 +45,7 @@ cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_
 }
 
 cpu::~cpu() {
-	
+
 }
 
 void cpu::reset() {
@@ -50,6 +53,8 @@ void cpu::reset() {
 		i = 0;
 	}
 	pc = 0xbfc00000;
+	delay = false;
+	shouldCheckDMA = false;
 }
 
 void cpu::sideloadExecutable(std::string directory) {
@@ -100,7 +105,7 @@ void cpu::exception(exceptions exc) {
 	uint32_t handler = 0;
 	//if (delay) return;
 	if (delay) COP0.regs[13] |= (1 << 31); else COP0.regs[13] &= ~(1 << 31);
-	
+
 	if (exc == 0x4 || exc == 0x5) {		// BadVAddr
 		COP0.regs[8] = pc;
 	}
@@ -189,7 +194,7 @@ void cpu::do_dma() {
 			switch (direction) {
 			case 1:
 				debug_log("[DMA] Transfer direction: ram to device\n");
-				while(1) {
+				while (1) {
 					uint32_t _header = bus.mem.read32(addr);
 					auto _words = _header >> 24;
 					while (_words > 0) {
@@ -471,18 +476,14 @@ void cpu::execute(uint32_t instr) {
 		return;
 	}
 
-
 	uint8_t primary = instr >> 26;
-	uint8_t secondary = instr & 0x3f;
-	
-	bus.mem.pc = pc;
-	bus.mem.regs = regs;
 
 	if (delay) {	// branch delay slot
 		pc = jump - 4;
 		delay = false;
 	}
 
+	// Quick and dirty hack. TODO: Replace this with a bitfield
 	uint8_t rs = (instr >> 21) & 0x1f;
 	uint8_t rd = (instr >> 11) & 0x1f;
 	uint8_t rt = (instr >> 16) & 0x1f;
@@ -495,6 +496,7 @@ void cpu::execute(uint32_t instr) {
 
 	switch (primary) {
 	case 0x00: {
+		uint8_t secondary = instr & 0x3f;
 		switch (secondary) {
 		case 0x00: {
 			uint32_t result = regs[rt] << shift_imm;
@@ -719,7 +721,8 @@ void cpu::execute(uint32_t instr) {
 			}
 			else { debug_log("\n"); }
 			break;
-		} else {		// bgez
+		}
+		else {		// bgez
 			debug_log("BxxZ %s, 0x%.4x", reg[rs].c_str(), sign_extended_imm);
 			if (link) regs[0x1f] = pc + 8; // check if link (bgezal)
 			if (signed_rs >= 0) {
@@ -804,7 +807,7 @@ void cpu::execute(uint32_t instr) {
 	}
 	case 0x0A: {
 		regs[rt] = 0;
-		if (signed_rs < signed_sign_extended_imm)
+		if (signed_rs < (int32_t)sign_extended_imm)
 			regs[rt] = 1;
 		debug_log("slti %s, %s, 0x%.4X\n", reg[rs].c_str(), reg[rt].c_str(), imm);
 		break;
@@ -838,17 +841,11 @@ void cpu::execute(uint32_t instr) {
 		uint8_t cop_instr = instr >> 21;
 		switch (cop_instr) {
 		case(0b00000): { // mfc0
-			uint8_t rs = (instr >> 21) & 0x1f;
-			uint8_t rd = (instr >> 11) & 0x1f;
-			uint8_t rt = (instr >> 16) & 0x1f;
-			uint16_t imm = instr & 0xffff;
 			regs[rt] = COP0.regs[rd];
 			debug_log("mfc0 %s, %s\n", reg[rd].c_str(), reg[rt].c_str());
 			break;
 		}
 		case(0b00100): { // mtc0
-			uint8_t rd = (instr >> 11) & 0x1f;
-			uint8_t rt = (instr >> 16) & 0x1f;
 			COP0.regs[rd] = regs[rt];
 			debug_log("mtc0 %s, %s\n", reg[rd].c_str(), reg[rt].c_str());
 			break;
@@ -1104,6 +1101,17 @@ void cpu::execute(uint32_t instr) {
 	}
 	pc += 4;
 }
+
+// Clean up our mess
+#undef shift_imm
+#undef rd
+#undef rt
+#undef rs
+#undef imm
+#undef sign_extended_imm
+#undef signed_rs
+#undef jump_imm
+
 void cpu::check_CDROM_IRQ() {
 	//bus.mem.CDROM.delayedINT();
 	//if (bus.mem.CDROM.queued_read) {
@@ -1123,7 +1131,12 @@ void IRQ7(void* dataptr) {
 	else cpuptr->bus.mem.pads.abort_irq = false;
 }
 void cpu::step() {
-	check_dma(); // TODO: Only check DMA when control registers are written to   
+	if (shouldCheckDMA) {
+		check_dma();
+		shouldCheckDMA = false;
+		//check_dma(); // TODO: Only check DMA when control registers are written to
+	}
+
 	if (bus.mem.I_STAT & bus.mem.I_MASK) {
 		COP0.regs[13] |= (1 << 10);
 		if ((COP0.regs[12] & 1) && (COP0.regs[12] & (1 << 10))) {
@@ -1142,16 +1155,16 @@ void cpu::step() {
 	auto reset_counter = (bus.mem.tmr1.counter_mode >> 3) & 1;
 	auto irq_when_target = (bus.mem.tmr1.counter_mode >> 4) & 1;
 	auto sync_mode = (bus.mem.tmr1.counter_mode >> 1) & 3;
-	bus.mem.tmr0.current_value += 2;
+	bus.mem.tmr0.current_value++;
 	if (!(bus.mem.tmr1.counter_mode & 1) || (sync_mode != 3)) {
 		if ((clock_source == 1) || (clock_source == 3)) {
 			bus.mem.tmr1_stub += 2;
 			if (bus.mem.tmr1_stub > 2160) {
-				bus.mem.tmr1.current_value += 2;
+				bus.mem.tmr1.current_value++;
 				bus.mem.tmr1_stub = 0;
 			}
 		}
-		else bus.mem.tmr1.current_value += 2;
+		else bus.mem.tmr1.current_value++;
 	}
 	if (irq_when_target && (bus.mem.tmr1.current_value >= bus.mem.tmr1.target_value)) {
 		bus.mem.I_STAT |= 0b100000;
@@ -1164,7 +1177,7 @@ void cpu::step() {
 		bus.mem.I_STAT |= 0b1000000;
 	}
 	if (reset_counter && (bus.mem.tmr2.current_value >= bus.mem.tmr2.target_value)) bus.mem.tmr2.current_value = 0;
-	bus.mem.tmr2.current_value += 2;
+	bus.mem.tmr2.current_value++;
 	bus.mem.CDROM.Scheduler.tick(2);
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag)
 		bus.mem.I_STAT |= (1 << 2);

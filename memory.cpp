@@ -1,6 +1,3 @@
-/* TODO: Software fastmem
-https://wheremyfoodat.github.io/software-fastmem/ */
-
 #include "memory.h"
 #include <iostream>
 #define log
@@ -13,7 +10,6 @@ https://wheremyfoodat.github.io/software-fastmem/ */
 
 void ScheduleVBLANK_(void* dataptr) {
 	memory* memoryptr = (memory*)dataptr;
-	//printf("fuck\n");
 	memoryptr->I_STAT |= 1;
 }
 
@@ -23,7 +19,7 @@ void TMR1IRQ(void* dataptr) {
 	memoryptr->CDROM.Scheduler.push(&TMR1IRQ, memoryptr->CDROM.Scheduler.time + 5000, memoryptr);
 	////printf("[TIMER]] Sending TMR1 IRQ (stub)\n");
 }
-void TMR2IRQ(void* dataptr) { 
+void TMR2IRQ(void* dataptr) {
 	memory* memoryptr = (memory*)dataptr;
 	memoryptr->I_STAT |= 0b1000000;
 }
@@ -34,6 +30,23 @@ void DMAIRQ(void* dataptr) {
 }
 memory::memory() {
 	debug = false;
+
+	constexpr size_t pageSize = 64 * 1024; // 64KB pages
+	readTable.resize(0x10000, 0);
+	writeTable.resize(0x10000, 0);
+
+	// Map RAM as R/W
+	for (size_t i = 0; i < 0x20; i++) {
+		const auto ptr = (uintptr_t)&ram[i * pageSize];
+
+		readTable[i + 0x0000] = ptr; // KUSEG
+		readTable[i + 0x8000] = ptr; // KSEG0
+		readTable[i + 0xA000] = ptr; // KSEG1
+
+		writeTable[i + 0x0000] = ptr; // KUSEG
+		writeTable[i + 0x8000] = ptr; // KSEG0
+		writeTable[i + 0xA000] = ptr; // KSEG1
+	}
 }
 
 memory::~memory() {
@@ -83,6 +96,13 @@ uint32_t memory::mask_address(const uint32_t addr)
 }
 
 uint8_t memory::read(uint32_t addr) {
+	const auto page = addr >> 16;
+	const auto pointer = readTable[page];
+
+	if (pointer != 0) {// if the address is in the fast path
+		return *(uint8_t*)(pointer + (addr & 0xffff));
+	}
+
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
@@ -186,14 +206,21 @@ uint8_t memory::read(uint32_t addr) {
 		return 0xff;
 	}
 
-	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, *pc);
 	exit(0);
 }
 
 uint16_t memory::read16(uint32_t addr) {
+	const auto page = addr >> 16;
+	const auto pointer = readTable[page];
+
+	if (pointer != 0) {// if the address is in the fast path
+		return *(uint16_t*)(pointer + (addr & 0xffff));
+	}
+
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
-	
+
 	if (masked_addr == 0x1f8010f6) return 0;
 
 	// SPU stuff
@@ -205,7 +232,7 @@ uint16_t memory::read16(uint32_t addr) {
 	if (masked_addr >= 0x1f801c02 && (masked_addr <= 0x1f801c02 + 0x170)) return 0;
 
 	//if (patch_b0_15h && (masked_addr == mask_address(button_dest))) //printf("test\n");
-	
+
 	// Timer 0 current value
 	if (masked_addr == 0x1f801100) {
 		//printf("[TIMER] Read timer 0 current value\n");
@@ -243,7 +270,7 @@ uint16_t memory::read16(uint32_t addr) {
 	// controllers
 	if (masked_addr == 0x1f801044) { // JOY_STAT
 		uint16_t data = pads.joy_stat;
-		//printf("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, pc);
+		//printf("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, *pc);
 		//return rand() & 0b111;
 		return data;
 	}
@@ -307,19 +334,22 @@ uint16_t memory::read16(uint32_t addr) {
 		return 0;
 	}
 
-	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, *pc);
 	exit(0);
 }
 
 uint32_t memory::read32(uint32_t addr) {
+	const auto page = addr >> 16;
+	const auto pointer = readTable[page];
+
+	if (pointer != 0) {// if the address is in the fast path
+		return *(uint32_t*)(pointer + (addr & 0xffff));
+	}
+
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
 	if (masked_addr == 0xfffffff8) return 0;
-	/*if (masked_addr == 0xfffffff4) return 0;
-	if (masked_addr == 0x00fffff4) return 0;
-	if (masked_addr == 0x00fffff8) return 0;
-	if (masked_addr == 0x00fffffc) return 0;*/
 
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
@@ -429,7 +459,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f8010e8)	// control
 		return Ch6.CHCR;
-	
+
 	if (masked_addr >= 0x1FC00000 && masked_addr < 0x1FC00000 + 524288) {
 		memcpy(&bytes, &bios[masked_addr & 0x7ffff], sizeof(uint32_t));
 		return bytes;
@@ -455,7 +485,7 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f801044) { // JOY_STAT
 		pads.joy_baud -= rand() % 1024;
 		uint32_t data = pads.joy_stat | (pads.joy_baud << 11);
-		debug_warn("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, pc);
+		debug_warn("[PAD] Read 0x%x from JOY_STAT @ 0x%08x\n", data, *pc);
 		//return rand() & 0b111;
 		return data;
 	}
@@ -488,7 +518,7 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f801014) return 0; // SPU Delay/Size
 	if (masked_addr == 0x1f801018) return 0; // CDROM Delay/Size
 	if (masked_addr == 0x1f801020) return 0; // COM_DELAY / COMMON_DELAY
-	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, pc);
+	printf("\nUnhandled read 0x%.8x @ 0x%08x", masked_addr, *pc);
 	//printf("\n$v0 is 0x%x\n", regs[2]);
 	std::ofstream file("ram.bin", std::ios::binary);
 	file.write((const char*)ram, 0x200000);
@@ -497,7 +527,14 @@ uint32_t memory::read32(uint32_t addr) {
 }
 
 void memory::write(uint32_t addr, uint8_t data, bool log) {
-	uint32_t bytes;
+	const auto page = addr >> 16;
+	const auto pointer = writeTable[page];
+
+	if (pointer != 0) {// if the address is in the fast path
+		*(uint8_t*)(pointer + (addr & 0xffff)) = data;
+		return;
+	}
+
 	uint32_t masked_addr = mask_address(addr);
 
 	if (masked_addr == 0x1f8010f6) return;
@@ -566,7 +603,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		case 2: //printf("[CDROM] Write to Left-CD to Right-SPU Volume\n"); 
 			break;
 		case 3: //printf("[CDROM] Write to Audio Volume Apply Changes\n"); 
-			 break;
+			break;
 		default:
 			printf("Unhandled CDROM write 0x%x index %d", addr, CDROM.status & 0b11);
 			exit(0);
@@ -618,7 +655,14 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 }
 
 void memory::write32(uint32_t addr, uint32_t data) {
-	uint32_t bytes;
+	const auto page = addr >> 16;
+	const auto pointer = writeTable[page];
+
+	if (pointer != 0) {// if the address is in the fast path
+		*(uint32_t*)(pointer + (addr & 0xffff)) = data;
+		return;
+	}
+
 	uint32_t masked_addr = mask_address(addr);
 
 	if (masked_addr == 0x1f802084) {	// Openbios stuff
@@ -707,6 +751,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	if (masked_addr == 0x1f8010a8) {	// control
 		Ch2.CHCR = data;
+		*shouldCheckDMA = true;
 		return;
 	}
 
@@ -723,20 +768,22 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	if (masked_addr == 0x1f8010b8) {	// control
 		Ch3.CHCR = data;
+		*shouldCheckDMA = true;
 		return;
 	}
 
 	// channel 4
-	if (masked_addr == 0x1f8010c0) { 
+	if (masked_addr == 0x1f8010c0) {
 		Ch4.MADR = data;
-		return; 
+		return;
 	}
-	if (masked_addr == 0x1f8010c4) { 
+	if (masked_addr == 0x1f8010c4) {
 		Ch4.BCR = data;
-		return; 
+		return;
 	}
 	if (masked_addr == 0x1f8010c8) {
 		Ch4.CHCR = data;
+		*shouldCheckDMA = true;
 		return;
 	}
 	// channel 6
@@ -752,9 +799,10 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	if (masked_addr == 0x1f8010e8) {	// control
 		Ch6.CHCR = data;
+		*shouldCheckDMA = true;
 		return;
 	}
-	
+
 	if (masked_addr == 0x1f801100) {
 		//printf("[TIMER] Write timer 0 counter value\n");
 		tmr0.current_value = data;
@@ -840,6 +888,14 @@ void memory::write32(uint32_t addr, uint32_t data) {
 }
 
 void memory::write16(uint32_t addr, uint16_t data) {
+	const auto page = addr >> 16;
+	const auto pointer = writeTable[page];
+
+	if (pointer != 0) {// if the address is in the fast path
+		*(uint16_t*)(pointer + (addr & 0xffff)) = data;
+		return;
+	}
+
 	uint32_t masked_addr = mask_address(addr);
 
 	if (masked_addr == 0x1F801070) { // I_STAT
@@ -912,7 +968,7 @@ void memory::write16(uint32_t addr, uint16_t data) {
 		tmr1.target_value = data;
 		return;
 	}
-	
+
 	if (masked_addr == 0x1f801120) {
 		//printf("[TIMER] Write timer 2 current value\n");
 		tmr2.current_value = data;
@@ -991,6 +1047,21 @@ void memory::loadBios(std::string directory) {
 	bios = readBinary(directory);
 	adler32bios = adler32(bios.data(), 0x80000);
 	//printf("bios hash: 0x%x\n", adler32bios);
+
+	if (bios.size() != 512 * 1024) {
+		printf("Can't handle BIOSes that are not 512 KiB yet\n");
+		exit(-1);
+	}
+
+	// Map BIOS to page table as read-only
+	constexpr size_t pageSize = 64 * 1024;
+	for (size_t i = 0; i < 0x08; i++) {
+		const auto ptr = (uintptr_t)&bios[i * pageSize];
+
+		readTable[i + 0x1FC0] = ptr; // KUSEG
+		readTable[i + 0x9FC0] = ptr; // KSEG0
+		readTable[i + 0xBFC0] = ptr; // KSEG1
+	}
 }
 
 uint32_t memory::loadExec(std::string directory) {

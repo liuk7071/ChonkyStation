@@ -945,12 +945,9 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -991,12 +988,9 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -1079,12 +1073,9 @@ void gpu::texture_four_point_opaque_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -1125,12 +1116,9 @@ void gpu::texture_four_point_opaque_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -1213,12 +1201,9 @@ void gpu::texture_blending_four_point_polygon_semi_transparent() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -1259,12 +1244,9 @@ void gpu::texture_blending_four_point_polygon_semi_transparent() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -1347,12 +1329,9 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -1393,12 +1372,9 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -1477,12 +1453,9 @@ void gpu::shaded_texture_blending_three_point_opaque_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -1567,12 +1540,9 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -1613,12 +1583,9 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -1701,12 +1668,9 @@ void gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon()
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -1747,12 +1711,9 @@ void gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon()
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -2108,12 +2069,9 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -2154,12 +2112,9 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -2242,12 +2197,9 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -2288,12 +2240,9 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -2376,12 +2325,9 @@ void gpu::texture_rectangle_8x8_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -2422,12 +2368,9 @@ void gpu::texture_rectangle_8x8_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -2510,12 +2453,9 @@ void gpu::texture_blending_rectangle_16x16_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -2556,12 +2496,9 @@ void gpu::texture_blending_rectangle_16x16_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -2644,12 +2581,9 @@ void gpu::texture_rectangle_16x16_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -2690,12 +2624,9 @@ void gpu::texture_rectangle_16x16_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -2778,12 +2709,9 @@ void gpu::texture_rectangle_16x16_semi_transparent() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -2824,12 +2752,9 @@ void gpu::texture_rectangle_16x16_semi_transparent() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -2914,12 +2839,9 @@ void gpu::texture_rectangle_variable_size_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -2960,12 +2882,9 @@ void gpu::texture_rectangle_variable_size_opaque() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -3050,12 +2969,9 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -3096,12 +3012,9 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
@@ -3186,12 +3099,9 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
@@ -3232,12 +3142,9 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 	glViewport(0, 0, 1024, 512);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glActiveTexture(GL_TEXTURE0 + 0); // Texture unit 0
+
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glActiveTexture(GL_TEXTURE0 + 1); // Texture unit 1
-	glBindTexture(GL_TEXTURE_2D, VramTexture8);
-	glActiveTexture(GL_TEXTURE0 + 2); // Texture unit 2
-	glBindTexture(GL_TEXTURE_2D, VramTexture4);
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
 	glBindVertexArray(VAO);
 	// Position attribute
