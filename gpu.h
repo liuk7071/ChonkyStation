@@ -11,14 +11,17 @@
 class gpu
 {
 
-public:		// trongle stuff
-	unsigned int VBO = 0;
-	unsigned int VAO = 0;
-	GLuint FBO = 0; 
+public:
+	// VAO & VBO for untextured polygons
+	GLuint VAO = 0;
+	GLuint VBO = 0;
+	// VAO & VBO for textured polygons
+	GLuint TextureVAO;
+	GLuint TextureVBO;
+
+	GLuint FBO = 0;
 	GLuint VramTexture = 0;
 	GLuint SampleVramTexture = 0;
-	GLuint VramTexture8 = 0;
-	GLuint VramTexture4 = 0;
 	void SyncVRAM();
 	GLint oldFBO = 0;
 	unsigned int id = 0;
@@ -32,7 +35,6 @@ public:		// trongle stuff
 		layout (location = 4) in vec2 texture_uv;
 		layout (location = 5) in uint texture_enable;
 		out vec4 frag_colour;
-
 		void main() {
 			//pos += vec3(0.5, 0.5, 0.0);
 			gl_Position = vec4(float(pos.x + 0.5) / 512 - 1, -(1 - float(pos.y + 0.5) / 256), 0.0, 1.0);
@@ -43,9 +45,7 @@ public:		// trongle stuff
 		R"(
 		#version 330 core
 		in vec4 frag_colour;
-
 		out vec4 final_colour;
-
 		void main() {
 			final_colour = frag_colour;
 		} 
@@ -58,13 +58,11 @@ public:		// trongle stuff
 		layout (location = 2) in vec2 aTexCoord;
 		layout (location = 3) in vec2 aTexpageCoords;
 		layout (location = 4) in vec2 aClut;
-
 		out vec3 ourColor;
 		out vec2 TexCoord;
 		flat out vec2 texpageCoords;
 		flat out vec2 clut;
 		uniform int colourDepth;
-
 		void main()
 		{
 			gl_Position = vec4(float(aPos.x) / 512 - 1, -(1 - float(aPos.y) / 256), 0.0, 1.0);
@@ -78,7 +76,6 @@ public:		// trongle stuff
 		R"(
 		#version 430 core
 		out vec4 FragColor;
-
 		in vec3 ourColor;
 		in vec2 TexCoord;
 		flat in vec2 texpageCoords;
@@ -88,15 +85,11 @@ public:		// trongle stuff
 			int Clut[128];
 		};
 		uniform sampler2D vram;
-		uniform sampler2D vram8;
-		uniform sampler2D vram4;
 		uniform int colourDepth;
 		uniform ivec4 texWindow;
-
 		int floatToU5(float f) {
 			return int(floor(f * 31.0 + 0.5));
 		}
-
 		int sample16(ivec2 coords) {
 			vec4 colour = texelFetch(vram, coords, 0);
 			int r = floatToU5(colour.r);
@@ -105,23 +98,19 @@ public:		// trongle stuff
 			int msb = int(ceil(colour.a)) << 15;
 			return r | (g << 5) | (b << 10) | msb;
 		}
-
 		vec4 fetchTexel4Bit(ivec2 coords) {
 			int texel = sample16(ivec2(coords.x / 4, coords.y) + ivec2(texpageCoords));
 			int idx = (texel >> ((coords.x % 4) * 4)) & 0xf;
 			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
 		}
-
 		vec4 fetchTexel8Bit(ivec2 coords) {
 			int texel = sample16(ivec2(coords.x / 2, coords.y) + ivec2(texpageCoords));
 			int idx = (texel >> ((coords.x % 2) * 8)) & 0xff;
 			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
 		}
-
 		void main()
 		{
 			ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
-
 			vec4 colour;
 			if(colourDepth == 0) {
 				colour = fetchTexel4Bit(UV);
@@ -143,7 +132,7 @@ public:		// trongle stuff
 	unsigned int ShaderProgram = 0;
 	unsigned int TextureShaderProgram = 0;
 	unsigned int colourDepthUniform = 0;
-	
+
 	struct point {		// vertex struct
 		int16_t x = 0, y = 0;	// coordinates
 		uint32_t c = 0;		// BGR colour 
@@ -170,7 +159,6 @@ public:
 
 	int xpos = 0;
 	int ypos = 0;	// Used to keep track of memory transfers
-	uint32_t* pixels;
 	uint32_t fifo[12] = {};
 	int cmd_length = 0;
 	int cmd_left = 0;
@@ -186,7 +174,7 @@ public:
 
 	int32_t xoffset = 0;
 	int32_t yoffset = 0;
-	
+
 	struct {
 		struct {
 			uint16_t x;
@@ -266,7 +254,6 @@ public:	// commands
 public:
 	bool debug = true;
 	void debug_printf(const char* fmt, ...);
-	
-	
-};
 
+
+};
