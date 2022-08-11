@@ -131,7 +131,7 @@ void pad::WriteTXDATA(uint8_t data) {
 	case 0x4d: read_response = false; break;
 	case 0xff: break;
 	default:
-		printf("[PAD] Received unhandled command 0x%x\n", data);
+		printf("[PAD %d] Received unhandled command 0x%x\n", ((joy_ctrl & 0x2002) == 2) ? 1 : 2, data);
 		//exit(0);
 	}
 }

@@ -10,6 +10,7 @@
 
 #define log_cpu
 #define log_kernel_tty
+#undef log_cpu
 
 class cpu
 {
@@ -18,7 +19,6 @@ public:
 	void reset();
 	~cpu();
 	Log log;
-	void debug_log(const char* fmt, ...);
 	void debug_warn(const char* fmt, ...);
 	void debug_err(const char* fmt, ...);
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);

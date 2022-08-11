@@ -4,6 +4,14 @@
 #endif TEST_GTE
 #include <iostream>
 
+#ifdef log_cpu
+#define debug_log(fmt, ...) if (debug) { \
+printf((fmt), __VA_ARGS__); \
+}
+#else
+#define debug_log
+#endif
+
 cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_ci) : rom_directory(rom_directory) {
 	if (!running_in_ci) // Do not load a BIOS if we're in CI
 		bus.mem.loadBios(bios_directory);
@@ -73,16 +81,6 @@ void cpu::sideloadExecutable(std::string directory) {
 	if (regs[29] == 0) regs[29] = 0x801fff00;
 }
 
-inline void cpu::debug_log(const char* fmt, ...) {
-#ifdef log_cpu
-	if (debug) {
-		std::va_list args;
-		va_start(args, fmt);
-		std::vprintf(fmt, args);
-		va_end(args);
-	}
-#endif
-}
 inline void cpu::debug_warn(const char* fmt, ...) {
 	SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_GREEN);
 	std::va_list args;
@@ -426,11 +424,41 @@ void cpu::do_dma() {
 
 
 void cpu::check_dma() {
-	bool enabled = ((bus.mem.Ch2.CHCR >> 24) & 1) == 1;
-	bool trigger = ((bus.mem.Ch2.CHCR >> 28) & 1) == 1;
-	auto sync_mode = (bus.mem.Ch2.CHCR >> 9) & 0b11;
+	bool enabled = ((bus.mem.Ch0.CHCR >> 24) & 1) == 1;
+	bool trigger = ((bus.mem.Ch0.CHCR >> 28) & 1) == 1;
+	auto sync_mode = (bus.mem.Ch0.CHCR >> 9) & 0b11;
 
 	auto triggered = !(sync_mode == 0 && !trigger);
+	if (enabled && triggered) {
+		// Don't have a MDEC, fake a DMA IRQ
+		bus.mem.Ch0.CHCR &= ~(1 << 24);
+		bus.mem.Ch0.CHCR &= ~(1 << 28);
+		if (((bus.mem.DICR >> 16) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+			bus.mem.DICR |= (1 << 24);
+			bus.mem.I_STAT |= 0b1000;
+		}
+	}
+
+	enabled = ((bus.mem.Ch1.CHCR >> 24) & 1) == 1;
+	trigger = ((bus.mem.Ch1.CHCR >> 28) & 1) == 1;
+	sync_mode = (bus.mem.Ch1.CHCR >> 9) & 0b11;
+
+	triggered = !(sync_mode == 0 && !trigger);
+	if (enabled && triggered) {
+		// Don't have a MDEC, fake a DMA IRQ
+		bus.mem.Ch0.CHCR &= ~(1 << 24);
+		bus.mem.Ch0.CHCR &= ~(1 << 28);
+		if (((bus.mem.DICR >> 17) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+			bus.mem.DICR |= (1 << 25);
+			bus.mem.I_STAT |= 0b1000;
+		}
+	}
+
+	enabled = ((bus.mem.Ch2.CHCR >> 24) & 1) == 1;
+	trigger = ((bus.mem.Ch2.CHCR >> 28) & 1) == 1;
+	sync_mode = (bus.mem.Ch2.CHCR >> 9) & 0b11;
+
+	triggered = !(sync_mode == 0 && !trigger);
 	if (enabled && triggered) { do_dma<2>(); return; }
 
 	enabled = ((bus.mem.Ch3.CHCR >> 24) & 1) == 1;
@@ -1094,23 +1122,12 @@ void cpu::execute(uint32_t instr) {
 		bus.mem.write32(addr, GTE.readCop2d(rt));
 		break;
 	}
-	case 0x2f: break;
 	default:
 		debug_err("\nUnimplemented instruction: 0x%x @ 0x%08x", primary, pc);
 		exit(0);
 	}
 	pc += 4;
 }
-
-// Clean up our mess
-#undef shift_imm
-#undef rd
-#undef rt
-#undef rs
-#undef imm
-#undef sign_extended_imm
-#undef signed_rs
-#undef jump_imm
 
 void cpu::check_CDROM_IRQ() {
 	//bus.mem.CDROM.delayedINT();
@@ -1146,7 +1163,7 @@ void cpu::step() {
 	}
 	const auto instr = bus.mem.read32(pc);;
 #ifdef log_cpu
-	//debug_log("0x%.8X | 0x%.8X: ", pc, instr);
+	debug_log("0x%.8X | 0x%.8X: ", pc, instr);
 #endif
 	execute(instr);
 	frame_cycles += 2;
@@ -1171,19 +1188,27 @@ void cpu::step() {
 	}
 	if (reset_counter && (bus.mem.tmr1.current_value >= bus.mem.tmr1.target_value)) bus.mem.tmr1.current_value = 0;
 
+	clock_source = (bus.mem.tmr2.counter_mode >> 8) & 3;
 	reset_counter = (bus.mem.tmr2.counter_mode >> 3) & 1;
 	irq_when_target = (bus.mem.tmr2.counter_mode >> 4) & 1;
 	if (irq_when_target && (bus.mem.tmr2.current_value >= bus.mem.tmr2.target_value)) {
 		bus.mem.I_STAT |= 0b1000000;
 	}
 	if (reset_counter && (bus.mem.tmr2.current_value >= bus.mem.tmr2.target_value)) bus.mem.tmr2.current_value = 0;
-	bus.mem.tmr2.current_value++;
+	if ((clock_source == 2) || (clock_source == 3)) {
+		bus.mem.tmr2_stub += 2;
+		if (bus.mem.tmr2_stub > 8) {
+			bus.mem.tmr2.current_value++;
+			bus.mem.tmr2_stub = 0;
+		}
+	}
+	else bus.mem.tmr2.current_value++;
 	bus.mem.CDROM.Scheduler.tick(2);
 	if (bus.mem.CDROM.interrupt_enable & bus.mem.CDROM.interrupt_flag)
 		bus.mem.I_STAT |= (1 << 2);
 	if (bus.mem.pads.irq) {
 		//printf("[PAD] ACK\n");
-		bus.mem.CDROM.Scheduler.push(&IRQ7, bus.mem.CDROM.Scheduler.time + 1500, this);
+		bus.mem.CDROM.Scheduler.push(&IRQ7, bus.mem.CDROM.Scheduler.time + 1500, this, "IRQ7");
 		bus.mem.pads.irq = false;
 		bus.mem.pads.joy_stat &= ~(1 << 7);
 		bus.mem.pads.joy_stat |= (1 << 9);

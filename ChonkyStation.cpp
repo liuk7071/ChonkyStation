@@ -824,20 +824,10 @@ int main(int argc, char** argv) {
     double prevTime = glfwGetTime();
     int frameCount = 0;
 
-    Cpu.GTE.cop2d.raw[0] = 0x12346969;
-    printf("0x%x\n", Cpu.GTE.cop2d.regs.vx0);
-    printf("0x%x\n", Cpu.GTE.cop2d.regs.vy0);
-
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
             if(run) Cpu.bus.mem.I_STAT |= 1;
-            if (tmr1irq) {
-                printf("[TIMERS] TMR2 IRQ\n");
-                //tmr1irq = false;
-                //Cpu.bus.mem.I_STAT |= 0b100000;
-                Cpu.bus.mem.I_STAT |= 0b1000000;
-                Cpu.bus.mem.tmr1_stub = 0;
-            }
+
             if (spuirq) {
                 //printf("[SPU] IRQ\n");
                 Cpu.bus.mem.I_STAT |= (1 << 9);
@@ -847,14 +837,7 @@ int main(int argc, char** argv) {
                //printf("[PAD] IRQ\n");
                 Cpu.bus.mem.I_STAT |= (1 << 7);
             }
-            Cpu.bus.mem.I_STAT |= 0b100000;
-            //Cpu.bus.mem.I_STAT |= 0b1000000;
-            if (Cpu.should_service_dma_irq) {
-                //printf("[DMA] IRQ\n");
-                //Cpu.bus.mem.I_STAT |= 0b1000;
-                //Cpu.should_service_dma_irq = false;
-            }
-            //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            //Cpu.bus.mem.I_STAT |= 0b100000;
             if (pad1_source == "Gamepad") {
                 GLFWgamepadstate state;
                 P1buttons = 0xffff;

@@ -72,7 +72,7 @@ public:
 		uint32_t CHCR;
 	};
 
-	DMA Ch2, Ch3, Ch4, Ch6;
+	DMA Ch0, Ch1, Ch2, Ch3, Ch4, Ch6;
 
 	typedef struct Timer {
 		uint16_t current_value;

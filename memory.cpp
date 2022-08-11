@@ -139,7 +139,7 @@ uint8_t memory::read(uint32_t addr) {
 	}
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
-		//printf("[CDROM] Status register read\n");
+		printf("[CDROM] Status register read\n");
 		//return rand() % 0xff;
 		return CDROM.status | (CDROM.cd.drqsts << 6);
 	}
@@ -401,33 +401,33 @@ uint32_t memory::read32(uint32_t addr) {
 
 	// channel 0 (stubbed)
 	if (masked_addr == 0x1f801080) {	// base address
-		//printf("[DMA] Read DMA0 (ram -> mdec) base address (stubbed)\n");
-		return 0;
+		printf("[DMA] Read DMA0 (ram -> mdec) base address (stubbed)\n");
+		return Ch0.MADR;
 	}
 
 	if (masked_addr == 0x1f801084) { // block control
-		//printf("[DMA] Read DMA0 (ram -> mdec) block control (stubbed)\n");
-		return 0;
+		printf("[DMA] Read DMA0 (ram -> mdec) block control (stubbed)\n");
+		return Ch0.BCR;
 	}
 
 	if (masked_addr == 0x1f801088) {	// control
-		//printf("[DMA] Read DMA0 (ram -> mdec) control (stubbed)\n");
-		return 0;
+		printf("[DMA] Read DMA0 (ram -> mdec) control (stubbed)\n");
+		return Ch0.CHCR;
 	}
 	// channel 1 (stubbed)
 	if (masked_addr == 0x1f801090) {	// base address
-		//printf("[DMA] Read DMA1 (mdec -> ram) base address (stubbed)\n");
-		return 0;
+		printf("[DMA] Read DMA1 (mdec -> ram) base address (stubbed)\n");
+		return Ch1.MADR;
 	}
 
 	if (masked_addr == 0x1f801094) { // block control
-		//printf("[DMA] Read DMA1 (mdec -> ram) block control (stubbed)\n");
-		return 0;
+		printf("[DMA] Read DMA1 (mdec -> ram) block control (stubbed)\n");
+		return Ch1.BCR;
 	}
 
 	if (masked_addr == 0x1f801098) {	// control
-		//printf("[DMA] Read DMA1 (mdec -> ram) control (stubbed)\n");
-		return 0;
+		printf("[DMA] Read DMA1 (mdec -> ram) control (stubbed)\n");
+		return Ch1.CHCR;
 	}
 
 	// channel 2
@@ -498,12 +498,12 @@ uint32_t memory::read32(uint32_t addr) {
 
 	// MDEC
 	if (masked_addr == 0x1f801820) {
-		//printf("[MDEC] Read MDEC Data/Response Register (stubbed)\n");
+		printf("[MDEC] Read MDEC Data/Response Register (stubbed)\n");
 		return 0;
 	}
 	if (masked_addr == 0x1f801824) {
-		//printf("[MDEC] Read MDEC1 - MDEC Status Register (stubbed)\n");
-		return 0;
+		printf("[MDEC] Read MDEC1 - MDEC Status Register (stubbed)\n");
+		return 0 | (1 << 28) | (1 << 27);
 	}
 
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
@@ -708,33 +708,41 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	// channel 0 (stubbed)
 	if (masked_addr == 0x1f801080) {	// base address
-		//printf("[DMA] Write to DMA0 (ram -> mdec) base address (stubbed)\n");
+		printf("[DMA] Write to DMA0 (ram -> mdec) base address (stubbed)\n");
+		Ch0.MADR = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801084) { // block control
-		//printf("[DMA] Write to DMA0 (ram -> mdec) block control (stubbed)\n");
+		printf("[DMA] Write to DMA0 (ram -> mdec) block control (stubbed)\n");
+		Ch0.BCR = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801088) {	// control
-		//printf("[DMA] Write to DMA0 (ram -> mdec) control (stubbed)\n");
+		printf("[DMA] Write to DMA0 (ram -> mdec) control (stubbed)\n");
+		Ch0.CHCR = data;
+		*shouldCheckDMA = true;
 		return;
 	}
 
 	// channel 1 (stubbed)
 	if (masked_addr == 0x1f801090) {	// base address
-		//printf("[DMA] Write to DMA1 (mdec -> ram) base address (stubbed)\n");
+		printf("[DMA] Write to DMA1 (mdec -> ram) base address (stubbed)\n");
+		Ch1.MADR = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801094) { // block control
-		//printf("[DMA] Write to DMA1 (mdec -> ram) block control (stubbed)\n");
+		printf("[DMA] Write to DMA1 (mdec -> ram) block control (stubbed)\n");
+		Ch1.BCR = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801098) {	// control
-		//printf("[DMA] Write to DMA1 (mdec -> ram) control (stubbed)\n");
+		printf("[DMA] Write to DMA1 (mdec -> ram) control (stubbed)\n");
+		Ch1.CHCR = data;
+		*shouldCheckDMA = true;
 		return;
 	}
 
@@ -856,11 +864,11 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	// MDEC
 	if (masked_addr == 0x1f801820) { // MDEC0 - MDEC Command/Parameter Register
-		//printf("[MDEC] Write MDEC0 - MDEC Command/Parameter Register (0x%x) (stubbed)\n", data);
+		printf("[MDEC] Write MDEC0 - MDEC Command/Parameter Register (0x%x) (stubbed)\n", data);
 		return;
 	}
 	if (masked_addr == 0x1f801824) { // MDEC1 - MDEC Control/Reset Register
-		//printf("[MDEC] Write MDEC1 - MDEC Control/Reset Register (stubbed)\n");
+		printf("[MDEC] Write MDEC1 - MDEC Control/Reset Register (stubbed)\n");
 		return;
 	}
 

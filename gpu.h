@@ -80,10 +80,7 @@ public:
 		in vec2 TexCoord;
 		flat in vec2 texpageCoords;
 		flat in vec2 clut;
-		layout(std430, binding = 10) buffer clutData
-		{
-			int Clut[128];
-		};
+
 		uniform sampler2D vram;
 		uniform int colourDepth;
 		uniform ivec4 texWindow;
