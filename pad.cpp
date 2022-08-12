@@ -43,8 +43,13 @@ void pad::WriteTXDATA(uint8_t data) {
 		mem_receive_addrmsb = false;
 		bytes_read = 0;
 		joy_stat |= 0b010;
-		joy_stat |= (1 << 7);
-		irq = true;
+		//joy_stat |= (1 << 7);
+		if ((joy_ctrl & 0x2002) == 2) {
+			if (pad1_connected) irq = true;
+		}
+		else if ((joy_ctrl & 0x2002) == 0x2002) {
+			if (pad2_connected) irq = true;
+		}
 		rx_data_fifo[0] = 0xff;
 		rx_data_fifo[1] = 0xff;
 		read_response = true;
@@ -69,8 +74,14 @@ void pad::WriteTXDATA(uint8_t data) {
 		irq = true;
 		read_response = true;
 		break;
-	case 0x42:
-	case 0x43: {
+	case 0x43: { // Return 0xff and do not ack because we are emulating a digital pad for now
+		joy_stat |= 2;
+		read_response = true;
+		bytes_read = 0;
+		rx_data_fifo[0] = 0xff;
+		break;
+	}
+	case 0x42: {
 		bytes_read = 0;
 		joy_stat |= 0b010;
 		irq = true;
@@ -128,6 +139,13 @@ void pad::WriteTXDATA(uint8_t data) {
 	}
 	case 0x03: break;
 	case 0x44: read_response = false; break;
+	case 0x45: { // Return 0xff and do not ack because we are emulating a digital pad for now
+		joy_stat |= 2;
+		read_response = true;
+		bytes_read = 0;
+		rx_data_fifo[0] = 0xff;
+		break;
+	}
 	case 0x4d: read_response = false; break;
 	case 0xff: break;
 	default:

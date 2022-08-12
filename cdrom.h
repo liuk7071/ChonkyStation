@@ -70,6 +70,7 @@ public:
 	void SetFilter();
 	void Setmode();
 	void GetLocL();
+	void GetLocP();
 
 	// setmode
 	bool DoubleSpeed = false;

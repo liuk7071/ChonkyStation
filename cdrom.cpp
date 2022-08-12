@@ -44,6 +44,7 @@ void cdrom::execute(uint8_t command) {
 	case 0x0D: SetFilter(); break;
 	case 0x0E: Setmode(); break;
 	case 0x10: GetLocL(); break;
+	case 0x11: GetLocP(); break;
 	case 0x13: GetTN(); break;
 	case 0x14: GetTD(); break;
 	case 0x15: SeekL(); break;
@@ -98,7 +99,9 @@ void cdrom::INT1(void* dataptr) {
 	cdrom* cdromptr = (cdrom*)(dataptr);
 	if (cdromptr->reading) {
 		cdromptr->cd.read(cdromptr->seekloc++);
-		if (!cdromptr->xa_adpcm) {
+
+		bool data_sector = (cdromptr->cd.SectorBuffer[0x12] & 8);
+		if (!cdromptr->xa_adpcm || data_sector) {
 			printf("[IRQ] INT1 dispatched\n");
 			cdromptr->interrupt_flag &= ~0b111;
 			cdromptr->interrupt_flag |= 0b001;
@@ -241,6 +244,12 @@ void cdrom::GetLocL() {
 	response_fifo[5] = cd.SectorBuffer[0x10 + 1];
 	response_fifo[6] = cd.SectorBuffer[0x10 + 2];
 	response_fifo[7] = cd.SectorBuffer[0x10 + 3];
+	response_length = 8;
+	status |= 0b00100000;
+	Scheduler.push(&INT3, Scheduler.time + 15000, this);
+}
+void cdrom::GetLocP() {
+	debug_log("[CDROM] GetLocP (stubbed)\n");
 	response_length = 8;
 	status |= 0b00100000;
 	Scheduler.push(&INT3, Scheduler.time + 15000, this);

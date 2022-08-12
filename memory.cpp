@@ -141,7 +141,7 @@ uint8_t memory::read(uint32_t addr) {
 	if (masked_addr == 0x1f801800) {	// cdrom status
 		printf("[CDROM] Status register read\n");
 		//return rand() % 0xff;
-		return CDROM.status | (CDROM.cd.drqsts << 6);
+		return CDROM.status | (CDROM.cd.drqsts << 6) | ((CDROM.xa_adpcm ? 1 : 0) << 2);
 	}
 
 	if (masked_addr == 0x1f801801) {
@@ -923,8 +923,9 @@ void memory::write16(uint32_t addr, uint16_t data) {
 
 	// controller
 	if (masked_addr == 0x1f80104a) {
-		debug_warn("[PAD] Write 0x%x to JOY_CTRL\n", data);
-		pads.joy_ctrl = data;
+		//printf("[PAD] Write 0x%x to JOY_CTRL\n", data);
+		pads.joy_ctrl = data & 0xffaf;
+		if (data & 0x10) pads.joy_stat &= ~0x208; // Clear bits 3 and 9
 		return;
 	}
 	if (masked_addr == 0x1f801048) {

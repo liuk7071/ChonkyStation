@@ -446,8 +446,8 @@ void cpu::check_dma() {
 	triggered = !(sync_mode == 0 && !trigger);
 	if (enabled && triggered) {
 		// Don't have a MDEC, fake a DMA IRQ
-		bus.mem.Ch0.CHCR &= ~(1 << 24);
-		bus.mem.Ch0.CHCR &= ~(1 << 28);
+		bus.mem.Ch1.CHCR &= ~(1 << 24);
+		bus.mem.Ch1.CHCR &= ~(1 << 28);
 		if (((bus.mem.DICR >> 17) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 			bus.mem.DICR |= (1 << 25);
 			bus.mem.I_STAT |= 0b1000;
@@ -1143,6 +1143,8 @@ void IRQ7(void* dataptr) {
 	cpu* cpuptr = (cpu*)dataptr;
 	if (!cpuptr->bus.mem.pads.abort_irq) {
 		cpuptr->bus.mem.I_STAT |= (1 << 7);
+		cpuptr->bus.mem.pads.joy_stat |= (1 << 9);
+		cpuptr->bus.mem.pads.joy_stat &= ~(1 << 7);
 		//printf("[IRQ] IRQ7\n");
 	}
 	else cpuptr->bus.mem.pads.abort_irq = false;
@@ -1161,7 +1163,7 @@ void cpu::step() {
 			exception(exceptions::INT);
 		}
 	}
-	const auto instr = bus.mem.read32(pc);;
+	const auto instr = bus.mem.read32(pc);
 #ifdef log_cpu
 	debug_log("0x%.8X | 0x%.8X: ", pc, instr);
 #endif
@@ -1210,7 +1212,7 @@ void cpu::step() {
 		//printf("[PAD] ACK\n");
 		bus.mem.CDROM.Scheduler.push(&IRQ7, bus.mem.CDROM.Scheduler.time + 1500, this, "IRQ7");
 		bus.mem.pads.irq = false;
-		bus.mem.pads.joy_stat &= ~(1 << 7);
-		bus.mem.pads.joy_stat |= (1 << 9);
+		//bus.mem.pads.joy_stat |= (1 << 7);
+		//bus.mem.pads.joy_stat |= (1 << 9);
 	}
 }

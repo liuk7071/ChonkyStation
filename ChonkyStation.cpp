@@ -177,6 +177,30 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     }
 
     // pad2
+    if (key == GLFW_KEY_KP_0 && action == GLFW_PRESS) {
+        P2buttons &= ~(0b0100000000000000);
+    }
+    if (key == GLFW_KEY_KP_0 && action == GLFW_RELEASE) {
+        P2buttons |= 0b0100000000000000;
+    }
+    if (key == GLFW_KEY_KP_4 && action == GLFW_PRESS) {
+        P2buttons &= ~(0b1000000000000000);
+    }
+    if (key == GLFW_KEY_KP_4 && action == GLFW_RELEASE) {
+        P2buttons |= 0b1000000000000000;
+    }
+    if (key == GLFW_KEY_KP_6 && action == GLFW_PRESS) {
+        P2buttons &= ~(0b0010000000000000);
+    }
+    if (key == GLFW_KEY_KP_6 && action == GLFW_RELEASE) {
+        P2buttons |= 0b0010000000000000;
+    }
+    if (key == GLFW_KEY_KP_8 && action == GLFW_PRESS) {
+        P2buttons &= ~(0b0001000000000000);
+    }
+    if (key == GLFW_KEY_KP_8 && action == GLFW_RELEASE) {
+        P2buttons |= 0b0001000000000000;
+    }
     if (key == GLFW_KEY_KP_5 && action == GLFW_PRESS) {
         P2buttons &= ~(0b0000000000010000);
     }
@@ -854,16 +878,16 @@ int main(int argc, char** argv) {
                     if (state.buttons[GLFW_GAMEPAD_BUTTON_Y] == GLFW_PRESS) {
                         P1buttons &= ~(0b0001000000000000);
                     }
-                    if (state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] == GLFW_PRESS) {
+                    if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] < -0.5f)) {
                         P1buttons &= ~(0b0000000000010000);
                     }
-                    if (state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] == GLFW_PRESS) {
+                    if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] > 0.5f)) {
                         P1buttons &= ~(0b0000000000100000);
                     }
-                    if (state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] == GLFW_PRESS) {
+                    if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] > 0.5f)) {
                         P1buttons &= ~(0b0000000001000000);
                     }
-                    if (state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] == GLFW_PRESS) {
+                    if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] < -0.5f)) {
                         P1buttons &= ~(0b0000000010000000);
                     }
                     if (state.buttons[GLFW_GAMEPAD_BUTTON_GUIDE] == GLFW_PRESS) {
