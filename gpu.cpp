@@ -320,8 +320,10 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 7;
 			break;
 		}
+		case 0x58:
+		case 0x42:
 		case 0x48: { // Monochrome Poly-line, opaque
-			abort();
+			//abort();
 			fifo[0] = command;
 			cmd_length++;
 			cmd_left = 1;
@@ -574,7 +576,7 @@ void gpu::execute_gp0(uint32_t command) {
 		}
 		case 2: {	// polyline mode
 			if (command == 0x50005000 || command == 0x55555555) {
-				monochrome_polyline_opaque();
+				//monochrome_polyline_opaque();
 				cmd_length = 0;
 				gp0_mode = 0;
 				cmd_left = 0;

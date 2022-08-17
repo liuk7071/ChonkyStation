@@ -100,8 +100,8 @@ void cdrom::INT1(void* dataptr) {
 	if (cdromptr->reading) {
 		cdromptr->cd.read(cdromptr->seekloc++);
 
-		bool data_sector = (cdromptr->cd.SectorBuffer[0x12] & 8);
-		if (!cdromptr->xa_adpcm || data_sector) {
+		bool audio_sector = (cdromptr->cd.SectorBuffer[0x12] & 4);
+		if (!cdromptr->xa_adpcm || !audio_sector) {
 			printf("[IRQ] INT1 dispatched\n");
 			cdromptr->interrupt_flag &= ~0b111;
 			cdromptr->interrupt_flag |= 0b001;

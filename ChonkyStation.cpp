@@ -76,7 +76,6 @@ const char* FilterPatternsBin[1] = { "*.bin" };
 const char* FilterPatternsExe[1] = { "*.exe" };
 
 unsigned int vram_viewer;
-bool test = false;
 bool tmr1irq = false;
 bool spuirq = false;
 bool padirq = false;
@@ -677,9 +676,6 @@ void ImGuiFrame(cpu *Cpu) {
                 std::ofstream file("ram.bin", std::ios::binary);
                 file.write((const char*)Cpu->bus.mem.ram, 0x200000);
             }
-            if (ImGui::MenuItem("test")) {
-                test = !test;
-            }
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
@@ -997,7 +993,6 @@ int main(int argc, char** argv) {
             //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         }
         else {
-            if (test) printf("%x\n", Cpu.pc);
             Cpu.step();
         }   
     }

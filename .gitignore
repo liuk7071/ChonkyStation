@@ -11,6 +11,8 @@
 *.bin.nam
 *.bin.til
 
+imgui.ini
+
 # User-specific files
 *.rsuser
 *.suo
