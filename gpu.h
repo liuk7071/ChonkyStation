@@ -144,6 +144,7 @@ public:
 	gpu();
 	void InitGL();
 	void ClearScreen();
+	void SetOpenGLState();
 	uint16_t* vram = new uint16_t[1024 * 512];
 	//std::vector<uint32_t> WriteBuffer;
 	uint32_t* WriteBuffer = new uint32_t[(1024 * 512)];

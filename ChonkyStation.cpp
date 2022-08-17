@@ -971,6 +971,8 @@ int main(int argc, char** argv) {
             ImGui::Render();
             int display_w = 0, display_h = 0;
             glfwGetFramebufferSize(window, &display_w, &display_h);
+            glBindFramebuffer(GL_FRAMEBUFFER, Cpu.bus.Gpu.oldFBO);
+            glDisable(GL_SCISSOR_TEST);
             glViewport(0, 0, display_w, display_h);
             glClearColor(0, 0, 0, 0);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -991,6 +993,8 @@ int main(int argc, char** argv) {
             }
             //Cpu.bus.Gpu.ClearScreen();
             //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            
+            Cpu.bus.Gpu.SetOpenGLState();
         }
         else {
             Cpu.step();
