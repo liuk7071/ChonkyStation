@@ -513,10 +513,15 @@ void gpu::execute_gp0(uint32_t command) {
 			break;
 		}
 		case 0xE5: {	// Set Drawing Area Offset
-			// unimplemented
-			//printf("x offset: %d y offset: %d\n", (command & 0b1111111111), (command >> 11) & 0b1111111111);
 			xoffset = (command & 0b1111111111);
 			yoffset = ((command >> 11) & 0b1111111111);
+			int offsetUniformLocation = glGetUniformLocation(ShaderProgram, "offset");
+			glUseProgram(ShaderProgram);
+			glUniform3f(offsetUniformLocation, xoffset, yoffset, 0);
+			offsetUniformLocation = glGetUniformLocation(TextureShaderProgram, "offset");
+			glUseProgram(TextureShaderProgram);
+			glUniform3f(offsetUniformLocation, xoffset, yoffset, 0);
+			if (!DrawingTextured) glUseProgram(ShaderProgram);
 			debug_printf("[GP0] Set Drawing Area Offset\n");
 			break;
 		}
@@ -545,7 +550,7 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x20: SwitchToUntextured(); gpu::draw_untextured_tri(MONOCHROME, SOLID); break;
 				case 0x23:
 				case 0x22: SwitchToUntextured(); gpu::draw_untextured_tri(MONOCHROME, SEMI_TRANSPARENT); break;
-				case 0x24: SwitchToTextured(); gpu::texture_blending_three_point_opaque_polygon();
+				case 0x24: SwitchToTextured(); gpu::texture_blending_three_point_opaque_polygon(); break;
 				case 0x29:
 				case 0x28: SwitchToUntextured(); gpu::draw_untextured_quad(MONOCHROME, SOLID); break;
 				case 0x2B:
@@ -717,12 +722,7 @@ void gpu::draw_untextured_tri(int shading, int transparency) {
 		v3.x = fifo[3] & 0xffff;
 		v3.y = fifo[3] >> 16;
 
-		v1.x += xoffset;
-		v1.y += yoffset;
-		v2.x += xoffset;
-		v2.y += yoffset;
-		v3.x += xoffset;
-		v3.y += yoffset;
+
 
 		uint32_t Vertices1[]{
 			v1.x, v1.y, 0.0,
@@ -749,12 +749,7 @@ void gpu::draw_untextured_tri(int shading, int transparency) {
 		v3.x = fifo[5] & 0xffff;
 		v3.y = fifo[5] >> 16;
 
-		v1.x += xoffset;
-		v1.y += yoffset;
-		v2.x += xoffset;
-		v2.y += yoffset;
-		v3.x += xoffset;
-		v3.y += yoffset;
+
 
 		uint32_t Vertices[]{
 			v1.x, v1.y, 0.0,
@@ -784,14 +779,7 @@ void gpu::draw_untextured_quad(int shading, int transparency) {
 		v4.x = fifo[4] & 0xffff;
 		v4.y = fifo[4] >> 16;
 
-		v1.x += xoffset;
-		v1.y += yoffset;
-		v2.x += xoffset;
-		v2.y += yoffset;
-		v3.x += xoffset;
-		v3.y += yoffset;
-		v4.x += xoffset;
-		v4.y += yoffset;
+
 
 		uint32_t Vertices1[]{
 			v1.x, v1.y, 0,
@@ -834,14 +822,7 @@ void gpu::draw_untextured_quad(int shading, int transparency) {
 		v4.x = fifo[7] & 0xffff;
 		v4.y = fifo[7] >> 16;
 
-		v1.x += xoffset;
-		v1.y += yoffset;
-		v2.x += xoffset;
-		v2.y += yoffset;
-		v3.x += xoffset;
-		v3.y += yoffset;
-		v4.x += xoffset;
-		v4.y += yoffset;
+
 
 		uint32_t Vertices1[]{
 			v1.x, v1.y, 0.0,
@@ -895,15 +876,6 @@ void gpu::texture_blending_three_point_opaque_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -955,15 +927,6 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -1027,15 +990,6 @@ void gpu::texture_four_point_opaque_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -1096,15 +1050,6 @@ void gpu::texture_blending_four_point_polygon_semi_transparent() {
 	v3.y = fifo[5] >> 16;
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -1167,15 +1112,6 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 	v4.x = fifo[7] & 0xffff;
 	v4.y = fifo[7] >> 16;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -1235,13 +1171,6 @@ void gpu::shaded_texture_blending_three_point_opaque_polygon() {
 	v3.x = fifo[7] & 0xffff;
 	v3.y = fifo[7] >> 16;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -1291,15 +1220,6 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 	v3.y = fifo[7] >> 16;
 	v4.x = fifo[10] & 0xffff;
 	v4.y = fifo[10] >> 16;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -1361,15 +1281,6 @@ void gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon()
 	v3.y = fifo[7] >> 16;
 	v4.x = fifo[10] & 0xffff;
 	v4.y = fifo[10] >> 16;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -1532,15 +1443,6 @@ void gpu::monochrome_rectangle_variable_size_opaque() {
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0,
 		v2.x, v2.y, 0,
@@ -1582,15 +1484,6 @@ void gpu::monochrome_rectangle_variable_size_semi_transparent() {
 	v3.y = v1.y + res.y;
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0,
@@ -1643,15 +1536,6 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 	v3.y = v1.y + res.y;
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -1714,15 +1598,6 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 	v4.x = v1.x + 8;
 	v4.y = v1.y + 8;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -1783,15 +1658,6 @@ void gpu::texture_rectangle_8x8_opaque() {
 	v3.y = v1.y + 8;
 	v4.x = v1.x + 8;
 	v4.y = v1.y + 8;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -1854,15 +1720,6 @@ void gpu::texture_blending_rectangle_16x16_opaque() {
 	v4.x = v1.x + 16;
 	v4.y = v1.y + 16;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -1924,15 +1781,6 @@ void gpu::texture_rectangle_16x16_opaque() {
 	v4.x = v1.x + 16;
 	v4.y = v1.y + 16;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -1993,15 +1841,6 @@ void gpu::texture_rectangle_16x16_semi_transparent() {
 	v3.y = v1.y + 16;
 	v4.x = v1.x + 16;
 	v4.y = v1.y + 16;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -2066,15 +1905,6 @@ void gpu::texture_rectangle_variable_size_opaque() {
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -2137,15 +1967,6 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 	v3.y = v1.y + res.y;
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
@@ -2210,15 +2031,6 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 	v4.x = v1.x + res.x;
 	v4.y = v1.y + res.y;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	point t1, t2, t3, t4;
 	t1.x = (fifo[2] & 0xffff) & 0xff;
 	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
@@ -2270,15 +2082,6 @@ void gpu::monochrome_rectangle_dot_opaque() {
 	v4.x = v1.x + 1;
 	v4.y = v1.y + 1;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0,
 		v2.x, v2.y, 0,
@@ -2319,15 +2122,6 @@ void gpu::monochrome_rectangle_8x8_opaque() {
 	v4.x = v1.x + 8;
 	v4.y = v1.y + 8;
 
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
-
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0,
 		v2.x, v2.y, 0,
@@ -2366,15 +2160,6 @@ void gpu::monochrome_rectangle_16x16_opaque() {
 	v3.y = v1.y + 16;
 	v4.x = v1.x + 16;
 	v4.y = v1.y + 16;
-
-	v1.x += xoffset;
-	v1.y += yoffset;
-	v2.x += xoffset;
-	v2.y += yoffset;
-	v3.x += xoffset;
-	v3.y += yoffset;
-	v4.x += xoffset;
-	v4.y += yoffset;
 
 	uint32_t Vertices1[]{
 		v1.x, v1.y, 0,
