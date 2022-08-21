@@ -46,6 +46,7 @@
 				colour = texture(vram, TexCoords);
 			} else colour = vec4(1.f, 0.f, 0.f, 1.f);
 			if(colour.rgb == vec3(0.f, 0.f, 0.f)) discard;
+			colour = (colour * vec4(ourColor.rgb, 1.f)) / (128.f);
 			colour.a = 1.f;
 			FragColor = colour;
 		}

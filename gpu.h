@@ -55,11 +55,11 @@ public:
 		#version 330 core
 		layout (location = 0) in vec3 pos;
 		uniform vec3 offset;
-		layout (location = 1) in vec3 aColor;
+		layout (location = 1) in vec3 Colour;
 		layout (location = 2) in vec2 aTexCoord;
 		layout (location = 3) in vec2 aTexpageCoords;
 		layout (location = 4) in vec2 aClut;
-		out vec3 ourColor;
+		out vec3 VertexColour;
 		out vec2 TexCoord;
 		flat out vec2 texpageCoords;
 		flat out vec2 clut;
@@ -67,7 +67,7 @@ public:
 		void main()
 		{
 			gl_Position = vec4(float(pos.x + offset.x) / 512 - 1, -(1 - float(pos.y + offset.y) / 256), 0.0, 1.0);
-			ourColor = aColor;
+			VertexColour = Colour;
 			TexCoord = aTexCoord;
 			texpageCoords = aTexpageCoords;
 			clut = aClut;
@@ -77,7 +77,7 @@ public:
 		R"(
 		#version 430 core
 		out vec4 FragColor;
-		in vec3 ourColor;
+		in vec3 VertexColour;
 		in vec2 TexCoord;
 		flat in vec2 texpageCoords;
 		flat in vec2 clut;
@@ -122,6 +122,7 @@ public:
 				colour = texture(vram, TexCoords);
 			} else colour = vec4(1.f, 0.f, 0.f, 1.f);
 			if(colour.rgb == vec3(0.f, 0.f, 0.f)) discard;
+			colour = (colour * vec4(VertexColour.rgb, 1.f)) / 128.f;
 			colour.a = 1.f;
 			FragColor = colour;
 		}

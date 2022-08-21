@@ -1,6 +1,7 @@
 
 		#version 330 core
-		layout (location = 0) in vec3 aPos;
+		layout (location = 0) in vec3 pos;
+		uniform vec3 offset;
 		layout (location = 1) in vec3 aColor;
 		layout (location = 2) in vec2 aTexCoord;
 		layout (location = 3) in vec2 aTexpageCoords;
@@ -12,7 +13,7 @@
 		uniform int colourDepth;
 		void main()
 		{
-			gl_Position = vec4(float(aPos.x) / 512 - 1, -(1 - float(aPos.y) / 256), 0.0, 1.0);
+			gl_Position = vec4(float(pos.x + offset.x) / 512 - 1, -(1 - float(pos.y + offset.y) / 256), 0.0, 1.0);
 			ourColor = aColor;
 			TexCoord = aTexCoord;
 			texpageCoords = aTexpageCoords;
