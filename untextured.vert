@@ -7,7 +7,6 @@
 		layout (location = 4) in vec2 texture_uv;
 		layout (location = 5) in uint texture_enable;
 		out vec4 frag_colour;
-
 		void main() {
 			gl_Position = vec4(float(pos.x + 0.5) / 512 - 1, -(1 - float(pos.y + 0.5) / 256), 0.0, 1.0);
 			frag_colour = vec4(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255, 1.f);

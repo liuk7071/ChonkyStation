@@ -280,7 +280,7 @@ uint16_t memory::read16(uint32_t addr) {
 		return pads.joy_ctrl;
 	}
 
-	if (masked_addr == 0x1f80104e) return pads.joy_baud;
+	if(masked_addr == 0x1f80104e) return pads.joy_baud;
 
 	//if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
 	//	debug_warn("[PAD] Read JOY_RX_DATA\n");

@@ -844,6 +844,10 @@ int main(int argc, char** argv) {
     double prevTime = glfwGetTime();
     int frameCount = 0;
 
+    glBindBuffer(GL_ARRAY_BUFFER, Cpu.bus.Gpu.VBO);
+    glBindVertexArray(Cpu.bus.Gpu.VAO);
+    glUseProgram(Cpu.bus.Gpu.ShaderProgram);
+
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
             if(run) Cpu.bus.mem.I_STAT |= 1;

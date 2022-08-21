@@ -13,6 +13,7 @@ public:
 	uint8_t rx_data_fifo[130];
 	uint8_t checksum = 0;
 	bool calculate_checksum = false;
+	bool receive_checksum = false;
 	int bytes_read = 0;
 	int response_length = 0;
 	bool read_response = false;
@@ -32,10 +33,13 @@ public:
 	bool irq = false;
 	bool abort_irq = false;
 	bool mem_transfer = false;
+	bool writing = false;
 	bool mem_receive_addrmsb = false;
 	bool mem_receive_addrlsb = false;
 	bool reading_sector = false;
+	bool writing_sector = false;
 	uint16_t mem_sector = 0;
+	uint32_t write_index = 0;
 
 	const char* memcard1_dir = "./memcard1.mcd";
 	FILE* memcard1;

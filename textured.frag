@@ -32,7 +32,8 @@
 		}
 		void main()
 		{
-			ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
+			ivec2 TexCoord_ = ivec2(floor(TexCoord)) & ivec2(0xff);
+			ivec2 UV = (ivec2(TexCoord_) & texWindow.xy) | texWindow.zw;
 			vec4 colour;
 			if(colourDepth == 0) {
 				colour = fetchTexel4Bit(UV);

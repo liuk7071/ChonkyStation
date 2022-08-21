@@ -11,7 +11,7 @@ It can boot some games, very few go in game and even less are playable.
 - CDROM
 - Timers
 - Pads
-- Memory cards (they're read-only for now..)
+- Memory cards
 # What isn't
 - SPU
 - MDEC

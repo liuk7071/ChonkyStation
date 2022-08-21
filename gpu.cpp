@@ -167,9 +167,7 @@ void gpu::InitGL() {
 
 void gpu::SyncVRAM() {
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 1024, 512);
-
 }
 
 void gpu::SetOpenGLState() {
@@ -177,6 +175,35 @@ void gpu::SetOpenGLState() {
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 	glScissor(drawing_topleft_x, drawing_topleft_y, (drawing_bottomright_x - drawing_topleft_x), (drawing_bottomright_y - drawing_topleft_y));
 	glEnable(GL_SCISSOR_TEST);
+
+	if (DrawingTextured) {
+		glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
+		glBindVertexArray(TextureVAO);
+		glUseProgram(TextureShaderProgram);
+	}
+	else {
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBindVertexArray(VAO);
+		glUseProgram(ShaderProgram);
+	}
+}
+
+void gpu::SwitchToTextured() {
+	if (!DrawingTextured) {
+		DrawingTextured = true;
+		glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
+		glBindVertexArray(TextureVAO);
+		glUseProgram(TextureShaderProgram);
+	}
+}
+
+void gpu::SwitchToUntextured() {
+	if (DrawingTextured) {
+		DrawingTextured = false;
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBindVertexArray(VAO);
+		glUseProgram(ShaderProgram);
+	}
 }
 
 void gpu::putpixel(point v1, uint32_t colour) {
@@ -190,7 +217,6 @@ void gpu::putpixel(point v1, uint32_t colour) {
 }
 
 void gpu::ClearScreen() {
-
 	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT);
 }
@@ -241,6 +267,12 @@ void gpu::execute_gp0(uint32_t command) {
 			fifo[0] = command;
 			cmd_length++;
 			cmd_left = 4;
+			break;
+		}
+		case 0x24: { // Textured three-point polygon, opaque, texture-blending
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 6;
 			break;
 		}
 		case 0x2B:
@@ -395,6 +427,12 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 2;
 			break;
 		}
+		case 0x78: { // Monochrome Rectangle (16x16) (opaque)
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 1;
+			break;
+		}
 		case 0x7C: { // Textured Rectangle, 16x16, opaque, texture-blending
 			fifo[0] = command;
 			cmd_length++;
@@ -407,6 +445,7 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 2;
 			break;
 		}
+		case 0x7E:   // Textured Rectangle, 16x16, semi-transparent, texture-blending
 		case 0x7F: { // Textured Rectangle, 16x16, semi-transparent, raw-texture
 			fifo[0] = command;
 			cmd_length++;
@@ -455,6 +494,7 @@ void gpu::execute_gp0(uint32_t command) {
 			int texWindowOffsX = (texWindow >> 10) & 0x1f;
 			int texWindowOffsY = (texWindow >> 15) & 0x1f;
 			glUniform4i(maskUniformLocation, ~(texWindowX * 8), ~(texWindowY * 8), ((texWindowOffsX & texWindowX) * 8), ((texWindowOffsY & texWindowY) * 8));
+			if (!DrawingTextured) glUseProgram(ShaderProgram);
 			debug_printf("[GP0] Set Texture Window\n");
 			break;
 		}
@@ -502,42 +542,45 @@ void gpu::execute_gp0(uint32_t command) {
 
 				case 0x02: gpu::fill_rectangle(); break;
 				case 0x21:
-				case 0x20: gpu::draw_untextured_tri(MONOCHROME, SOLID); break;
+				case 0x20: SwitchToUntextured(); gpu::draw_untextured_tri(MONOCHROME, SOLID); break;
 				case 0x23:
-				case 0x22: gpu::draw_untextured_tri(MONOCHROME, SEMI_TRANSPARENT); break;
+				case 0x22: SwitchToUntextured(); gpu::draw_untextured_tri(MONOCHROME, SEMI_TRANSPARENT); break;
+				case 0x24: SwitchToTextured(); gpu::texture_blending_three_point_opaque_polygon();
 				case 0x29:
-				case 0x28: gpu::draw_untextured_quad(MONOCHROME, SOLID); break;
+				case 0x28: SwitchToUntextured(); gpu::draw_untextured_quad(MONOCHROME, SOLID); break;
 				case 0x2B:
-				case 0x2A: gpu::draw_untextured_quad(MONOCHROME, SEMI_TRANSPARENT); break;
-				case 0x2C: gpu::texture_blending_four_point_opaque_polygon(); break;
-				case 0x2D: gpu::texture_four_point_opaque_polygon(); break;
-				case 0x2E: gpu::texture_blending_four_point_polygon_semi_transparent(); break;
-				case 0x2F: gpu::texture_four_point_semi_transparent_polygon(); break;
-				case 0x30: gpu::draw_untextured_tri(GOURAUD, SOLID); break;
+				case 0x2A: SwitchToUntextured(); gpu::draw_untextured_quad(MONOCHROME, SEMI_TRANSPARENT); break;
+				case 0x2C: SwitchToTextured();   gpu::texture_blending_four_point_opaque_polygon(); break;
+				case 0x2D: SwitchToTextured();   gpu::texture_four_point_opaque_polygon(); break;
+				case 0x2E: SwitchToTextured();   gpu::texture_blending_four_point_polygon_semi_transparent(); break;
+				case 0x2F: SwitchToTextured();   gpu::texture_four_point_semi_transparent_polygon(); break;
+				case 0x30: SwitchToUntextured(); gpu::draw_untextured_tri(GOURAUD, SOLID); break;
 				case 0x33:
-				case 0x32: gpu::draw_untextured_tri(GOURAUD, SEMI_TRANSPARENT); break;
+				case 0x32: SwitchToUntextured(); gpu::draw_untextured_tri(GOURAUD, SEMI_TRANSPARENT); break;
 				case 0x36:
-				case 0x34: gpu::shaded_texture_blending_three_point_opaque_polygon(); break;
-				case 0x38: gpu::draw_untextured_quad(GOURAUD, SOLID); break;
-				case 0x3A: gpu::draw_untextured_quad(GOURAUD, SEMI_TRANSPARENT); break;
-				case 0x3C: gpu::shaded_texture_blending_textured_four_point_opaque_polygon(); break;
-				case 0x3E: gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon(); break;
+				case 0x34: SwitchToTextured();   gpu::shaded_texture_blending_three_point_opaque_polygon(); break;
+				case 0x38: SwitchToUntextured(); gpu::draw_untextured_quad(GOURAUD, SOLID); break;
+				case 0x3A: SwitchToUntextured(); gpu::draw_untextured_quad(GOURAUD, SEMI_TRANSPARENT); break;
+				case 0x3C: SwitchToTextured();   gpu::shaded_texture_blending_textured_four_point_opaque_polygon(); break;
+				case 0x3E: SwitchToTextured();   gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon(); break;
 				case 0x41:
 				case 0x40: gpu::monochrome_line_opaque(); break;
-				case 0x60: gpu::monochrome_rectangle_variable_size_opaque(); break;
+				case 0x60: SwitchToUntextured(); gpu::monochrome_rectangle_variable_size_opaque(); break;
 				case 0x63:
-				case 0x62: gpu::monochrome_rectangle_variable_size_semi_transparent(); break;
-				case 0x64: gpu::texture_blending_rectangle_variable_size_opaque(); break;
-				case 0x65: gpu::texture_rectangle_variable_size_opaque(); break;
-				case 0x66: gpu::texture_blending_rectangle_variable_size_semi_transparent(); break;
-				case 0x67: gpu::textured_rectangle_variable_size_semi_transparent(); break;
-				case 0x68: gpu::monochrome_rectangle_dot_opaque(); break;
-				case 0x70: gpu::monochrome_rectangle_8x8_opaque(); break;
-				case 0x74: gpu::texture_blending_rectangle_8x8_opaque(); break;
-				case 0x75: gpu::texture_rectangle_8x8_opaque(); break;
-				case 0x7C: gpu::texture_blending_rectangle_16x16_opaque(); break;
-				case 0x7D: gpu::texture_rectangle_16x16_opaque(); break;
-				case 0x7F: gpu::texture_rectangle_16x16_semi_transparent(); break;
+				case 0x62: SwitchToUntextured(); gpu::monochrome_rectangle_variable_size_semi_transparent(); break;
+				case 0x64: SwitchToTextured();   gpu::texture_blending_rectangle_variable_size_opaque(); break;
+				case 0x65: SwitchToTextured();   gpu::texture_rectangle_variable_size_opaque(); break;
+				case 0x66: SwitchToTextured();   gpu::texture_blending_rectangle_variable_size_semi_transparent(); break;
+				case 0x67: SwitchToTextured();   gpu::textured_rectangle_variable_size_semi_transparent(); break;
+				case 0x68: SwitchToUntextured(); gpu::monochrome_rectangle_dot_opaque(); break;
+				case 0x70: SwitchToUntextured(); gpu::monochrome_rectangle_8x8_opaque(); break;
+				case 0x74: SwitchToTextured();   gpu::texture_blending_rectangle_8x8_opaque(); break;
+				case 0x75: SwitchToTextured();   gpu::texture_rectangle_8x8_opaque(); break;
+				case 0x78: SwitchToUntextured(); gpu::monochrome_rectangle_16x16_opaque(); break;
+				case 0x7C: SwitchToTextured();   gpu::texture_blending_rectangle_16x16_opaque(); break;
+				case 0x7D: SwitchToTextured();   gpu::texture_rectangle_16x16_opaque(); break;
+				case 0x7E:
+				case 0x7F: SwitchToTextured();   gpu::texture_rectangle_16x16_semi_transparent(); break;
 				case 0x80: gpu::vram_to_vram(); break;
 				case 0xA0: gpu::cpu_to_vram(); break;
 				case 0xC0: gpu::vram_to_cpu(); break;
@@ -690,10 +733,7 @@ void gpu::draw_untextured_tri(int shading, int transparency) {
 			(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
 			(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 		};
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-		glBindVertexArray(VAO);
-		glUseProgram(ShaderProgram);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 	
 	}
@@ -725,10 +765,7 @@ void gpu::draw_untextured_tri(int shading, int transparency) {
 			(((v2.c) >> 0) & 0xff), (((v2.c) >> 8) & 0xff), (((v2.c) >> 16) & 0xff),
 			(((v3.c) >> 0) & 0xff), (((v3.c) >> 8) & 0xff), (((v3.c) >> 16) & 0xff)
 		};
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
-		glBindVertexArray(VAO);
-		glUseProgram(ShaderProgram);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 	
 	}
@@ -766,10 +803,7 @@ void gpu::draw_untextured_quad(int shading, int transparency) {
 			(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 		};
 
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-		glBindVertexArray(VAO);
-		glUseProgram(ShaderProgram);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		uint32_t Vertices2[]{
@@ -818,10 +852,7 @@ void gpu::draw_untextured_quad(int shading, int transparency) {
 			(((v2.c) >> 0) & 0xff), (((v2.c) >> 8) & 0xff), (((v2.c) >> 16) & 0xff),
 			(((v3.c) >> 0) & 0xff), (((v3.c) >> 8) & 0xff), (((v3.c) >> 16) & 0xff)
 		};
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-		glBindVertexArray(VAO);
-		glUseProgram(ShaderProgram);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		uint32_t Vertices2[]{
@@ -837,6 +868,67 @@ void gpu::draw_untextured_quad(int shading, int transparency) {
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 	
 	}
+}
+
+void gpu::texture_blending_three_point_opaque_polygon() {
+	uint32_t colour = fifo[0] & 0xffffff;
+	debug_printf("[GP0] Textured three-point polygon, opaque, texture-blending (colour: 0x%x)\n", colour);
+	point v1, v2, v3, v4;
+	uint16_t texpage = 0;
+	uint16_t clut = 0;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	clut = fifo[2] >> 16;
+	//printf("\nclut: 0x%x\n", clut);
+	uint32_t clutX = (clut & 0x3f);
+	clutX *= 16;
+	uint32_t clutY = (clut >> 6);
+
+	texpage = fifo[4] >> 16;
+	//printf("texpage: 0x%x\n", texpage);
+	uint32_t texpageX = ((texpage & 0b1111) * 64);
+	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
+	v2.x = fifo[3] & 0xffff;
+	v2.y = fifo[3] >> 16;
+	v3.x = fifo[5] & 0xffff;
+	v3.y = fifo[5] >> 16;
+	v4.x = fifo[7] & 0xffff;
+	v4.y = fifo[7] >> 16;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
+	point t1, t2, t3, t4;
+	t1.x = (fifo[2] & 0xffff) & 0xff;
+	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
+	t2.x = (fifo[4] & 0xffff) & 0xff;
+	t2.y = ((fifo[4] & 0xffff) >> 8) & 0xff;
+	t3.x = (fifo[6] & 0xffff) & 0xff;
+	t3.y = ((fifo[6] & 0xffff) >> 8) & 0xff;
+	t4.x = (fifo[8] & 0xffff) & 0xff;
+	t4.y = ((fifo[8] & 0xffff) >> 8) & 0xff;
+	int colourDepth = (texpage >> 7) & 3;
+
+	uint32_t Vertices1[] = {
+		// positions          // colors																		   // texture coords
+		 v1.x,  v1.y, 0,      (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t1.x, t1.y,  texpageX, texpageY, clutX, clutY, colourDepth,
+		 v2.x,  v2.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t2.x, t2.y,  texpageX, texpageY, clutX, clutY, colourDepth,
+		 v3.x,  v3.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t3.x, t3.y,  texpageX, texpageY, clutX, clutY, colourDepth
+		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
+	};
+
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+
+	glUniform1i(colourDepthUniform, colourDepth);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 void gpu::texture_blending_four_point_opaque_polygon() {
@@ -892,14 +984,10 @@ void gpu::texture_blending_four_point_opaque_polygon() {
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
-
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
-
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-	glUseProgram(TextureShaderProgram);
+
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -968,13 +1056,8 @@ void gpu::texture_four_point_opaque_polygon() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1043,13 +1126,8 @@ void gpu::texture_blending_four_point_polygon_semi_transparent() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1118,13 +1196,8 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1189,13 +1262,8 @@ void gpu::shaded_texture_blending_three_point_opaque_polygon() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1253,13 +1321,8 @@ void gpu::shaded_texture_blending_textured_four_point_opaque_polygon() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1328,13 +1391,8 @@ void gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon()
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1493,10 +1551,7 @@ void gpu::monochrome_rectangle_variable_size_opaque() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
 
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-		glBindVertexArray(VAO);
-		glUseProgram(ShaderProgram);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	uint32_t Vertices2[]{
@@ -1547,10 +1602,7 @@ void gpu::monochrome_rectangle_variable_size_semi_transparent() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
 
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-		glBindVertexArray(VAO);
-		glUseProgram(ShaderProgram);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	uint32_t Vertices2[]{
@@ -1621,13 +1673,8 @@ void gpu::texture_blending_rectangle_variable_size_opaque() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1696,13 +1743,8 @@ void gpu::texture_blending_rectangle_8x8_opaque() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1771,13 +1813,8 @@ void gpu::texture_rectangle_8x8_opaque() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1846,13 +1883,8 @@ void gpu::texture_blending_rectangle_16x16_opaque() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1921,13 +1953,8 @@ void gpu::texture_rectangle_16x16_opaque() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -1996,13 +2023,8 @@ void gpu::texture_rectangle_16x16_semi_transparent() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -2073,13 +2095,8 @@ void gpu::texture_rectangle_variable_size_opaque() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -2150,13 +2167,8 @@ void gpu::texture_blending_rectangle_variable_size_semi_transparent() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -2227,13 +2239,8 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 	};
 
 
-	glBindBuffer(GL_ARRAY_BUFFER, TextureVBO);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(TextureVAO);
-
-	glUseProgram(TextureShaderProgram);
 	glUniform1i(colourDepthUniform, colourDepth);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -2282,10 +2289,7 @@ void gpu::monochrome_rectangle_dot_opaque() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(VAO);
-	glUseProgram(ShaderProgram);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	uint32_t Vertices2[]{
@@ -2334,10 +2338,55 @@ void gpu::monochrome_rectangle_8x8_opaque() {
 		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
 	};
 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
-	glBindVertexArray(VAO);
-	glUseProgram(ShaderProgram);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+
+	uint32_t Vertices2[]{
+		v2.x, v2.y, 0.0,
+		v3.x, v3.y, 0.0,
+		v4.x, v4.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+void gpu::monochrome_rectangle_16x16_opaque() {
+	uint32_t colour = fifo[0] & 0xffffff;
+	debug_printf("[GP0] Monochrome Rectangle (16x16) (opaque) (colour: 0x%x)\n", colour);
+	point v1, res, v2, v3, v4;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = v1.x + 16;
+	v2.y = v1.y;
+	v3.x = v1.x;
+	v3.y = v1.y + 16;
+	v4.x = v1.x + 16;
+	v4.y = v1.y + 16;
+
+	v1.x += xoffset;
+	v1.y += yoffset;
+	v2.x += xoffset;
+	v2.y += yoffset;
+	v3.x += xoffset;
+	v3.y += yoffset;
+	v4.x += xoffset;
+	v4.y += yoffset;
+
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0,
+		v2.x, v2.y, 0,
+		v3.x, v3.y, 0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff)
+	};
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	uint32_t Vertices2[]{
@@ -2428,7 +2477,6 @@ void gpu::vram_to_cpu() {
 	size /= 2;
 
 	glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
-
 
 	ReadBufferCnt = 0;
 }

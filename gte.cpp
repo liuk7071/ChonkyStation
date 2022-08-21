@@ -369,9 +369,9 @@ void gte::commandMVMVA() {
 	const int m = this->m(instruction);
 	const int v = this->v(instruction);
 	const int cv = this->cv(instruction);
-	MAC1 = int64_t(((int64_t)tx(cv, 0) * 0x1000) + ((int16_t)mx(m, 11) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 12) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 13) * (int16_t)vx(v, 2))) >> shift;
-	MAC2 = int64_t(((int64_t)tx(cv, 1) * 0x1000) + ((int16_t)mx(m, 21) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 22) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 23) * (int16_t)vx(v, 2))) >> shift;
-	MAC3 = int64_t(((int64_t)tx(cv, 2) * 0x1000) + ((int16_t)mx(m, 31) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 32) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 33) * (int16_t)vx(v, 2))) >> shift;
+	MAC1 = int64_t((tx(cv, 0) * 0x1000) + (mx(m, 11) * vx(v, 0)) + (mx(m, 12) * vx(v, 1)) + (mx(m, 13) * vx(v, 2))) >> shift;
+	MAC2 = int64_t((tx(cv, 1) * 0x1000) + (mx(m, 21) * vx(v, 0)) + (mx(m, 22) * vx(v, 1)) + (mx(m, 23) * vx(v, 2))) >> shift;
+	MAC3 = int64_t((tx(cv, 2) * 0x1000) + (mx(m, 31) * vx(v, 0)) + (mx(m, 32) * vx(v, 1)) + (mx(m, 33) * vx(v, 2))) >> shift;
 	setIRFromMAC(lm);
 }
 

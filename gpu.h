@@ -36,7 +36,6 @@ public:
 		layout (location = 5) in uint texture_enable;
 		out vec4 frag_colour;
 		void main() {
-			//pos += vec3(0.5, 0.5, 0.0);
 			gl_Position = vec4(float(pos.x + 0.5) / 512 - 1, -(1 - float(pos.y + 0.5) / 256), 0.0, 1.0);
 			frag_colour = vec4(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255, 1.f);
 		}
@@ -107,7 +106,8 @@ public:
 		}
 		void main()
 		{
-			ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
+			ivec2 TexCoord_ = ivec2(floor(TexCoord)) & ivec2(0xff);
+			ivec2 UV = (ivec2(TexCoord_) & texWindow.xy) | texWindow.zw;
 			vec4 colour;
 			if(colourDepth == 0) {
 				colour = fetchTexel4Bit(UV);
@@ -145,6 +145,9 @@ public:
 	void InitGL();
 	void ClearScreen();
 	void SetOpenGLState();
+	void SwitchToTextured();
+	void SwitchToUntextured();
+	bool DrawingTextured = false;
 	uint16_t* vram = new uint16_t[1024 * 512];
 	//std::vector<uint32_t> WriteBuffer;
 	uint32_t* WriteBuffer = new uint32_t[(1024 * 512)];
@@ -223,6 +226,7 @@ public:	// commands
 	void draw_untextured_tri(int shading, int transparency);
 	void draw_untextured_quad(int shading, int transparency);
 
+	void texture_blending_three_point_opaque_polygon();
 	void monochrome_line_opaque();
 	void monochrome_polyline_opaque();
 	void texture_blending_four_point_opaque_polygon();
@@ -245,6 +249,7 @@ public:	// commands
 	void texture_rectangle_16x16_semi_transparent();
 	void monochrome_rectangle_dot_opaque();
 	void monochrome_rectangle_8x8_opaque();
+	void monochrome_rectangle_16x16_opaque();
 	void fill_rectangle();
 	void vram_to_vram();
 	void cpu_to_vram();

@@ -6,6 +6,34 @@ pad::pad() {
 }
 
 void pad::WriteTXDATA(uint8_t data) {
+	if (write_index == 128) {
+		write_index = 0;
+		writing_sector = false;
+		receive_checksum = true;
+	}
+	
+	if (receive_checksum) {
+		receive_checksum = false;
+		bytes_read = 0;
+		irq = true;
+		joy_stat |= 0b010;
+		rx_data_fifo[0] = 0;
+		rx_data_fifo[1] = 0x5c;
+		rx_data_fifo[2] = 0x5d;
+		rx_data_fifo[3] = 0x47;
+		return;
+	}
+
+	if (writing_sector) {
+		fseek(memcard1, (mem_sector * 128) + write_index++, SEEK_SET);
+		fwrite(&data, sizeof(uint8_t), 1, memcard1);
+		bytes_read = 0;
+		rx_data_fifo[0] = 0;
+		irq = true;
+		joy_stat |= 0b010;
+		return;
+	}
+
 	if (mem_receive_addrmsb) {
 		mem_sector = 0;
 		mem_sector |= (data << 8);
@@ -26,7 +54,10 @@ void pad::WriteTXDATA(uint8_t data) {
 		rx_data_fifo[3] = mem_sector >> 8;
 		rx_data_fifo[4] = mem_sector & 0xff;
 		response_length = 5;
-		reading_sector = true;
+		if (!writing) reading_sector = true; else { 
+			writing_sector = true; 
+			writing = false;
+		}
 		checksum ^= data;
 		return;
 	}
@@ -73,6 +104,17 @@ void pad::WriteTXDATA(uint8_t data) {
 		}
 		irq = true;
 		read_response = true;
+		break;
+	case 0x57:
+		bytes_read = 0;
+		//if ((joy_ctrl & 0x2002) == 2) {
+			rx_data_fifo[0] = 0x0;
+			rx_data_fifo[1] = 0x5a;
+			rx_data_fifo[2] = 0x5d;
+		//}
+		irq = true;
+		read_response = true;
+		writing = true;
 		break;
 	case 0x43: { // Return 0xff and do not ack because we are emulating a digital pad for now
 		joy_stat |= 2;
@@ -155,11 +197,7 @@ void pad::WriteTXDATA(uint8_t data) {
 }
 
 uint8_t pad::ReadRXFIFO() {
-
 	if (read_response) {
-		if (bytes_read == 129) { 
-			abort_irq = true; 
-		}
 		if ((bytes_read == response_length) && reading_sector) {
 			bytes_read = 0;
 			fseek(memcard1, mem_sector * 128, SEEK_SET);
@@ -170,14 +208,18 @@ uint8_t pad::ReadRXFIFO() {
 			mem_transfer = false;
 			calculate_checksum = true;
 		}
+
 		if (bytes_read == response_length) {
 			joy_stat &= ~0b010;
 		}
+
 		uint8_t byte = rx_data_fifo[bytes_read++];
+
 		if (mem_transfer && (byte == 0x5d)) {
 			mem_transfer = false;
 			mem_receive_addrmsb = true;
 		}
+
 		if (calculate_checksum) {
 			checksum ^= byte;
 			if (bytes_read == 128) {
@@ -185,10 +227,15 @@ uint8_t pad::ReadRXFIFO() {
 				rx_data_fifo[128] = checksum;
 			}
 		}
-		if (bytes_read == 130) {
+
+		if (bytes_read == 129) {
+			abort_irq = true;
+		}
+		else if (bytes_read == 130) {
 			bytes_read = 0;
 			rx_data_fifo[0] = 0;
 		}
+
 		return byte;
 	}
 	else return 0;
