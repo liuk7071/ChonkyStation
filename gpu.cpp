@@ -1017,9 +1017,9 @@ void gpu::texture_four_point_opaque_polygon() {
 
 	uint32_t Vertices2[] = {
 		// positions          // colors																		   // texture coords // texpage
-		 v2.x,  v2.y, 0,      (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v3.x,  v3.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
+		 v2.x,  v2.y, 0,      128, 128, 128,   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v3.x,  v3.y, 0.0f,   128, 128, 128,   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v4.x,  v4.y, 0.0f,   128, 128, 128,   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
@@ -1139,9 +1139,9 @@ void gpu::texture_four_point_semi_transparent_polygon() {
 
 	uint32_t Vertices2[] = {
 		// positions          // colors																		   // texture coords // texpage
-		 v2.x,  v2.y, 0,      (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v3.x,  v3.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
+		 v2.x,  v2.y, 0,      128, 128, 128,   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v3.x,  v3.y, 0.0f,   128, 128, 128,   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v4.x,  v4.y, 0.0f,   128, 128, 128,   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
@@ -1686,9 +1686,9 @@ void gpu::texture_rectangle_8x8_opaque() {
 
 	uint32_t Vertices1[] = {
 		// positions          // colors																		   // texture coords
-		 v1.x,  v1.y, 0,      (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t1.x, t1.y,  texpageX, texpageY, clutX, clutY, colourDepth,
-		 v2.x,  v2.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t2.x, t2.y,  texpageX, texpageY, clutX, clutY, colourDepth,
-		 v3.x,  v3.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t3.x, t3.y,  texpageX, texpageY, clutX, clutY, colourDepth
+		 v1.x,  v1.y, 0,      128, 128, 128,   t1.x, t1.y,  texpageX, texpageY, clutX, clutY, colourDepth,
+		 v2.x,  v2.y, 0.0f,   128, 128, 128,   t2.x, t2.y,  texpageX, texpageY, clutX, clutY, colourDepth,
+		 v3.x,  v3.y, 0.0f,   128, 128, 128,   t3.x, t3.y,  texpageX, texpageY, clutX, clutY, colourDepth
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
@@ -1700,9 +1700,9 @@ void gpu::texture_rectangle_8x8_opaque() {
 
 	uint32_t Vertices2[] = {
 		// positions          // colors																		   // texture coords // texpage
-		 v2.x,  v2.y, 0,      (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v3.x,  v3.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
+		 v2.x,  v2.y, 0,      128, 128, 128,   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v3.x,  v3.y, 0.0f,   128, 128, 128,   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v4.x,  v4.y, 0.0f,   128, 128, 128,   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
@@ -1946,9 +1946,9 @@ void gpu::texture_rectangle_variable_size_opaque() {
 
 	uint32_t Vertices2[] = {
 		// positions          // colors																		   // texture coords // texpage
-		 v2.x,  v2.y, 0,      (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v3.x,  v3.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
+		 v2.x,  v2.y, 0,      128, 128, 128,   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v3.x,  v3.y, 0.0f,   128, 128, 128,   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v4.x,  v4.y, 0.0f,   128, 128, 128,   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
@@ -2072,9 +2072,9 @@ void gpu::textured_rectangle_variable_size_semi_transparent() {
 
 	uint32_t Vertices2[] = {
 		// positions          // colors																		   // texture coords // texpage
-		 v2.x,  v2.y, 0,      (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v3.x,  v3.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
-		 v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
+		 v2.x,  v2.y, 0,      128, 128, 128,   t2.x, t2.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v3.x,  v3.y, 0.0f,   128, 128, 128,   t3.x, t3.y,		 texpageX, texpageY, clutX, clutY, colourDepth,
+		 v4.x,  v4.y, 0.0f,   128, 128, 128,   t4.x, t4.y,		 texpageX, texpageY, clutX, clutY, colourDepth
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
