@@ -4,7 +4,7 @@
 #undef log
 
 #define ENABLE_RAM_MIRRORS
-#undef ENABLE_RAM_MIRRORS
+//#undef ENABLE_RAM_MIRRORS
 
 #pragma warning(disable : 4996)
 
@@ -139,8 +139,7 @@ uint8_t memory::read(uint32_t addr) {
 	}
 
 	if (masked_addr == 0x1f801800) {	// cdrom status
-		printf("[CDROM] Status register read\n");
-		//return rand() % 0xff;
+		//printf("[CDROM] Status register read @ 0x%08x\n", *pc);
 		return CDROM.status | (CDROM.cd.drqsts << 6) | ((CDROM.xa_adpcm ? 1 : 0) << 2);
 	}
 
@@ -196,7 +195,7 @@ uint8_t memory::read(uint32_t addr) {
 	}
 
 #ifdef ENABLE_RAM_MIRRORS
-	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x200000) {
+	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x600000) {
 		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint8_t));
 		return bytes;
 	}
@@ -222,6 +221,9 @@ uint16_t memory::read16(uint32_t addr) {
 	uint32_t masked_addr = mask_address(addr);
 
 	if (masked_addr == 0x1f8010f6) return 0;
+
+	if (masked_addr == 0x1f7fffd2) return 0; // This shouldn't happen
+	if (masked_addr == 0x1f7fffd0) return 0; // This shouldn't happen
 
 	// SPU stuff
 	if (masked_addr == 0x1f801d08) return 0;
@@ -322,7 +324,7 @@ uint16_t memory::read16(uint32_t addr) {
 		return bytes;
 	}
 #ifdef ENABLE_RAM_MIRRORS
-	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x200000) {
+	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x600000) {
 		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint16_t));
 		return bytes;
 	}
@@ -351,7 +353,8 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
-	if (masked_addr == 0xfffffff8) return 0;
+	if (masked_addr == 0x02000008) return 0;
+	if (masked_addr == 0x02000004) return 0;
 
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
@@ -401,34 +404,34 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f8010f4) // DICR
 		return DICR;
 
-	// channel 0 (stubbed)
+	// channel 0
 	if (masked_addr == 0x1f801080) {	// base address
-		printf("[DMA] Read DMA0 (ram -> mdec) base address (stubbed)\n");
+		printf("[DMA] Read DMA0 (ram -> mdec) base address\n");
 		return Ch0.MADR;
 	}
 
 	if (masked_addr == 0x1f801084) { // block control
-		printf("[DMA] Read DMA0 (ram -> mdec) block control (stubbed)\n");
+		printf("[DMA] Read DMA0 (ram -> mdec) block control\n");
 		return Ch0.BCR;
 	}
 
 	if (masked_addr == 0x1f801088) {	// control
-		printf("[DMA] Read DMA0 (ram -> mdec) control (stubbed)\n");
+		printf("[DMA] Read DMA0 (ram -> mdec) control\n");
 		return Ch0.CHCR;
 	}
-	// channel 1 (stubbed)
+	// channel 1
 	if (masked_addr == 0x1f801090) {	// base address
-		printf("[DMA] Read DMA1 (mdec -> ram) base address (stubbed)\n");
+		printf("[DMA] Read DMA1 (mdec -> ram) base address\n");
 		return Ch1.MADR;
 	}
 
 	if (masked_addr == 0x1f801094) { // block control
-		printf("[DMA] Read DMA1 (mdec -> ram) block control (stubbed)\n");
+		printf("[DMA] Read DMA1 (mdec -> ram) block control\n");
 		return Ch1.BCR;
 	}
 
 	if (masked_addr == 0x1f801098) {	// control
-		printf("[DMA] Read DMA1 (mdec -> ram) control (stubbed)\n");
+		printf("[DMA] Read DMA1 (mdec -> ram) control\n");
 		return Ch1.CHCR;
 	}
 
@@ -478,7 +481,7 @@ uint32_t memory::read32(uint32_t addr) {
 	}
 
 #ifdef ENABLE_RAM_MIRRORS
-	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x200000) {
+	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x600000) {
 		memcpy(&bytes, &ram[masked_addr & 0x1fffff], sizeof(uint32_t));
 		return bytes;
 	}
@@ -504,8 +507,8 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0;
 	}
 	if (masked_addr == 0x1f801824) {
-		printf("[MDEC] Read MDEC1 - MDEC Status Register (stubbed)\n");
-		return 0 | (1 << 28) | (1 << 27);
+		printf("[MDEC] Read MDEC1 - MDEC Status Register\n");
+		return MDEC->status;
 	}
 
 	if (masked_addr >= 0x1F000000 && masked_addr < 0x1F000000 + 0x400) {
@@ -532,7 +535,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	const auto page = addr >> 16;
 	const auto pointer = writeTable[page];
 
-	if (pointer != 0) {// if the address is in the fast path
+	if (pointer != 0) {// If the address is in the fast path
 		*(uint8_t*)(pointer + (addr & 0xffff)) = data;
 		return;
 	}
@@ -639,7 +642,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 		return;
 	}
 #ifdef ENABLE_RAM_MIRRORS
-	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x200000) {
+	if (masked_addr >= 0x00200000 && masked_addr < 0x00200000 + 0x600000) {
 		ram[masked_addr & 0x1fffff] = data;
 		return;
 	}
@@ -708,41 +711,41 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		return;
 	}
 
-	// channel 0 (stubbed)
+	// channel 0
 	if (masked_addr == 0x1f801080) {	// base address
-		printf("[DMA] Write to DMA0 (ram -> mdec) base address (stubbed)\n");
+		printf("[DMA] Write to DMA0 (ram -> mdec) base address\n");
 		Ch0.MADR = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801084) { // block control
-		printf("[DMA] Write to DMA0 (ram -> mdec) block control (stubbed)\n");
+		printf("[DMA] Write to DMA0 (ram -> mdec) block control\n");
 		Ch0.BCR = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801088) {	// control
-		printf("[DMA] Write to DMA0 (ram -> mdec) control (stubbed)\n");
+		printf("[DMA] Write to DMA0 (ram -> mdec) control\n");
 		Ch0.CHCR = data;
 		*shouldCheckDMA = true;
 		return;
 	}
 
-	// channel 1 (stubbed)
+	// channel 1
 	if (masked_addr == 0x1f801090) {	// base address
-		printf("[DMA] Write to DMA1 (mdec -> ram) base address (stubbed)\n");
+		printf("[DMA] Write to DMA1 (mdec -> ram) base address\n");
 		Ch1.MADR = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801094) { // block control
-		printf("[DMA] Write to DMA1 (mdec -> ram) block control (stubbed)\n");
+		printf("[DMA] Write to DMA1 (mdec -> ram) block control\n");
 		Ch1.BCR = data;
 		return;
 	}
 
 	if (masked_addr == 0x1f801098) {	// control
-		printf("[DMA] Write to DMA1 (mdec -> ram) control (stubbed)\n");
+		printf("[DMA] Write to DMA1 (mdec -> ram) control\n");
 		Ch1.CHCR = data;
 		*shouldCheckDMA = true;
 		return;
@@ -866,11 +869,13 @@ void memory::write32(uint32_t addr, uint32_t data) {
 
 	// MDEC
 	if (masked_addr == 0x1f801820) { // MDEC0 - MDEC Command/Parameter Register
-		printf("[MDEC] Write MDEC0 - MDEC Command/Parameter Register (0x%x) (stubbed)\n", data);
+		MDEC->command(data);
 		return;
 	}
 	if (masked_addr == 0x1f801824) { // MDEC1 - MDEC Control/Reset Register
-		printf("[MDEC] Write MDEC1 - MDEC Control/Reset Register (stubbed)\n");
+		printf("[MDEC] Write MDEC1 - MDEC Control/Reset Register\n");
+		MDEC->status |= ((data & (1 << 29)) ? 1 : 0) << 27;
+		MDEC->status |= ((data & (1 << 28)) ? 1 : 0) << 28;
 		return;
 	}
 
@@ -889,6 +894,7 @@ void memory::write32(uint32_t addr, uint32_t data) {
 		CACHE_CONTROL = data;
 		return;
 	}
+
 	write(addr, uint8_t(data & 0x000000ff), false);
 	write(addr + 3, uint8_t((data & 0xff000000) >> 24), false);
 	write(addr + 2, uint8_t((data & 0x00ff0000) >> 16), false);

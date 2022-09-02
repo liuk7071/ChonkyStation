@@ -2252,7 +2252,7 @@ void gpu::cpu_to_vram() {
 	size += 1;
 	size &= ~1;
 	cmd_left = size / 2;
-	cmd_left++;
+	//cmd_left++;
 	gp0_mode = 1;
 }
 
