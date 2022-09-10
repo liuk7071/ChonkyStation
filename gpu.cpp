@@ -26,10 +26,11 @@ inline void gpu::debug_printf(const char* fmt, ...) {
 }
 
 uint32_t gpu::get_status() {
-	uint32_t status = 0;
-
+	uint32_t status = 0b01011110100000000000000000000000;
 	status |= page_base_x << 0;
 	status |= page_base_y << 3;
+	status |= texture_disable << 15;
+	status |= interlace << 31;
 
 	return status;
 }
@@ -269,6 +270,7 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 4;
 			break;
 		}
+		case 0x26:
 		case 0x24: { // Textured three-point polygon, opaque, texture-blending
 			fifo[0] = command;
 			cmd_length++;
@@ -343,19 +345,21 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 11;
 			break;
 		}
-		case 0x41:
+		//case 0x41:
 		case 0x40: { // Monochrome line, opaque
 			fifo[0] = command;
 			cmd_length++;
 			cmd_left = 2;
 			break;
 		}
+		case 0x3B:
 		case 0x3A: { // Shaded four-point polygon, semi-transparent
 			fifo[0] = command;
 			cmd_length++;
 			cmd_left = 7;
 			break;
 		}
+		case 0x4c:
 		case 0x58:
 		case 0x42:
 		case 0x48: { // Monochrome Poly-line, opaque
@@ -364,6 +368,12 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_length++;
 			cmd_left = 1;
 			gp0_mode = 2;
+			break;
+		}
+		case 0x52: { // Shaded line, semi-transparent
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 3;
 			break;
 		}
 		case 0x60: { // Monochrome Rectangle (variable size) (opaque)
@@ -415,6 +425,7 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 1;
 			break;
 		}
+		case 0x76:
 		case 0x74: { // Textured Rectangle, 8x8, opaque, texture-blending
 			fifo[0] = command;
 			cmd_length++;
@@ -480,6 +491,8 @@ void gpu::execute_gp0(uint32_t command) {
 			dithering = ((command >> 9) & 1) != 0;
 			allow_display_drawing = ((command >> 10) & 1) != 0;
 			texpage_raw = command & 0xffff;
+			texture_disable = (command & (1 << 11));
+			
 			// rectangle x flip
 			// rectangle y flip
 			break;
@@ -550,6 +563,7 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x20: SwitchToUntextured(); gpu::draw_untextured_tri(MONOCHROME, SOLID); break;
 				case 0x23:
 				case 0x22: SwitchToUntextured(); gpu::draw_untextured_tri(MONOCHROME, SEMI_TRANSPARENT); break;
+				case 0x26:
 				case 0x24: SwitchToTextured(); gpu::texture_blending_three_point_opaque_polygon(); break;
 				case 0x29:
 				case 0x28: SwitchToUntextured(); gpu::draw_untextured_quad(MONOCHROME, SOLID); break;
@@ -565,11 +579,13 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x36:
 				case 0x34: SwitchToTextured();   gpu::shaded_texture_blending_three_point_opaque_polygon(); break;
 				case 0x38: SwitchToUntextured(); gpu::draw_untextured_quad(GOURAUD, SOLID); break;
+				case 0x3B:
 				case 0x3A: SwitchToUntextured(); gpu::draw_untextured_quad(GOURAUD, SEMI_TRANSPARENT); break;
 				case 0x3C: SwitchToTextured();   gpu::shaded_texture_blending_textured_four_point_opaque_polygon(); break;
 				case 0x3E: SwitchToTextured();   gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon(); break;
 				case 0x41:
 				case 0x40: gpu::monochrome_line_opaque(); break;
+				case 0x52: SwitchToUntextured(); gpu::shaded_line_semi_transparent(); break;
 				case 0x60: SwitchToUntextured(); gpu::monochrome_rectangle_variable_size_opaque(); break;
 				case 0x63:
 				case 0x62: SwitchToUntextured(); gpu::monochrome_rectangle_variable_size_semi_transparent(); break;
@@ -579,6 +595,7 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x67: SwitchToTextured();   gpu::textured_rectangle_variable_size_semi_transparent(); break;
 				case 0x68: SwitchToUntextured(); gpu::monochrome_rectangle_dot_opaque(); break;
 				case 0x70: SwitchToUntextured(); gpu::monochrome_rectangle_8x8_opaque(); break;
+				case 0x76:
 				case 0x74: SwitchToTextured();   gpu::texture_blending_rectangle_8x8_opaque(); break;
 				case 0x75: SwitchToTextured();   gpu::texture_rectangle_8x8_opaque(); break;
 				case 0x78: SwitchToUntextured(); gpu::monochrome_rectangle_16x16_opaque(); break;
@@ -627,10 +644,11 @@ void gpu::execute_gp0(uint32_t command) {
 				cmd_length = 0;
 				gp0_mode = 0;
 				cmd_left = 0;
+				for (int i = 0; i < 12; i++) fifo[i] = 0;
 				return;
 			}
 			cmd_left += 2;
-			fifo[cmd_length++] = command;
+			//fifo[cmd_length++] = command;
 			break;
 		}
 		}
@@ -1336,15 +1354,43 @@ void gpu::shaded_texture_blending_textured_four_point_semi_transparent_polygon()
 
 void gpu::monochrome_line_opaque() {
 	point v1, v2;
-	v1.c = fifo[0] & 0xffffff;
-	v2.c = fifo[0] & 0xffffff;
+	uint32_t colour = fifo[0] & 0xffffff;
 	v1.x = fifo[1] & 0xffff;
 	v1.y = fifo[1] >> 16;
 	v2.x = fifo[2] & 0xffff;
 	v2.y = fifo[2] >> 16;
 
-	// TODO: OpenGL implementation
-	return;
+	uint32_t Vertices1[]{
+		v1.x, v1.y, 0.0,
+		v2.x, v2.y, 0.0,
+
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+		(((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),
+	};
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+	glDrawArrays(GL_LINES, 0, 2);
+}
+
+void gpu::shaded_line_semi_transparent() {
+	point v1, v2;
+	v1.c = fifo[0] & 0xffffff;
+	v2.c = fifo[2] & 0xffffff;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	v2.x = fifo[3] & 0xffff;
+	v2.y = fifo[3] >> 16;
+
+
+
+	uint32_t Vertices[]{
+		v1.x, v1.y, 0.0,
+		v2.x, v2.y, 0.0,
+
+		(((v1.c) >> 0) & 0xff), (((v1.c) >> 8) & 0xff), (((v1.c) >> 16) & 0xff),
+		(((v2.c) >> 0) & 0xff), (((v2.c) >> 8) & 0xff), (((v2.c) >> 16) & 0xff),
+	};
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+	glDrawArrays(GL_LINES, 0, 2);
 }
 
 void gpu::monochrome_polyline_opaque() {
@@ -2234,10 +2280,10 @@ void gpu::vram_to_vram() {
 	auto dest_x = dest_coords & 0x3ff;
 	auto dest_y = (dest_coords >> 16) & 0x1ff;
 
-	glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
+	//glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
 
 	glBindTexture(GL_TEXTURE_2D, VramTexture);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, dest_x, dest_y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
+	//glTexSubImage2D(GL_TEXTURE_2D, 0, dest_x, dest_y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
 }
 
 void gpu::cpu_to_vram() {
@@ -2252,7 +2298,7 @@ void gpu::cpu_to_vram() {
 	size += 1;
 	size &= ~1;
 	cmd_left = size / 2;
-	//cmd_left++;
+	cmd_left++;
 	gp0_mode = 1;
 }
 

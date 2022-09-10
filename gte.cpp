@@ -181,7 +181,12 @@ uint32_t gte::readCop2d(uint32_t reg) {
 
 	case 15: // SXYP returns SXY2
 		return cop2d.raw[14];
-	
+	case 29:
+		return (saturate(IR1 >> 7, 0, 0x1f) << 0) | (saturate(IR2 >> 7, 0, 0x1f) << 5) | (saturate(IR3 >> 7, 0, 0x1f) << 10);
+
+	case 31:
+		return __lzcnt(((int32_t)LZCS < 0) ? ~LZCS : LZCS);
+
 	default:
 		return cop2d.r[reg].d;
 	}
@@ -208,9 +213,14 @@ void gte::writeCop2d(uint32_t reg, uint32_t value) {
 		break;
 	}
 	case 28: {
+		cop2d.r[28].d = value;
 		IR1 = (value & 0x1f) << 7;
 		IR2 = (value & 0x3e0) << 2;
 		IR3 = (value & 0x7c00) >> 3;
+		break;
+	}
+	case 30: {
+		LZCS = value;
 		break;
 	}
 	default:

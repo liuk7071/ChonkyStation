@@ -190,13 +190,13 @@ void cpu::do_dma() {
 					uint8_t r = bus.MDEC.output[bus.MDEC.dma_out_index + 0] >> 3;
 					uint8_t g = bus.MDEC.output[bus.MDEC.dma_out_index + 1] >> 3;
 					uint8_t b = bus.MDEC.output[bus.MDEC.dma_out_index + 2] >> 3;
-					uint16_t rgb = (b << 10) | (g << 5) | r;
+					uint16_t rgb = ((bus.MDEC.status & (1 << 23)) >> 8) | (b << 10) | (g << 5) | r;
 					bus.mem.write16(current_addr, rgb);
 					bus.MDEC.dma_out_index += 3;
 					r = bus.MDEC.output[bus.MDEC.dma_out_index + 0] >> 3;
 					g = bus.MDEC.output[bus.MDEC.dma_out_index + 1] >> 3;
 					b = bus.MDEC.output[bus.MDEC.dma_out_index + 2] >> 3;
-					rgb = (b << 10) | (g << 5) | r;
+					rgb = ((bus.MDEC.status & (1 << 23)) >> 8) | (b << 10) | (g << 5) | r;
 					bus.mem.write16(current_addr + 2, rgb);
 					if (incrementing) addr += 4; else addr -= 4;
 					bus.MDEC.dma_out_index += 3;

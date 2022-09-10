@@ -6,6 +6,30 @@ pad::pad() {
 }
 
 void pad::WriteTXDATA(uint8_t data) {
+	if (receive_tap_byte) {
+		//printf("[PAD] TAP byte\n");
+		irq = true;
+		joy_stat |= 0b010;
+		receive_tap_byte = false;
+		receive_mot1 = true;
+		return;
+	}
+	if (receive_mot1) {
+		//printf("[PAD] MOT1 byte\n");
+		irq = true;
+		joy_stat |= 0b010;
+		receive_mot1 = false;
+		receive_mot2 = true;
+		return;
+	}
+	if (receive_mot2) {
+		//printf("[PAD] MOT2 byte\n");
+		irq = true;
+		joy_stat |= 0b010;
+		receive_mot2 = false;
+		return;
+	}
+
 	if (write_index == 128) {
 		write_index = 0;
 		writing_sector = false;
@@ -130,6 +154,7 @@ void pad::WriteTXDATA(uint8_t data) {
 		read_response = true;
 		if ((joy_ctrl & 0x2002) == 2) {
 			if (pad1_connected) {
+				receive_tap_byte = true;
 				if (pad1_type == "Digital") {
 					rx_data_fifo[0] = 0x41;
 					rx_data_fifo[1] = 0x5A;
@@ -155,6 +180,7 @@ void pad::WriteTXDATA(uint8_t data) {
 		}
 		else if ((joy_ctrl & 0x2002) == 0x2002) {
 			if (pad2_connected) {
+				receive_tap_byte = true;
 				if (pad2_type == "Digital") {
 					rx_data_fifo[0] = 0x41;
 					rx_data_fifo[1] = 0x5A;
@@ -179,8 +205,10 @@ void pad::WriteTXDATA(uint8_t data) {
 		}
 		break;
 	}
-	case 0x03: break;
-	case 0x44: read_response = false; break;
+	case 0xff:
+	case 0x03:
+	case 0x44:
+	case 0x4d:
 	case 0x45: { // Return 0xff and do not ack because we are emulating a digital pad for now
 		joy_stat |= 2;
 		read_response = true;
@@ -188,8 +216,6 @@ void pad::WriteTXDATA(uint8_t data) {
 		rx_data_fifo[0] = 0xff;
 		break;
 	}
-	case 0x4d: read_response = false; break;
-	case 0xff: break;
 	default:
 		printf("[PAD %d] Received unhandled command 0x%x\n", ((joy_ctrl & 0x2002) == 2) ? 1 : 2, data);
 		//exit(0);

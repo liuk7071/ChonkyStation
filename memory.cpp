@@ -220,6 +220,14 @@ uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+
+	// SIO
+	if (masked_addr == 0x1f801050) return 0;
+	if (masked_addr == 0x1f801054) return 0;
+	if (masked_addr == 0x1f801058) return 0;
+	if (masked_addr == 0x1f80105a) return 0;
+	if (masked_addr == 0x1f80105e) return 0;
+
 	if (masked_addr == 0x1f8010f6) return 0;
 
 	if (masked_addr == 0x1f7fffd2) return 0; // This shouldn't happen
@@ -389,7 +397,7 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f801814) {	// GPUSTAT
 		if (debug) debug_log("\n GPUSTAT read");
-		return 0b01011110100000000000000000000000;		// stubbing it
+		return Gpu->get_status();
 	}
 
 	if (masked_addr == 0x1f801810) { // GPUREAD
@@ -454,6 +462,16 @@ uint32_t memory::read32(uint32_t addr) {
 
 	if (masked_addr == 0x1f8010b8) 	// control
 		return Ch3.CHCR;
+
+	// channel 4
+	if (masked_addr == 0x1f8010c0) 	// base address
+		return Ch4.MADR;
+
+	if (masked_addr == 0x1f8010c4) // block control
+		return Ch4.BCR;
+
+	if (masked_addr == 0x1f8010c8) 	// control
+		return Ch4.CHCR;
 
 	// channel 6
 	if (masked_addr == 0x1f8010e0) 	// base address
@@ -655,7 +673,7 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	else if (masked_addr == 0x1f802082) // exit code register for Continuous Integration tests
 		exit(data);
 
-	printf("\nUnhandled write 0x%.8x", masked_addr);
+	printf("\nUnhandled write 0x%.8x @ 0x%08x\n", masked_addr, *pc);
 	exit(0);
 }
 
@@ -913,6 +931,12 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	}
 
 	uint32_t masked_addr = mask_address(addr);
+
+	// SIO
+	if (masked_addr == 0x1f801050) return;
+	if (masked_addr == 0x1f801058) return;
+	if (masked_addr == 0x1f80105a) return;
+	if (masked_addr == 0x1f80105e) return;
 
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Write 0x%x to I_STAT\n", data);

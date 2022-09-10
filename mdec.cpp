@@ -10,6 +10,7 @@ void mdec::command(uint32_t cmd) {
 		status |= (1 << 31);
 		switch (cmd >> 29) {
 		case 7: // For some reason SimCity 2000 sends these... if I ignore them it seems to go on normally
+		case 5:
 		case 4:
 		case 0: break;
 		case 1: {	// Decode Macroblock(s)
@@ -17,6 +18,10 @@ void mdec::command(uint32_t cmd) {
 			printf("[MDEC] Decode Macroblock(s)\n");
 			printf("[MDEC] Macroblock depth: %d\n", (cmd >> 27) & 3);
 			parameters = cmd & 0xffff;
+
+			status &= (1 << 23);
+			status |= ((cmd & (1 << 25)) >> 2); // Output bit15
+
 			input.reserve(parameters * 2);
 			break;
 		}

@@ -36,8 +36,8 @@ bool show_timer2_debugger = false;
 bool started = false;
 bool sideload = false;
 bool run = false;
-const float aspect_ratio = 640 / 480;
-const float vram_aspect_ratio = 1024 / 512;
+const float aspect_ratio = 640.f / 480.f;
+const float vram_aspect_ratio = 1024.f / 512.f;
 bool mouse_captured = false;
 
 char* game_path;
@@ -575,7 +575,7 @@ void ImGuiFrame(cpu *Cpu) {
     else {
         x = y * aspect_ratio;
     }
-    
+
     ImVec2 image_size(x, y);
     ImVec2 centered((ImGui::GetWindowSize().x - image_size.x) * 0.5, (ImGui::GetWindowSize().y - image_size.y) * 0.5);
     ImGui::SetCursorPos(centered);
@@ -752,9 +752,6 @@ void RenderVRAMViewer(cpu* Cpu) {
         x = y * vram_aspect_ratio;
     }
 
-
-    //UpdateVRAMViewer(Cpu);
-
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 image_size(x, y);
     ImVec2 centered((ImGui::GetWindowSize().x - image_size.x) * 0.5, (ImGui::GetWindowSize().y - image_size.y) * 0.5);
@@ -851,6 +848,7 @@ int main(int argc, char** argv) {
     while (!glfwWindowShouldClose(window)) {
         if (Cpu.frame_cycles >= (33868800 / 60) || !run) {
             if(run) Cpu.bus.mem.I_STAT |= 1;
+            Cpu.bus.Gpu.interlace = !Cpu.bus.Gpu.interlace;
 
             if (spuirq) {
                 //printf("[SPU] IRQ\n");
@@ -890,25 +888,74 @@ int main(int argc, char** argv) {
                     if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] < -0.5f)) {
                         P1buttons &= ~(0b0000000010000000);
                     }
-                    if (state.buttons[GLFW_GAMEPAD_BUTTON_GUIDE] == GLFW_PRESS) {
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_BACK] == GLFW_PRESS) {
                         P1buttons &= ~(0b0000000000000001);
                     }
                     if (state.buttons[GLFW_GAMEPAD_BUTTON_START] == GLFW_PRESS) {
                         printf("start\n");
                         P1buttons &= ~(0b0000000000001000);
                     }
+                    if (state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > 0.5f) {
+                        P1buttons &= ~(0b0000000100000000);
+                    }
+                    if (state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.5f) {
+                        P1buttons &= ~(0b0000001000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_LEFT_BUMPER] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0000010000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER] == GLFW_PRESS) {
+                        P1buttons &= ~(0b0000100000000000);
+                    }
                 }
             }
             if (pad2_source == "Gamepad") {
                 GLFWgamepadstate state;
                 P2buttons = 0xffff;
-                if (glfwGetGamepadState(GLFW_JOYSTICK_1, &state))
+                if (glfwGetGamepadState(GLFW_JOYSTICK_2, &state))
                 {
-                    //printf("aaa\n");
-                    if (state.buttons[GLFW_GAMEPAD_BUTTON_A] == GLFW_PRESS)
-                    {
-                        //printf("aaa\n");
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_A] == GLFW_PRESS) {
                         P2buttons &= ~(0b0100000000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_X] == GLFW_PRESS) {
+                        P2buttons &= ~(0b1000000000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_B] == GLFW_PRESS) {
+                        P2buttons &= ~(0b0010000000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_Y] == GLFW_PRESS) {
+                        P2buttons &= ~(0b0001000000000000);
+                    }
+                    if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_UP] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] < -0.5f)) {
+                        P2buttons &= ~(0b0000000000010000);
+                    }
+                    if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_RIGHT] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] > 0.5f)) {
+                        P2buttons &= ~(0b0000000000100000);
+                    }
+                    if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_DOWN] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] > 0.5f)) {
+                        P2buttons &= ~(0b0000000001000000);
+                    }
+                    if ((state.buttons[GLFW_GAMEPAD_BUTTON_DPAD_LEFT] == GLFW_PRESS) || (state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] < -0.5f)) {
+                        P2buttons &= ~(0b0000000010000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_BACK] == GLFW_PRESS) {
+                        P2buttons &= ~(0b0000000000000001);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_START] == GLFW_PRESS) {
+                        printf("start\n");
+                        P2buttons &= ~(0b0000000000001000);
+                    }
+                    if (state.axes[GLFW_GAMEPAD_AXIS_LEFT_TRIGGER] > 0.5f) {
+                        P2buttons &= ~(0b0000000100000000);
+                    }
+                    if (state.axes[GLFW_GAMEPAD_AXIS_RIGHT_TRIGGER] > 0.5f) {
+                        P2buttons &= ~(0b0000001000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_LEFT_BUMPER] == GLFW_PRESS) {
+                        P2buttons &= ~(0b0000010000000000);
+                    }
+                    if (state.buttons[GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER] == GLFW_PRESS) {
+                        P2buttons &= ~(0b0000100000000000);
                     }
                 }
             }

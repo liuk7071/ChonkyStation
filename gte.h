@@ -61,6 +61,9 @@
 #define MAC2 (cop2d.r[26].sd)
 #define MAC3 (cop2d.r[27].sd)
 
+#define LZCS (cop2d.r[30].d)
+#define LZCR (cop2d.r[31].d)
+
 
 #define RT11 (cop2c.r[0].sw.l)
 #define RT12 (cop2c.r[0].sw.h)
@@ -260,13 +263,11 @@ public:
 	
 	// Helpers
 	static uint32_t countLeadingZeros16(uint16_t value) {
-		// Use a 32-bit CLZ as it's what's most commonly available and Clang/GCC fail to optimize 16-bit CLZ
 		int count = __lzcnt(value);
 		return count - 16;
 	}
 	static uint32_t gte_divide(uint16_t numerator, uint16_t denominator) {
 		if (numerator >= denominator * 2) {  // Division overflow
-			//FLAG |= (1 << 31) | (1 << 17);
 			return 0x1ffff;
 		}
 

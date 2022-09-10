@@ -17,6 +17,9 @@ public:
 	int bytes_read = 0;
 	int response_length = 0;
 	bool read_response = false;
+	bool receive_tap_byte = false;
+	bool receive_mot1 = false;
+	bool receive_mot2 = false;
 	uint8_t ReadRXFIFO();
 	uint16_t joy_stat = 0b101;
 	uint16_t joy_mode = 0;

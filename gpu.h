@@ -154,7 +154,7 @@ public:
 	uint16_t* vram = new uint16_t[1024 * 512];
 	//std::vector<uint32_t> WriteBuffer;
 	uint32_t* WriteBuffer = new uint32_t[(1024 * 512)];
-	uint32_t* ReadBuffer = new uint32_t[(1024 * 512) / 2];
+	uint32_t* ReadBuffer = new uint32_t[(1024 * 512)];
 	int WriteBufferCnt = 0;
 	int ReadBufferCnt = 0;
 	uint32_t* vram8 = new uint32_t[1024 * 512];
@@ -212,6 +212,7 @@ public:
 	uint8_t video_mode = 0;
 	uint8_t dma_direction = 0;
 	uint16_t texpage_raw = 0;
+	bool interlace = false;
 
 	uint32_t get_status();
 
@@ -231,6 +232,7 @@ public:	// commands
 
 	void texture_blending_three_point_opaque_polygon();
 	void monochrome_line_opaque();
+	void shaded_line_semi_transparent();
 	void monochrome_polyline_opaque();
 	void texture_blending_four_point_opaque_polygon();
 	void texture_four_point_opaque_polygon();
