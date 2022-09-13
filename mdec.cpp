@@ -109,6 +109,7 @@ void mdec::decode_macroblock_15bpp() {
 		yuv_to_rgb(8, 8, y4);
 		//printf("[MDEC] Decoded macroblock\n");
 		output_index += 256 * 3;
+		output_index = (output_index > 0x4fffff) ? (0x4fffff - 3) : output_index; // Quick way to avoiding overflowing... shouldn't ever happen but it does
 	}
 	output_index = 0;
 	status &= ~(1 << 31);

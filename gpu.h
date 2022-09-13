@@ -231,6 +231,7 @@ public:	// commands
 	void draw_untextured_quad(int shading, int transparency);
 
 	void texture_blending_three_point_opaque_polygon();
+	void texture_three_point_opaque_polygon();
 	void monochrome_line_opaque();
 	void shaded_line_semi_transparent();
 	void monochrome_polyline_opaque();

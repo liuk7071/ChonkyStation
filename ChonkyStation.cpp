@@ -850,9 +850,9 @@ int main(int argc, char** argv) {
             if(run) Cpu.bus.mem.I_STAT |= 1;
             Cpu.bus.Gpu.interlace = !Cpu.bus.Gpu.interlace;
 
+            Cpu.bus.mem.I_STAT |= (1 << 9);
             if (spuirq) {
                 //printf("[SPU] IRQ\n");
-                Cpu.bus.mem.I_STAT |= (1 << 9);
                 //spuirq = false;
             }
             if (padirq) {

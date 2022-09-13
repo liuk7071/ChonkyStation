@@ -609,6 +609,7 @@ void gte::commandSQR() {
 }
 
 void gte::commandDPCT() {
+	//printf("DPCT\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 	for (int i = 0; i < 3; i++) {
@@ -770,6 +771,7 @@ void gte::commandRTPT() {
 }
 
 void gte::commandGPF() {
+	//printf("GPF\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 
@@ -781,6 +783,7 @@ void gte::commandGPF() {
 }
 
 void gte::commandGPL() {
+	//printf("GPL\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 	MAC1 <<= shift;

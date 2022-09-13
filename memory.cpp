@@ -106,20 +106,10 @@ uint8_t memory::read(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
-	if (masked_addr == 0x1f8010f6) return 0;
+	// SPU
+	if (masked_addr >= 0x1f801c00 && (masked_addr <= 0x1f801d7f)) return 0;
 
-	if (masked_addr == 0xf1000001) {
-		return 0;
-	}
-	if (masked_addr == 0xf1000002) {
-		return 0;
-	}
-	if (masked_addr == 0xf1000003) {
-		return 0;
-	}
-	if (masked_addr >= 0xf1000004 && masked_addr <= 0xf10000ff) {
-		return 0;
-	}
+	if (masked_addr == 0x1f8010f6) return 0;
 
 	if (masked_addr == 0x1F801070) { // I_STAT
 		debug_log("[IRQ] Status 8bit read\n");
@@ -234,6 +224,7 @@ uint16_t memory::read16(uint32_t addr) {
 	if (masked_addr == 0x1f7fffd0) return 0; // This shouldn't happen
 
 	// SPU stuff
+	if (masked_addr >= 0x1f801c00 && (masked_addr <= 0x1f801d7f)) return 0;
 	if (masked_addr == 0x1f801d08) return 0;
 	if (masked_addr == 0x1f801d0a) return 0;
 	if (masked_addr == 0x1f801d18) return 0;
@@ -361,8 +352,8 @@ uint32_t memory::read32(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
-	if (masked_addr == 0x02000008) return 0;
-	if (masked_addr == 0x02000004) return 0;
+	// SPU
+	if (masked_addr >= 0x1f801c00 && (masked_addr <= 0x1f801d7f)) return 0;
 
 	// Timer 1 counter mode
 	if (masked_addr == 0x1f801114) {
@@ -931,6 +922,9 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	}
 
 	uint32_t masked_addr = mask_address(addr);
+
+	// SPU stuff
+	if (masked_addr >= 0x1f801c00 && (masked_addr <= 0x1f801d7f)) return;
 
 	// SIO
 	if (masked_addr == 0x1f801050) return;

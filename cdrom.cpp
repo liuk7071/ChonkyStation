@@ -364,7 +364,7 @@ void cdrom::Stop() {
 	queued_response_length = 1;
 
 	Scheduler.push(&INT3, Scheduler.time + 50401, this);
-	Scheduler.push(&INT2, Scheduler.time + 35000, this);
+	Scheduler.push(&INT2, Scheduler.time + 50401 + 35000, this);
 
 	status |= 0b00100000;	// Set response fifo empty bit (means it's full)
 }

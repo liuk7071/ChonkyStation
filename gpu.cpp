@@ -277,6 +277,12 @@ void gpu::execute_gp0(uint32_t command) {
 			cmd_left = 6;
 			break;
 		}
+		case 0x25: { // Textured three-point polygon, opaque, raw-texture
+			fifo[0] = command;
+			cmd_length++;
+			cmd_left = 6;
+			break;
+		}
 		case 0x2B:
 		case 0x2A: { // Monochrome four-point polygon, semi-transparent
 			fifo[0] = command;
@@ -564,7 +570,8 @@ void gpu::execute_gp0(uint32_t command) {
 				case 0x23:
 				case 0x22: SwitchToUntextured(); gpu::draw_untextured_tri(MONOCHROME, SEMI_TRANSPARENT); break;
 				case 0x26:
-				case 0x24: SwitchToTextured(); gpu::texture_blending_three_point_opaque_polygon(); break;
+				case 0x24: SwitchToTextured();   gpu::texture_blending_three_point_opaque_polygon(); break;
+				case 0x25: SwitchToTextured();   gpu::texture_three_point_opaque_polygon(); break;
 				case 0x29:
 				case 0x28: SwitchToUntextured(); gpu::draw_untextured_quad(MONOCHROME, SOLID); break;
 				case 0x2B:
@@ -910,6 +917,58 @@ void gpu::texture_blending_three_point_opaque_polygon() {
 		 v1.x,  v1.y, 0,      (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t1.x, t1.y,  texpageX, texpageY, clutX, clutY, colourDepth,
 		 v2.x,  v2.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t2.x, t2.y,  texpageX, texpageY, clutX, clutY, colourDepth,
 		 v3.x,  v3.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t3.x, t3.y,  texpageX, texpageY, clutX, clutY, colourDepth
+		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
+	};
+
+	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices1), Vertices1, GL_STATIC_DRAW);
+
+	glUniform1i(colourDepthUniform, colourDepth);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+}
+
+void gpu::texture_three_point_opaque_polygon() {
+	uint32_t colour = fifo[0] & 0xffffff;
+	debug_printf("[GP0] Textured three-point polygon, opaque, raw-texture (colour: 0x%x)\n", colour);
+	point v1, v2, v3, v4;
+	uint16_t texpage = 0;
+	uint16_t clut = 0;
+	v1.x = fifo[1] & 0xffff;
+	v1.y = fifo[1] >> 16;
+	clut = fifo[2] >> 16;
+	//printf("\nclut: 0x%x\n", clut);
+	uint32_t clutX = (clut & 0x3f);
+	clutX *= 16;
+	uint32_t clutY = (clut >> 6);
+
+	texpage = fifo[4] >> 16;
+	//printf("texpage: 0x%x\n", texpage);
+	uint32_t texpageX = ((texpage & 0b1111) * 64);
+	uint32_t texpageY = (((texpage & 0b10000) >> 4) * 256);
+	v2.x = fifo[3] & 0xffff;
+	v2.y = fifo[3] >> 16;
+	v3.x = fifo[5] & 0xffff;
+	v3.y = fifo[5] >> 16;
+	v4.x = fifo[7] & 0xffff;
+	v4.y = fifo[7] >> 16;
+
+	point t1, t2, t3, t4;
+	t1.x = (fifo[2] & 0xffff) & 0xff;
+	t1.y = ((fifo[2] & 0xffff) >> 8) & 0xff;
+	t2.x = (fifo[4] & 0xffff) & 0xff;
+	t2.y = ((fifo[4] & 0xffff) >> 8) & 0xff;
+	t3.x = (fifo[6] & 0xffff) & 0xff;
+	t3.y = ((fifo[6] & 0xffff) >> 8) & 0xff;
+	t4.x = (fifo[8] & 0xffff) & 0xff;
+	t4.y = ((fifo[8] & 0xffff) >> 8) & 0xff;
+	int colourDepth = (texpage >> 7) & 3;
+
+	uint32_t Vertices1[] = {
+		// positions          // colors																		   // texture coords
+		 v1.x,  v1.y, 0,      128, 128, 128,   t1.x, t1.y,  texpageX, texpageY, clutX, clutY, colourDepth,
+		 v2.x,  v2.y, 0.0f,   128, 128, 128,   t2.x, t2.y,  texpageX, texpageY, clutX, clutY, colourDepth,
+		 v3.x,  v3.y, 0.0f,   128, 128, 128,   t3.x, t3.y,  texpageX, texpageY, clutX, clutY, colourDepth
 		 //v4.x,  v4.y, 0.0f,   (((colour) >> 0) & 0xff), (((colour) >> 8) & 0xff), (((colour) >> 16) & 0xff),   t4.x, t4.y   // top left 
 	};
 
@@ -2280,10 +2339,10 @@ void gpu::vram_to_vram() {
 	auto dest_x = dest_coords & 0x3ff;
 	auto dest_y = (dest_coords >> 16) & 0x1ff;
 
-	//glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
+	glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
 
 	glBindTexture(GL_TEXTURE_2D, VramTexture);
-	//glTexSubImage2D(GL_TEXTURE_2D, 0, dest_x, dest_y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, dest_x, dest_y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
 }
 
 void gpu::cpu_to_vram() {
