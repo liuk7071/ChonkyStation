@@ -31,6 +31,7 @@ cpu::cpu(std::string rom_directory, std::string bios_directory, bool running_in_
 	bus.mem.logwnd = &log;
 	bus.mem.regs = regs;
 	bus.mem.pc = &pc;
+	bus.mem.frame_cycles = &frame_cycles;
 	bus.mem.shouldCheckDMA = &shouldCheckDMA;
 
 	// tests
@@ -130,17 +131,108 @@ template<int channel>
 void cpu::do_dma() {
 	//debug = true;
 	switch (channel) {		// switch on the channels
+	case 0: { // MDECin
+		auto sync_mode = (bus.mem.Ch0.CHCR >> 9) & 0b11;
+		bool incrementing = ((bus.mem.Ch0.CHCR >> 1) & 1) == 0;
+		auto direction = (bus.mem.Ch0.CHCR) & 1;
+		uint16_t words = (bus.mem.Ch0.BCR) & 0xffff;
+		uint32_t addr = bus.mem.Ch0.MADR & 0x1ffffc;
+		switch (sync_mode) {
+		case 1: {	// Block Copy
+			words *= (bus.mem.Ch0.BCR >> 16);
+			debug_log("[DMA] Start MDECin Block Copy\n");
+			switch (direction) {
+			case 1:
+				debug_log("[DMA] Transfer direction: ram to device\n");
+				debug_log("[DMA] Transfer size: %d words\n", words);
+				while (words > 0) {
+					uint32_t current_addr = addr & 0x1ffffc;
+					uint32_t data = bus.mem.read32(current_addr);
+					bus.MDEC.command(data);
+					if (incrementing) addr += 4; else addr -= 4;
+					words--;
+				}
+				bus.mem.Ch0.CHCR &= ~(1 << 24);
+				bus.mem.Ch0.CHCR &= ~(1 << 28);
+				if (((bus.mem.DICR >> 16) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+					bus.mem.DICR |= (1 << 24);
+					bus.mem.I_STAT |= 0b1000;
+				}
+				return;
+			default:
+				printf("[DMA] Unhandled Direction (GPU Block Copy)");
+				exit(0);
+			}
+		}
+		default:
+			printf("[DMA] Unhandled sync mode %d (MDEC)", sync_mode);
+			exit(0);
+		}
+		break;
+	}
+	case 1: { // MDECout
+		auto sync_mode = (bus.mem.Ch1.CHCR >> 9) & 0b11;
+		bool incrementing = ((bus.mem.Ch1.CHCR >> 1) & 1) == 0;
+		auto direction = (bus.mem.Ch1.CHCR) & 1;
+		uint16_t words = (bus.mem.Ch1.BCR) & 0xffff;
+		uint32_t addr = bus.mem.Ch1.MADR & 0x1ffffc;
+		switch (sync_mode) {
+		case 1: {	// Block Copy
+			words *= (bus.mem.Ch1.BCR >> 16);
+			debug_log("[DMA] Start MDECout Block Copy\n");
+			switch (direction) {
+			case 0: {
+				debug_log("[DMA] Transfer direction: device to ram\n");
+				debug_log("[DMA] Transfer size: %d words\n", words);
+				while (words > 0) {
+					uint32_t current_addr = addr & 0x1ffffc;
+
+					uint8_t r = bus.MDEC.output[(bus.MDEC.dma_out_index + 0) & 0x4fffff] >> 3;
+					uint8_t g = bus.MDEC.output[(bus.MDEC.dma_out_index + 1) & 0x4fffff] >> 3;
+					uint8_t b = bus.MDEC.output[(bus.MDEC.dma_out_index + 2) & 0x4fffff] >> 3;
+					uint16_t rgb = ((bus.MDEC.status & (1 << 23)) >> 8) | (b << 10) | (g << 5) | r;
+					bus.mem.write16(current_addr, rgb);
+					bus.MDEC.dma_out_index += 3;
+					r = bus.MDEC.output[(bus.MDEC.dma_out_index + 0) & 0x4fffff] >> 3;
+					g = bus.MDEC.output[(bus.MDEC.dma_out_index + 1) & 0x4fffff] >> 3;
+					b = bus.MDEC.output[(bus.MDEC.dma_out_index + 2) & 0x4fffff] >> 3;
+					rgb = ((bus.MDEC.status & (1 << 23)) >> 8) | (b << 10) | (g << 5) | r;
+					bus.mem.write16(current_addr + 2, rgb);
+					if (incrementing) addr += 4; else addr -= 4;
+					bus.MDEC.dma_out_index += 3;
+					words--;
+				}
+				bus.mem.Ch1.CHCR &= ~(1 << 24);
+				bus.mem.Ch1.CHCR &= ~(1 << 28);
+				if (((bus.mem.DICR >> 17) & 1) && ((bus.mem.DICR >> 23) & 1)) {
+					bus.mem.DICR |= (1 << 25);
+					bus.mem.I_STAT |= 0b1000;
+				}
+				return;
+			}
+			default:
+				printf("[DMA] Unhandled Direction (DMAout Block Copy)");
+				exit(0);
+			}
+		}
+		default:
+			printf("[DMA] Unhandled sync mode %d (MDEC)", sync_mode);
+			exit(0);
+		}
+		break;
+	}
 	case 2: {	// GPU
 		auto sync_mode = (bus.mem.Ch2.CHCR >> 9) & 0b11;
 		bool incrementing = ((bus.mem.Ch2.CHCR >> 1) & 1) == 0;
 		auto direction = (bus.mem.Ch2.CHCR) & 1;
 		uint16_t words = (bus.mem.Ch2.BCR) & 0xffff;
+		if (words == 0) words = 0x10000;
 		uint32_t addr = bus.mem.Ch2.MADR & 0x1ffffc;
 		uint32_t header = bus.mem.read32(addr);
 
 		switch (sync_mode) {
 		case 1: {	// Block Copy
-			words *= (bus.mem.Ch2.BCR >> 16);
+			words *= ((bus.mem.Ch2.BCR >> 16) != 0) ? (bus.mem.Ch2.BCR >> 16) : 0x10000;
 			debug_log("[DMA] Start GPU Block Copy\n");
 			switch (direction) {
 			case 1:
@@ -153,6 +245,7 @@ void cpu::do_dma() {
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
 				}
+				bus.mem.Ch2.BCR &= 0xffff; // SyncMode=1 decrements BA to zero
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				bus.mem.Ch2.CHCR &= ~(1 << 28);
 				//debug = false;
@@ -171,6 +264,7 @@ void cpu::do_dma() {
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
 				}
+				bus.mem.Ch2.BCR &= 0xffff; // SyncMode=1 decrements BA to zero
 				bus.mem.Ch2.CHCR &= ~(1 << 24);
 				bus.mem.Ch2.CHCR &= ~(1 << 28);
 				//debug = false;
@@ -179,7 +273,6 @@ void cpu::do_dma() {
 					bus.mem.I_STAT |= 0b1000;
 					//should_service_dma_irq = true;
 				}
-				return;
 				return;
 			default:
 				printf("[DMA] Unhandled Direction (GPU Block Copy)");
@@ -253,8 +346,8 @@ void cpu::do_dma() {
 					if (incrementing) addr += 4; else addr -= 4;
 					words--;
 				}
+				if (bus.mem.Ch3.CHCR & (1 << 8)) bus.mem.Ch3.BCR &= ~0xffff; // SyncMode=0 with chopping enabled decrements BC to zero
 				printf("[DMA] CDROM Block Copy completed (pc = 0x%08x)\n", pc);
-				bus.mem.CDROM.status &= ~(0b10000000); // DRQSTS
 				bus.mem.Ch3.CHCR &= ~(1 << 24);
 				bus.mem.Ch3.CHCR &= ~(1 << 28);
 				//debug = false;
@@ -321,6 +414,7 @@ void cpu::do_dma() {
 				if (((bus.mem.DICR >> 20) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 					bus.mem.DICR |= (1 << 28);
 					bus.mem.I_STAT |= 0b1000;
+					//bus.mem.I_STAT |= (1 << 9);
 				}
 				return;
 			case 0:
@@ -348,6 +442,7 @@ void cpu::do_dma() {
 				if (((bus.mem.DICR >> 20) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 					bus.mem.DICR |= (1 << 28);
 					bus.mem.I_STAT |= 0b1000;
+					//bus.mem.I_STAT |= (1 << 9);
 				}
 				return;
 			default:
@@ -430,13 +525,7 @@ void cpu::check_dma() {
 
 	auto triggered = !(sync_mode == 0 && !trigger);
 	if (enabled && triggered) {
-		// Don't have a MDEC, fake a DMA IRQ
-		bus.mem.Ch0.CHCR &= ~(1 << 24);
-		bus.mem.Ch0.CHCR &= ~(1 << 28);
-		if (((bus.mem.DICR >> 16) & 1) && ((bus.mem.DICR >> 23) & 1)) {
-			bus.mem.DICR |= (1 << 24);
-			bus.mem.I_STAT |= 0b1000;
-		}
+		do_dma<0>();
 	}
 
 	enabled = ((bus.mem.Ch1.CHCR >> 24) & 1) == 1;
@@ -445,13 +534,7 @@ void cpu::check_dma() {
 
 	triggered = !(sync_mode == 0 && !trigger);
 	if (enabled && triggered) {
-		// Don't have a MDEC, fake a DMA IRQ
-		bus.mem.Ch1.CHCR &= ~(1 << 24);
-		bus.mem.Ch1.CHCR &= ~(1 << 28);
-		if (((bus.mem.DICR >> 17) & 1) && ((bus.mem.DICR >> 23) & 1)) {
-			bus.mem.DICR |= (1 << 25);
-			bus.mem.I_STAT |= 0b1000;
-		}
+		do_dma<1>();
 	}
 
 	enabled = ((bus.mem.Ch2.CHCR >> 24) & 1) == 1;

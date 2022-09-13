@@ -6,20 +6,20 @@
 #include "CD.h"
 #include "scheduler.h"
 
+#define INT1_DELAY ((33868800 / 75) / (DoubleSpeed ? 2 : 1))
+
 class cdrom
 {
 public:
 	cdrom();
 	scheduler Scheduler;
 	bool irq = false;
-	int delay = 1; // the INT delay in cycles
 public: // fifo
 	uint8_t fifo[16];
 	uint8_t queued_fifo[16]; // queued response
 	int cmd_length = 0;
 	int response_length = 0; // last command's response length
 	int queued_response_length = 0; // queued response's length
-	int queued_delay = 1; // queued INT's delay in cycles
 	uint8_t get_stat(); // get status byte
 	void push(uint8_t data);
 public:
@@ -40,18 +40,10 @@ public:
 	static void INT2(void* dataptr);
 	static void INT3(void* dataptr);
 	static void INT5(void* dataptr);
-	bool INT = false; // true if there are INTs to acknowledge
-	bool queued_INT1 = false;
-	bool queued_INT2 = false;
-	bool queued_INT3 = false;
-	bool queued_INT5 = false; // true if an INT5 is queued
-	bool queued_read = false; // true if a read is queued. ReadN/S should keep reading sectors until a Pause command is sent
-	bool delayed_INT1 = false;
-	bool delayed_INT2 = false;
-	bool delayed_INT3 = false; // INT3 should be delayed
+
 	bool reading = false;
-	void delayedINT();
-	//void sendQueuedINT();
+	bool cancel_int1 = false;
+
 	// commands
 	void test();
 	void GetStat();

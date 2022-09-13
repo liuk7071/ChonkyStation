@@ -181,7 +181,12 @@ uint32_t gte::readCop2d(uint32_t reg) {
 
 	case 15: // SXYP returns SXY2
 		return cop2d.raw[14];
-	
+	case 29:
+		return (saturate(IR1 >> 7, 0, 0x1f) << 0) | (saturate(IR2 >> 7, 0, 0x1f) << 5) | (saturate(IR3 >> 7, 0, 0x1f) << 10);
+
+	case 31:
+		return __lzcnt(((int32_t)LZCS < 0) ? ~LZCS : LZCS);
+
 	default:
 		return cop2d.r[reg].d;
 	}
@@ -208,9 +213,14 @@ void gte::writeCop2d(uint32_t reg, uint32_t value) {
 		break;
 	}
 	case 28: {
+		cop2d.r[28].d = value;
 		IR1 = (value & 0x1f) << 7;
 		IR2 = (value & 0x3e0) << 2;
 		IR3 = (value & 0x7c00) >> 3;
+		break;
+	}
+	case 30: {
+		LZCS = value;
 		break;
 	}
 	default:
@@ -369,9 +379,9 @@ void gte::commandMVMVA() {
 	const int m = this->m(instruction);
 	const int v = this->v(instruction);
 	const int cv = this->cv(instruction);
-	MAC1 = int64_t(((int64_t)tx(cv, 0) * 0x1000) + ((int16_t)mx(m, 11) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 12) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 13) * (int16_t)vx(v, 2))) >> shift;
-	MAC2 = int64_t(((int64_t)tx(cv, 1) * 0x1000) + ((int16_t)mx(m, 21) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 22) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 23) * (int16_t)vx(v, 2))) >> shift;
-	MAC3 = int64_t(((int64_t)tx(cv, 2) * 0x1000) + ((int16_t)mx(m, 31) * (int16_t)vx(v, 0)) + ((int16_t)mx(m, 32) * (int16_t)vx(v, 1)) + ((int16_t)mx(m, 33) * (int16_t)vx(v, 2))) >> shift;
+	MAC1 = int64_t((tx(cv, 0) * 0x1000) + (mx(m, 11) * vx(v, 0)) + (mx(m, 12) * vx(v, 1)) + (mx(m, 13) * vx(v, 2))) >> shift;
+	MAC2 = int64_t((tx(cv, 1) * 0x1000) + (mx(m, 21) * vx(v, 0)) + (mx(m, 22) * vx(v, 1)) + (mx(m, 23) * vx(v, 2))) >> shift;
+	MAC3 = int64_t((tx(cv, 2) * 0x1000) + (mx(m, 31) * vx(v, 0)) + (mx(m, 32) * vx(v, 1)) + (mx(m, 33) * vx(v, 2))) >> shift;
 	setIRFromMAC(lm);
 }
 
@@ -599,6 +609,7 @@ void gte::commandSQR() {
 }
 
 void gte::commandDPCT() {
+	//printf("DPCT\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 	for (int i = 0; i < 3; i++) {
@@ -760,6 +771,7 @@ void gte::commandRTPT() {
 }
 
 void gte::commandGPF() {
+	//printf("GPF\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 
@@ -771,6 +783,7 @@ void gte::commandGPF() {
 }
 
 void gte::commandGPL() {
+	//printf("GPL\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 	MAC1 <<= shift;

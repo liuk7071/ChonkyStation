@@ -29,6 +29,7 @@ public:
 		R"(
 		#version 330 core
 		layout (location = 0) in ivec3 pos;
+		uniform vec3 offset;
 		layout (location = 1) in vec3 colour;
 		layout (location = 2) in uint texpage;
 		layout (location = 3) in uint clut;
@@ -36,8 +37,7 @@ public:
 		layout (location = 5) in uint texture_enable;
 		out vec4 frag_colour;
 		void main() {
-			//pos += vec3(0.5, 0.5, 0.0);
-			gl_Position = vec4(float(pos.x + 0.5) / 512 - 1, -(1 - float(pos.y + 0.5) / 256), 0.0, 1.0);
+			gl_Position = vec4(float(pos.x + offset.x + 0.5) / 512 - 1, -(1 - float(pos.y + offset.y + 0.5) / 256), 0.0, 1.0);
 			frag_colour = vec4(float(colour.r) / 255, float(colour.g) / 255, float(colour.b) / 255, 1.f);
 		}
 		)";
@@ -53,20 +53,21 @@ public:
 	const GLchar* TextureVertexShaderSource =
 		R"(
 		#version 330 core
-		layout (location = 0) in vec3 aPos;
-		layout (location = 1) in vec3 aColor;
+		layout (location = 0) in vec3 pos;
+		uniform vec3 offset;
+		layout (location = 1) in vec3 Colour;
 		layout (location = 2) in vec2 aTexCoord;
 		layout (location = 3) in vec2 aTexpageCoords;
 		layout (location = 4) in vec2 aClut;
-		out vec3 ourColor;
+		out vec3 VertexColour;
 		out vec2 TexCoord;
 		flat out vec2 texpageCoords;
 		flat out vec2 clut;
 		uniform int colourDepth;
 		void main()
 		{
-			gl_Position = vec4(float(aPos.x) / 512 - 1, -(1 - float(aPos.y) / 256), 0.0, 1.0);
-			ourColor = aColor;
+			gl_Position = vec4(float(pos.x + offset.x) / 512 - 1, -(1 - float(pos.y + offset.y) / 256), 0.0, 1.0);
+			VertexColour = Colour;
 			TexCoord = aTexCoord;
 			texpageCoords = aTexpageCoords;
 			clut = aClut;
@@ -76,7 +77,7 @@ public:
 		R"(
 		#version 430 core
 		out vec4 FragColor;
-		in vec3 ourColor;
+		in vec3 VertexColour;
 		in vec2 TexCoord;
 		flat in vec2 texpageCoords;
 		flat in vec2 clut;
@@ -107,7 +108,8 @@ public:
 		}
 		void main()
 		{
-			ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
+			ivec2 TexCoord_ = ivec2(floor(TexCoord)) & ivec2(0xff);
+			ivec2 UV = (ivec2(TexCoord_) & texWindow.xy) | texWindow.zw;
 			vec4 colour;
 			if(colourDepth == 0) {
 				colour = fetchTexel4Bit(UV);
@@ -120,6 +122,7 @@ public:
 				colour = texture(vram, TexCoords);
 			} else colour = vec4(1.f, 0.f, 0.f, 1.f);
 			if(colour.rgb == vec3(0.f, 0.f, 0.f)) discard;
+			colour = (colour * vec4(VertexColour.rgb, 1.f)) / 128.f;
 			colour.a = 1.f;
 			FragColor = colour;
 		}
@@ -144,10 +147,14 @@ public:
 	gpu();
 	void InitGL();
 	void ClearScreen();
+	void SetOpenGLState();
+	void SwitchToTextured();
+	void SwitchToUntextured();
+	bool DrawingTextured = false;
 	uint16_t* vram = new uint16_t[1024 * 512];
 	//std::vector<uint32_t> WriteBuffer;
 	uint32_t* WriteBuffer = new uint32_t[(1024 * 512)];
-	uint32_t* ReadBuffer = new uint32_t[(1024 * 512) / 2];
+	uint32_t* ReadBuffer = new uint32_t[(1024 * 512)];
 	int WriteBufferCnt = 0;
 	int ReadBufferCnt = 0;
 	uint32_t* vram8 = new uint32_t[1024 * 512];
@@ -205,6 +212,7 @@ public:
 	uint8_t video_mode = 0;
 	uint8_t dma_direction = 0;
 	uint16_t texpage_raw = 0;
+	bool interlace = false;
 
 	uint32_t get_status();
 
@@ -222,7 +230,10 @@ public:	// commands
 	void draw_untextured_tri(int shading, int transparency);
 	void draw_untextured_quad(int shading, int transparency);
 
+	void texture_blending_three_point_opaque_polygon();
+	void texture_three_point_opaque_polygon();
 	void monochrome_line_opaque();
+	void shaded_line_semi_transparent();
 	void monochrome_polyline_opaque();
 	void texture_blending_four_point_opaque_polygon();
 	void texture_four_point_opaque_polygon();
@@ -244,6 +255,7 @@ public:	// commands
 	void texture_rectangle_16x16_semi_transparent();
 	void monochrome_rectangle_dot_opaque();
 	void monochrome_rectangle_8x8_opaque();
+	void monochrome_rectangle_16x16_opaque();
 	void fill_rectangle();
 	void vram_to_vram();
 	void cpu_to_vram();

@@ -22,7 +22,6 @@ void scheduler::push(void (*ptr)(void*), uint64_t time, void* classptr, const ch
 
 void scheduler::tick(uint64_t cycles) {
 	time += cycles;
-
 	int executed = 0;
 	for (int i = 0; i < scheduled; i++) {
 		if (time >= events.top().time) {

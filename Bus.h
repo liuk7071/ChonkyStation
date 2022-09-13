@@ -3,6 +3,7 @@
 #include <array>
 #include "memory.h"
 #include "gpu.h"
+#include "mdec.h"
 
 class Bus
 {
@@ -12,8 +13,6 @@ public:
 public:
 	gpu Gpu = gpu();
 	memory mem = memory();
-	
-public:
-
+	mdec MDEC;
 };
 

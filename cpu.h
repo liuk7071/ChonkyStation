@@ -10,7 +10,7 @@
 
 #define log_cpu
 #define log_kernel_tty
-#undef log_cpu
+//#undef log_cpu
 
 class cpu
 {

@@ -1,7 +1,7 @@
 
 		#version 430 core
 		out vec4 FragColor;
-		in vec3 ourColor;
+		in vec3 VertexColour;
 		in vec2 TexCoord;
 		flat in vec2 texpageCoords;
 		flat in vec2 clut;
@@ -32,7 +32,8 @@
 		}
 		void main()
 		{
-			ivec2 UV = (ivec2(TexCoord) & texWindow.xy) | texWindow.zw;
+			ivec2 TexCoord_ = ivec2(floor(TexCoord)) & ivec2(0xff);
+			ivec2 UV = (ivec2(TexCoord_) & texWindow.xy) | texWindow.zw;
 			vec4 colour;
 			if(colourDepth == 0) {
 				colour = fetchTexel4Bit(UV);
@@ -45,6 +46,7 @@
 				colour = texture(vram, TexCoords);
 			} else colour = vec4(1.f, 0.f, 0.f, 1.f);
 			if(colour.rgb == vec3(0.f, 0.f, 0.f)) discard;
+			colour = (colour * vec4(VertexColour.rgb, 1.f)) / 128.f;
 			colour.a = 1.f;
 			FragColor = colour;
 		}

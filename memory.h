@@ -9,6 +9,7 @@
 #include "logwindow.h"
 #include "pad.h"
 #include "gpu.h"
+#include "mdec.h"
 
 class memory
 {
@@ -23,6 +24,7 @@ public:
 	~memory();
 
 	gpu* Gpu;
+	mdec* MDEC;
 
 	uint32_t button_dest = 0;
 
@@ -35,6 +37,7 @@ public:
 	uint32_t adler32bios = 0;
 
 	uint32_t* pc;
+	int* frame_cycles;
 	uint32_t* regs;
 	bool* shouldCheckDMA;
 	uint8_t* ram = new uint8_t[0x200000];

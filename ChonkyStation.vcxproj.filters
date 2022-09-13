@@ -180,6 +180,9 @@
     <ClCompile Include="zep\src\mcommon\string\stringutils.cpp">
       <Filter>File di origine\zep</Filter>
     </ClCompile>
+    <ClCompile Include="mdec.cpp">
+      <Filter>File di origine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bus.h">
@@ -292,6 +295,9 @@
     </ClInclude>
     <ClInclude Include="zep\include\zep\syntax.h">
       <Filter>File di intestazione\zep</Filter>
+    </ClInclude>
+    <ClInclude Include="mdec.h">
+      <Filter>File di intestazione</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
