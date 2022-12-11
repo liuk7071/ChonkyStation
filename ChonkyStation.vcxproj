@@ -240,6 +240,7 @@
     <ClInclude Include="mdec.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="pad.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="scheduler.h" />
     <ClInclude Include="Shader Editor\shader-editor.h" />
     <ClInclude Include="Shader Editor\ZepEditor.h" />
@@ -258,6 +259,13 @@
     <ClInclude Include="zep\include\zep\tab_window.h" />
     <ClInclude Include="zep\include\zep\theme.h" />
     <ClInclude Include="zep\include\zep\window.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ChonkyStation.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\..\..\Downloads\icon.ico" />
+    <Image Include="..\..\..\Downloads\icon2.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

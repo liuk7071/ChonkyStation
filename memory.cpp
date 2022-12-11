@@ -430,7 +430,7 @@ uint32_t memory::read32(uint32_t addr) {
 	}
 
 	if (masked_addr == 0x1f801098) {	// control
-		printf("[DMA] Read DMA1 (mdec -> ram) control\n");
+		printf("[DMA] Read DMA1 (mdec -> ram) control @ 0x%08x\n", *pc);
 		return Ch1.CHCR;
 	}
 
@@ -1080,13 +1080,13 @@ uint32_t adler32(unsigned char* data, size_t len) {
 
 void memory::loadBios(std::string directory) {
 	bios = readBinary(directory);
-	adler32bios = adler32(bios.data(), 0x80000);
 	//printf("bios hash: 0x%x\n", adler32bios);
 
 	if (bios.size() != 512 * 1024) {
 		printf("Can't handle BIOSes that are not 512 KiB yet\n");
 		exit(-1);
 	}
+	adler32bios = adler32(bios.data(), 0x80000);
 
 	// Map BIOS to page table as read-only
 	constexpr size_t pageSize = 64 * 1024;

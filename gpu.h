@@ -194,6 +194,7 @@ public:
 	uint16_t y2 = 0;
 	void update_hres();
 	void update_vres();
+	int frame_counter = 0;
 
 	// GPUSTAT
 	uint8_t page_base_x = 0;

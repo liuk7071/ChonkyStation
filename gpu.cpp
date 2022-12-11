@@ -697,6 +697,7 @@ void gpu::execute_gp1(uint32_t command) {
 		break;
 	}
 	case 0x5: { // Start of Display area
+		frame_counter++;
 		display_area.origin.x = command & 0x3ff;
 		display_area.origin.y = (command >> 10) & 0x1ff;
 		update_hres();
@@ -2339,10 +2340,10 @@ void gpu::vram_to_vram() {
 	auto dest_x = dest_coords & 0x3ff;
 	auto dest_y = (dest_coords >> 16) & 0x1ff;
 
-	glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
+	//glReadPixels(x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
 
 	glBindTexture(GL_TEXTURE_2D, VramTexture);
-	glTexSubImage2D(GL_TEXTURE_2D, 0, dest_x, dest_y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
+	//glTexSubImage2D(GL_TEXTURE_2D, 0, dest_x, dest_y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, ReadBuffer);
 }
 
 void gpu::cpu_to_vram() {

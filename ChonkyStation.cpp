@@ -1037,7 +1037,8 @@ int main(int argc, char** argv) {
             double currTime = glfwGetTime();
             if (currTime - prevTime >= 1.0) {
                 std::stringstream title;
-                title << "ChonkyStation " << "[" << frameCount << " FPS]";
+                title << "ChonkyStation " << "[" << frameCount << " Emulator FPS | " << Cpu.bus.Gpu.frame_counter << " Game FPS]";
+                Cpu.bus.Gpu.frame_counter = 0;
                 glfwSetWindowTitle(window, title.str().c_str());
                 frameCount = 0;
                 prevTime = currTime;

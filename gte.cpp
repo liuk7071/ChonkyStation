@@ -181,6 +181,7 @@ uint32_t gte::readCop2d(uint32_t reg) {
 
 	case 15: // SXYP returns SXY2
 		return cop2d.raw[14];
+	case 28:
 	case 29:
 		return (saturate(IR1 >> 7, 0, 0x1f) << 0) | (saturate(IR2 >> 7, 0, 0x1f) << 5) | (saturate(IR3 >> 7, 0, 0x1f) << 10);
 
@@ -240,7 +241,14 @@ void gte::writeCop2c(uint32_t reg, uint32_t value) {
 	case 30:
 		cop2c.r[reg].d = (int32_t)(int16_t)value;
 		break;
-	case 31: cop2c.r[reg].d = value & 0x7ffff000; break;
+	case 31: {
+		uint32_t val = value & 0x7ffff000;
+		if ((val & 0x7f87e000) != 0) {
+			val |= 0x80000000;
+		}
+		cop2c.r[reg].d = val;
+		break;
+	}
 	default:
 		cop2c.r[reg].d = value;
 		break;
@@ -500,6 +508,7 @@ void gte::commandNCDT() {
 }
 
 void gte::commandNCCS() {
+	//printf("nccs\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = this->lm(instruction);
 	MAC1 = int32_t((int64_t)((int16_t)L11 * (int16_t)VX0) + (int64_t)((int16_t)L12 * (int16_t)VY0) + (int64_t)((int16_t)L13 * (int16_t)VZ0)) >> shift;
