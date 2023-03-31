@@ -10,6 +10,7 @@
 #include "pad.h"
 #include "gpu.h"
 #include "mdec.h"
+#include "spu.h"
 
 class memory
 {
@@ -23,6 +24,7 @@ public:
 	memory();
 	~memory();
 
+	spu* Spu;
 	gpu* Gpu;
 	mdec* MDEC;
 
@@ -41,7 +43,7 @@ public:
 	uint32_t* regs;
 	bool* shouldCheckDMA;
 	uint8_t* ram = new uint8_t[0x200000];
-	uint8_t* spu_ram = new uint8_t[0x80000];
+	//uint8_t* spu_ram = new uint8_t[0x80000];
 	uint8_t* scratchpad = new uint8_t[1024];
 	uint8_t* exp1 = new uint8_t[1024000];
 	uint8_t* exp2 = new uint8_t[8000];

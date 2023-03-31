@@ -160,7 +160,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
       <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -187,6 +187,7 @@
     <ClCompile Include="scheduler.cpp" />
     <ClCompile Include="Shader Editor\shader-editor.cc" />
     <ClCompile Include="Shader Editor\ZepEditor.cc" />
+    <ClCompile Include="spu.cpp" />
     <ClCompile Include="TinyFileDialogs\tinyfiledialogs.c" />
     <ClCompile Include="zep\src\buffer.cpp" />
     <ClCompile Include="zep\src\commands.cpp" />
@@ -244,6 +245,7 @@
     <ClInclude Include="scheduler.h" />
     <ClInclude Include="Shader Editor\shader-editor.h" />
     <ClInclude Include="Shader Editor\ZepEditor.h" />
+    <ClInclude Include="spu.h" />
     <ClInclude Include="tests.h" />
     <ClInclude Include="TinyFileDialogs\tinyfiledialogs.h" />
     <ClInclude Include="xbyak\xbyak.h" />

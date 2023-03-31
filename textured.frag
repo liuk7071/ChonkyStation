@@ -13,7 +13,7 @@
 			return int(floor(f * 31.0 + 0.5));
 		}
 		int sample16(ivec2 coords) {
-			vec4 colour = texelFetch(vram, coords, 0);
+			vec4 colour = texelFetch(vram, coords * 6, 0);
 			int r = floatToU5(colour.r);
 			int g = floatToU5(colour.g);
 			int b = floatToU5(colour.b);
@@ -23,17 +23,18 @@
 		vec4 fetchTexel4Bit(ivec2 coords) {
 			int texel = sample16(ivec2(coords.x / 4, coords.y) + ivec2(texpageCoords));
 			int idx = (texel >> ((coords.x % 4) * 4)) & 0xf;
-			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
+			return texelFetch(vram, ivec2(clut.x + idx, clut.y) * 6, 0);
 		}
 		vec4 fetchTexel8Bit(ivec2 coords) {
 			int texel = sample16(ivec2(coords.x / 2, coords.y) + ivec2(texpageCoords));
 			int idx = (texel >> ((coords.x % 2) * 8)) & 0xff;
-			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
+			return texelFetch(vram, ivec2(clut.x + idx, clut.y) * 6, 0);
 		}
 		void main()
 		{
 			ivec2 TexCoord_ = ivec2(floor(TexCoord)) & ivec2(0xff);
-			ivec2 UV = (ivec2(TexCoord_) & texWindow.xy) | texWindow.zw;
+			ivec4 new_texWindow = texWindow * 6;
+			ivec2 UV = (ivec2(TexCoord_) & new_texWindow.xy) | new_texWindow.zw;
 			vec4 colour;
 			if(colourDepth == 0) {
 				colour = fetchTexel4Bit(UV);

@@ -385,7 +385,7 @@ void cpu::do_dma() {
 		case 1: {			// block dma
 			debug_log("[DMA] Start SPU Block Copy (stubbed)\n");
 			uint32_t current_addr = addr & 0x1ffffc;
-			uint32_t spu_addr = bus.mem.spu_ram_transfer_address * 8;
+			uint32_t spu_addr = bus.mem.Spu->data_transfer_addr * 8;
 			switch (direction) {
 			case 1:
 				debug_log("[DMA] Transfer direction: ram to device\n");
@@ -398,10 +398,10 @@ void cpu::do_dma() {
 					uint32_t word = bus.mem.read32(current_addr);
 					uint16_t halfword1 = (word >> 16);
 					uint16_t halfword2 = (word & 0xffff);
-					bus.mem.spu_ram[spu_addr + 0] = (halfword1 >> 8);
-					bus.mem.spu_ram[spu_addr + 1] = (halfword1 & 0xff);
-					bus.mem.spu_ram[spu_addr + 2] = (halfword2 >> 8);
-					bus.mem.spu_ram[spu_addr + 3] = (halfword2 & 0xff);
+					bus.mem.Spu->spu_ram[spu_addr + 1] = (halfword1 >> 8);
+					bus.mem.Spu->spu_ram[spu_addr + 0] = (halfword1 & 0xff);
+					bus.mem.Spu->spu_ram[spu_addr + 3] = (halfword2 >> 8);
+					bus.mem.Spu->spu_ram[spu_addr + 2] = (halfword2 & 0xff);
 
 					spu_addr += 4;
 					if (incrementing) addr += 4; else addr -= 4;
@@ -414,7 +414,7 @@ void cpu::do_dma() {
 				if (((bus.mem.DICR >> 20) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 					bus.mem.DICR |= (1 << 28);
 					bus.mem.I_STAT |= 0b1000;
-					//bus.mem.I_STAT |= (1 << 9);
+					bus.mem.I_STAT |= (1 << 9);
 				}
 				return;
 			case 0:
@@ -425,10 +425,10 @@ void cpu::do_dma() {
 					current_addr = addr & 0x1ffffc;
 					spu_addr &= 0x7ffff;
 
-					uint8_t b1 = bus.mem.spu_ram[spu_addr + 0];
-					uint8_t b2 = bus.mem.spu_ram[spu_addr + 1];
-					uint8_t b3 = bus.mem.spu_ram[spu_addr + 2];
-					uint8_t b4 = bus.mem.spu_ram[spu_addr + 3];
+					uint8_t b1 = bus.mem.Spu->spu_ram[spu_addr + 0];
+					uint8_t b2 = bus.mem.Spu->spu_ram[spu_addr + 1];
+					uint8_t b3 = bus.mem.Spu->spu_ram[spu_addr + 2];
+					uint8_t b4 = bus.mem.Spu->spu_ram[spu_addr + 3];
 					uint32_t word = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
 					bus.mem.write32(current_addr, word);
 
@@ -442,7 +442,7 @@ void cpu::do_dma() {
 				if (((bus.mem.DICR >> 20) & 1) && ((bus.mem.DICR >> 23) & 1)) {
 					bus.mem.DICR |= (1 << 28);
 					bus.mem.I_STAT |= 0b1000;
-					//bus.mem.I_STAT |= (1 << 9);
+					bus.mem.I_STAT |= (1 << 9);
 				}
 				return;
 			default:
@@ -1252,6 +1252,7 @@ void cpu::step() {
 #endif
 	execute(instr);
 	frame_cycles += 2;
+	bus.mem.Spu->step(2);
 
 	auto clock_source = (bus.mem.tmr1.counter_mode >> 8) & 3;
 	auto reset_counter = (bus.mem.tmr1.counter_mode >> 3) & 1;

@@ -11,12 +11,12 @@
 #define VX0 (cop2d.r[0].sw.l)
 #define VY0 (cop2d.r[0].sw.h)
 #define VZ0 (cop2d.r[1].sw.l)
-#define VX1 (cop2d.r[2].w.l)
-#define VY1 (cop2d.r[2].w.h)
-#define VZ1 (cop2d.r[3].w.l)
-#define VX2 (cop2d.r[4].w.l)
-#define VY2 (cop2d.r[4].w.h)
-#define VZ2 (cop2d.r[5].w.l)
+#define VX1 (cop2d.r[2].sw.l)
+#define VY1 (cop2d.r[2].sw.h)
+#define VZ1 (cop2d.r[3].sw.l)
+#define VX2 (cop2d.r[4].sw.l)
+#define VY2 (cop2d.r[4].sw.h)
+#define VZ2 (cop2d.r[5].sw.l)
 
 #define RGBC cop2d.raw[6]
 #define R (cop2d.r[6].b.l)

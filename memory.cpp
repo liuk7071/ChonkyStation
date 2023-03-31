@@ -210,6 +210,9 @@ uint16_t memory::read16(uint32_t addr) {
 	uint32_t bytes;
 	uint32_t masked_addr = mask_address(addr);
 
+	if (masked_addr >= 0x1f801c00 && (masked_addr <= 0x1f801fff)) {
+		return Spu->read(masked_addr);
+	}
 
 	// SIO
 	if (masked_addr == 0x1f801050) return 0;
@@ -359,6 +362,11 @@ uint32_t memory::read32(uint32_t addr) {
 	if (masked_addr == 0x1f801114) {
 		//printf("[TIMER] Read timer 1 counter mode (stubbed)\n");
 		return tmr1.counter_mode;
+	}
+
+	if (masked_addr == 0x1f801120) {
+		//printf("[TIMER] Read timer 2 current value (stubbed)\n");
+		return tmr2.current_value;
 	}
 
 	if (masked_addr == 0x1f801014) return 0;
@@ -524,6 +532,13 @@ uint32_t memory::read32(uint32_t addr) {
 		return 0xffffffff;
 	}
 
+	// controller
+	if (masked_addr == 0x1f801040) {	// JOY_RX_DATA
+		uint8_t data = pads.ReadRXFIFO();
+		//printf("[PAD] Read JOY_RX_DATA (0x%x)\n", data);
+		return data;
+	}
+
 	if (masked_addr == 0x1f801000) return 0; // Expansion 1 Base Address
 	if (masked_addr == 0x1f801004) return 0; // Expansion 2 Base Address
 	if (masked_addr == 0x1f801008) return 0; // Expansion 1 Delay/Size
@@ -664,6 +679,9 @@ void memory::write(uint32_t addr, uint8_t data, bool log) {
 	else if (masked_addr == 0x1f802082) // exit code register for Continuous Integration tests
 		exit(data);
 
+	else if (masked_addr == 0x1f801041) return;	// Unknown?
+	else if (masked_addr == 0x1f801042) return;	// Unknown?
+	else if (masked_addr == 0x1f801043) return;	// Unknown?
 	printf("\nUnhandled write 0x%.8x @ 0x%08x\n", masked_addr, *pc);
 	exit(0);
 }
@@ -678,6 +696,11 @@ void memory::write32(uint32_t addr, uint32_t data) {
 	}
 
 	uint32_t masked_addr = mask_address(addr);
+
+	if (masked_addr >= 0x1f801c00 && (masked_addr <= 0x1f801fff)) {
+		Spu->write(masked_addr, data);
+		return;
+	}
 
 	if (masked_addr == 0x1f802084) {	// Openbios stuff
 		return;
@@ -922,6 +945,11 @@ void memory::write16(uint32_t addr, uint16_t data) {
 	}
 
 	uint32_t masked_addr = mask_address(addr);
+
+	if (masked_addr >= 0x1f801c00 && (masked_addr <= 0x1f801fff)) {
+		Spu->write(masked_addr, data);
+		return;
+	}
 
 	// SPU stuff
 	if (masked_addr >= 0x1f801c00 && (masked_addr <= 0x1f801d7f)) return;

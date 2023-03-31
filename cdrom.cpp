@@ -40,6 +40,7 @@ void cdrom::execute(uint8_t command) {
 	case 0x08: Stop(); break;
 	case 0x09: Pause(); break;
 	case 0x0A: init(); break;
+	case 0x0B: Mute(); break;
 	case 0x0C: Demute(); break;
 	case 0x0D: SetFilter(); break;
 	case 0x0E: Setmode(); break;
@@ -48,6 +49,7 @@ void cdrom::execute(uint8_t command) {
 	case 0x13: GetTN(); break;
 	case 0x14: GetTD(); break;
 	case 0x15: SeekL(); break;
+	case 0x16: SeekP(); break;
 	case 0x19: test(); break;
 	case 0x1A: GetID(); break;
 	case 0x1B: ReadS(); break;
@@ -308,8 +310,24 @@ void cdrom::Play() {
 	status |= 0b00100000;
 }
 void cdrom::SeekL() {	// Seek to the seek target (SetLoc)
+	//if (reading) cancel_int1 = true;
+	//reading = false;
 	status |= 0b00001000;
 	debug_log("[CDROM] SeekL\n");
+	response_fifo[0] = 0x42;
+	response_length = 1;
+	queued_fifo[0] = get_stat();
+	queued_response_length = 1;
+	status |= 0b00100000;
+
+	Scheduler.push(&INT3, Scheduler.time + 50401, this);
+	Scheduler.push(&INT2, Scheduler.time + 200000, this);
+}
+void cdrom::SeekP() {	// Seek to Setloc's location in audio mode (currently just the same as SeekL)
+	if (reading) cancel_int1 = true;
+	reading = false;
+	status |= 0b00001000;
+	debug_log("[CDROM] SeekP\n");
 	response_fifo[0] = 0x42;
 	response_length = 1;
 	queued_fifo[0] = get_stat();
@@ -395,6 +413,13 @@ void cdrom::init() {
 	Scheduler.push(&INT2, Scheduler.time + 40000, this);
 
 	status |= 0b00100000;
+}
+void cdrom::Mute() {
+	debug_log("[CDROM] Mute\n");
+	response_fifo[0] = get_stat();
+	response_length = 1;
+	status |= 0b00100000;
+	Scheduler.push(&INT3, Scheduler.time + 50401, this);
 }
 void cdrom::Demute() {
 	debug_log("[CDROM] Demute\n");

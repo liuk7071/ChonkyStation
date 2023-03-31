@@ -297,31 +297,33 @@ void gte::commandRTPS() {
 	//printf("rtps\n");
 	const int lm = 0;
 	const int shift = sf(instruction) * 12;
-	MAC1 = int64_t(((int64_t)(int32_t)(TRX) * 0x1000) + ((int16_t)RT11 * (int16_t)VX0) + ((int16_t)RT12 * (int16_t)VY0) + ((int16_t)RT13 * (int16_t)VZ0)) >> shift;
-	MAC2 = int64_t(((int64_t)(int32_t)(TRY) * 0x1000) + ((int16_t)RT21 * (int16_t)VX0) + ((int16_t)RT22 * (int16_t)VY0) + ((int16_t)RT23 * (int16_t)VZ0)) >> shift;
-	MAC3 = int64_t(((int64_t)(int32_t)(TRZ) * 0x1000) + ((int16_t)RT31 * (int16_t)VX0) + ((int16_t)RT32 * (int16_t)VY0) + ((int16_t)RT33 * (int16_t)VZ0)) >> shift;
-	setIRFromMAC(lm);
-	auto newZ = int32_t(MAC3) >> ((1 - sf(instruction)) * 12);
-	pushZ(newZ);
+	MAC1 = (int32_t)(((((int64_t)TRX << 12) + (int64_t)RT11 * VX0) + (int64_t)RT12 * VY0) + (int64_t)RT13 * VZ0) >> shift;
+	MAC2 = (int32_t)(((((int64_t)TRY << 12) + (int64_t)RT21 * VX0) + (int64_t)RT22 * VY0) + (int64_t)RT23 * VZ0) >> shift;
+	int64_t mac3 = (int32_t)(((((int64_t)TRZ << 12) + (int64_t)RT31 * VX0) + (int64_t)RT32 * VY0) + (int64_t)RT33 * VZ0);
+	//MAC1 = int64_t(((int64_t)TRX << 12) + ((int64_t)RT11 * (int16_t)VX0) + ((int64_t)RT12 * (int16_t)VY0) + ((int64_t)RT13 * (int16_t)VZ0)) >> shift;
+	//MAC2 = int64_t(((int64_t)TRY << 12) + ((int64_t)RT21 * (int16_t)VX0) + ((int64_t)RT22 * (int16_t)VY0) + ((int64_t)RT23 * (int16_t)VZ0)) >> shift;
+	//int64_t mac3 = int64_t(((int64_t)TRZ << 12) + ((int64_t)RT31 * (int16_t)VX0) + ((int64_t)RT32 * (int16_t)VY0) + ((int64_t)RT33 * (int16_t)VZ0));
+	MAC3 = (int32_t)mac3 >> shift;
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(mac3 >> 12, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	auto newZ = (mac3 >> 12);
+	pushZ(saturate(newZ, 0, 0xffff));
 
 	SXY0 = SXY1;
 	SXY1 = SXY2;
-	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	//int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
-	int64_t proj_factor = gte_divide(H, SZ3);
-	//int64_t proj_factor = (int64_t)(_proj_factor);
-	int64_t _x = (int64_t)(int16_t)(IR1);
-	int64_t _y = (int64_t)(int16_t)(IR2);
-	int32_t x = ((IR1 * proj_factor) + OFX);
-	int32_t y = ((IR2 * proj_factor) + OFY);
+
+	int32_t proj_factor = gte_divide(H, SZ3);
+	int64_t _x = (int64_t)IR1;
+	int64_t _y = (int64_t)IR2;
+	int32_t x = ((_x * proj_factor) + OFX);
+	int32_t y = ((_y * proj_factor) + OFY);
 	x = saturate((x >> 16), -0x400, 0x3ff);
 	y = saturate((y >> 16), -0x400, 0x3ff);
 
 	SX2 = x;
 	SY2 = y;
-	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR1)) + OFX; SETSX2(((int32_t)(MAC0)) / 0x10000);
-	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
-	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
+
 	int64_t depth = ((int64_t)DQB + ((int64_t)DQA * proj_factor));
 	MAC0 = depth;
 	IR0 = saturate((depth >> 12), 0, 0x1000);
@@ -687,93 +689,86 @@ void gte::commandRTPT() {
 	//printf("rtpt\n");
 	const int shift = sf(instruction) * 12;
 	const int lm = 0;
-	MAC1 = int64_t(((int64_t)(int32_t)(TRX) * 0x1000) + ((int16_t)RT11 * (int16_t)VX0) + ((int16_t)RT12 * (int16_t)VY0) + ((int16_t)RT13 * (int16_t)VZ0)) >> shift;
-	MAC2 = int64_t(((int64_t)(int32_t)(TRY) * 0x1000) + ((int16_t)RT21 * (int16_t)VX0) + ((int16_t)RT22 * (int16_t)VY0) + ((int16_t)RT23 * (int16_t)VZ0)) >> shift;
-	MAC3 = int64_t(((int64_t)(int32_t)(TRZ) * 0x1000) + ((int16_t)RT31 * (int16_t)VX0) + ((int16_t)RT32 * (int16_t)VY0) + ((int16_t)RT33 * (int16_t)VZ0)) >> shift;
-	setIRFromMAC(lm);
-	auto newZ = int32_t(MAC3) >> ((1 - sf(instruction)) * 12);
-	pushZ(newZ);
+	MAC1 = (int32_t)(((((int64_t)TRX << 12) + (int64_t)RT11 * VX0) + (int64_t)RT12 * VY0) + (int64_t)RT13 * VZ0) >> shift;
+	MAC2 = (int32_t)(((((int64_t)TRY << 12) + (int64_t)RT21 * VX0) + (int64_t)RT22 * VY0) + (int64_t)RT23 * VZ0) >> shift;
+	int64_t mac3 = (int32_t)(((((int64_t)TRZ << 12) + (int64_t)RT31 * VX0) + (int64_t)RT32 * VY0) + (int64_t)RT33 * VZ0);
+	//MAC1 = int64_t(((int64_t)TRX << 12) + ((int64_t)RT11 * (int16_t)VX0) + ((int64_t)RT12 * (int16_t)VY0) + ((int64_t)RT13 * (int16_t)VZ0)) >> shift;
+	//MAC2 = int64_t(((int64_t)TRY << 12) + ((int64_t)RT21 * (int16_t)VX0) + ((int64_t)RT22 * (int16_t)VY0) + ((int64_t)RT23 * (int16_t)VZ0)) >> shift;
+	//int64_t mac3 = int64_t(((int64_t)TRZ << 12) + ((int64_t)RT31 * (int16_t)VX0) + ((int64_t)RT32 * (int16_t)VY0) + ((int64_t)RT33 * (int16_t)VZ0));
+	MAC3 = (int32_t)mac3 >> shift;
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(mac3 >> 12, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	auto newZ = (int32_t)(mac3 >> 12);
+	pushZ(saturate(newZ, 0, 0xffff));
 
 	SXY0 = SXY1;
 	SXY1 = SXY2;
-	//uint32_t _proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	//int32_t _proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
+
 	int32_t proj_factor = gte_divide(H, SZ3);
-	//int64_t proj_factor = (int64_t)(_proj_factor);
-	int64_t _x = (int64_t)(int16_t)(IR1);
-	int64_t _y = (int64_t)(int16_t)(IR2);
-	int32_t x = ((IR1 * proj_factor) + OFX);
-	int32_t y = ((IR2 * proj_factor) + OFY);
+	int64_t _x = (int64_t)IR1;
+	int64_t _y = (int64_t)IR2;
+	int32_t x = ((_x * proj_factor) + OFX);
+	int32_t y = ((_y * proj_factor) + OFY);
 	x = saturate((x >> 16), -0x400, 0x3ff);
 	y = saturate((y >> 16), -0x400, 0x3ff);
 
 	SX2 = x;
 	SY2 = y;
 
-	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR1)) + OFX; SETSX2(((int32_t)(MAC0)) / 0x10000);
-	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
-	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
-	/*int64_t depth = ((int64_t)DQB + ((int64_t)DQA * proj_factor));
-	MAC0 = (int32_t)(depth);
-	depth >>= 12;
-	IR0 = (int16_t)(depth);*/
-
-
-	MAC1 = int64_t(((int64_t)(int32_t)(TRX) * 0x1000) + ((int16_t)RT11 * (int16_t)VX1) + ((int16_t)RT12 * (int16_t)VY1) + ((int16_t)RT13 * (int16_t)VZ1)) >> shift;
-	MAC2 = int64_t(((int64_t)(int32_t)(TRY) * 0x1000) + ((int16_t)RT21 * (int16_t)VX1) + ((int16_t)RT22 * (int16_t)VY1) + ((int16_t)RT23 * (int16_t)VZ1)) >> shift;
-	MAC3 = int64_t(((int64_t)(int32_t)(TRZ) * 0x1000) + ((int16_t)RT31 * (int16_t)VX1) + ((int16_t)RT32 * (int16_t)VY1) + ((int16_t)RT33 * (int16_t)VZ1)) >> shift;
-	setIRFromMAC(lm);
-	newZ = int32_t(MAC3) >> ((1 - sf(instruction)) * 12);
-	pushZ(newZ);
+	MAC1 = (int32_t)(((((int64_t)TRX << 12) + (int64_t)RT11 * VX1) + (int64_t)RT12 * VY1) + (int64_t)RT13 * VZ1) >> shift;
+	MAC2 = (int32_t)(((((int64_t)TRY << 12) + (int64_t)RT21 * VX1) + (int64_t)RT22 * VY1) + (int64_t)RT23 * VZ1) >> shift;
+	mac3 = (int32_t)(((((int64_t)TRZ << 12) + (int64_t)RT31 * VX1) + (int64_t)RT32 * VY1) + (int64_t)RT33 * VZ1);
+	//MAC1 = int64_t(((int64_t)TRX << 12) + ((int64_t)RT11 * (int16_t)VX1) + ((int64_t)RT12 * (int16_t)VY1) + ((int64_t)RT13 * (int16_t)VZ1)) >> shift;
+	//MAC2 = int64_t(((int64_t)TRY << 12) + ((int64_t)RT21 * (int16_t)VX1) + ((int64_t)RT22 * (int16_t)VY1) + ((int64_t)RT23 * (int16_t)VZ1)) >> shift;
+	//mac3 = int64_t(((int64_t)TRZ << 12) + ((int64_t)RT31 * (int16_t)VX1) + ((int64_t)RT32 * (int16_t)VY1) + ((int64_t)RT33 * (int16_t)VZ1));
+	MAC3 = (int32_t)mac3 >> shift;
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(mac3 >> 12, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	newZ = (int32_t)(mac3 >> 12);
+	pushZ(saturate(newZ, 0, 0xffff));
 
 	SXY0 = SXY1;
 	SXY1 = SXY2;
-	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	//_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
+
 	proj_factor = gte_divide(H, SZ3);
-	//proj_factor = (int64_t)(_proj_factor);
-	_x = (int64_t)(int16_t)(IR1);
-	_y = (int64_t)(int16_t)(IR2);
-	x = ((IR1 * proj_factor) + OFX);
-	y = ((IR2 * proj_factor) + OFY);
+	_x = (int64_t)IR1;
+	_y = (int64_t)IR2;
+	x = ((_x * proj_factor) + OFX);
+	y = ((_y * proj_factor) + OFY);
 	x = saturate((x >> 16), -0x400, 0x3ff);
 	y = saturate((y >> 16), -0x400, 0x3ff);
 
 	SX2 = x;
 	SY2 = y;
-	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR1)) + OFX; SETSX2(((int32_t)(MAC0)) / 0x10000);
-	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
-	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
-	/*depth = ((int64_t)DQB + ((int64_t)DQA * proj_factor));
-	MAC0 = (int32_t)(depth);
-	depth >>= 12;
-	IR0 = (int16_t)(depth);*/
 
-	MAC1 = int64_t(((int64_t)(int32_t)(TRX) * 0x1000) + ((int16_t)RT11 * (int16_t)VX2) + ((int16_t)RT12 * (int16_t)VY2) + ((int16_t)RT13 * (int16_t)VZ2)) >> shift;
-	MAC2 = int64_t(((int64_t)(int32_t)(TRY) * 0x1000) + ((int16_t)RT21 * (int16_t)VX2) + ((int16_t)RT22 * (int16_t)VY2) + ((int16_t)RT23 * (int16_t)VZ2)) >> shift;
-	MAC3 = int64_t(((int64_t)(int32_t)(TRZ) * 0x1000) + ((int16_t)RT31 * (int16_t)VX2) + ((int16_t)RT32 * (int16_t)VY2) + ((int16_t)RT33 * (int16_t)VZ2)) >> shift;
-	setIRFromMAC(lm);
-	newZ = int32_t(MAC3) >> ((1 - sf(instruction)) * 12);
-	pushZ(newZ);
+	MAC1 = (int32_t)(((((int64_t)TRX << 12) + (int64_t)RT11 * VX2) + (int64_t)RT12 * VY2) + (int64_t)RT13 * VZ2) >> shift;
+	MAC2 = (int32_t)(((((int64_t)TRY << 12) + (int64_t)RT21 * VX2) + (int64_t)RT22 * VY2) + (int64_t)RT23 * VZ2) >> shift;
+	mac3 = (int32_t)(((((int64_t)TRZ << 12) + (int64_t)RT31 * VX2) + (int64_t)RT32 * VY2) + (int64_t)RT33 * VZ2);
+	//MAC1 = int64_t(((int64_t)TRX << 12) + ((int64_t)RT11 * (int16_t)VX2) + ((int64_t)RT12 * (int16_t)VY2) + ((int64_t)RT13 * (int16_t)VZ2)) >> shift;
+	//MAC2 = int64_t(((int64_t)TRY << 12) + ((int64_t)RT21 * (int16_t)VX2) + ((int64_t)RT22 * (int16_t)VY2) + ((int64_t)RT23 * (int16_t)VZ2)) >> shift;
+	//mac3 = int64_t(((int64_t)TRZ << 12) + ((int64_t)RT31 * (int16_t)VX2) + ((int64_t)RT32 * (int16_t)VY2) + ((int64_t)RT33 * (int16_t)VZ2));
+	MAC3 = (int32_t)mac3 >> shift;
+	IR1 = (int16_t)saturate(MAC1, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR2 = (int16_t)saturate(MAC2, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	IR3 = (int16_t)saturate(mac3 >> 12, -0x8000 * (lm ? 0 : 1), 0x7fff);
+	newZ = (int32_t)(mac3 >> 12);
+	pushZ(saturate(newZ, 0, 0xffff));
 
 	SXY0 = SXY1;
 	SXY1 = SXY2;
-	//_proj_factor = (((((uint32_t)(H) * 0x20000) / (uint32_t)(SZ3)) + 1) / 2);
-	//_proj_factor = ((H * 0x20000) / (uint16_t)SZ3);
+
 	proj_factor = gte_divide(H, SZ3);
-	//proj_factor = (int64_t)(_proj_factor);
-	_x = (int64_t)(int16_t)(IR1);
-	_y = (int64_t)(int16_t)(IR2);
-	x = ((IR1 * proj_factor) + OFX);
-	y = ((IR2 * proj_factor) + OFY);
+	_x = (int64_t)IR1;
+	_y = (int64_t)IR2;
+	x = ((_x * proj_factor) + OFX);
+	y = ((_y * proj_factor) + OFY);
 	x = saturate((x >> 16), -0x400, 0x3ff);
 	y = saturate((y >> 16), -0x400, 0x3ff);
 
 	SX2 = x;
 	SY2 = y;
-	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR1)) + OFX; SETSX2(((int32_t)(MAC0)) / 0x10000);
-	//MAC0 = ((int64_t)(((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * (int64_t)(int16_t)(IR2)) + OFY; SETSY2(((int32_t)(MAC0)) / 0x10000);
-	//MAC0 = ((((((uint16_t)(H) * 0x20000) / (uint16_t)(SZ3)) + 1) / 2) * DQA) + DQB; IR0 = 
 	int64_t depth = ((int64_t)DQB + ((int64_t)DQA * proj_factor));
 	MAC0 = depth;
 	IR0 = saturate((depth >> 12), 0, 0x1000);

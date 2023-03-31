@@ -117,20 +117,26 @@ void gpu::InitGL() {
 	glBindTexture(GL_TEXTURE_2D, VramTexture);
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1024, 512);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1024 * scaling_factor, 512 * scaling_factor);
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, VramTexture, 0);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 	glPixelStorei(GL_PACK_ALIGNMENT, 2);
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
 
 	glGenTextures(1, &SampleVramTexture);
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	//glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1024, 512);
+	glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGBA8, 1024 * scaling_factor, 512 * scaling_factor);
+	
+	glGenFramebuffers(1, &tempFBO);
+	glBindFramebuffer(GL_FRAMEBUFFER, tempFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, SampleVramTexture, 0);
 
+	
+	glBindFramebuffer(GL_FRAMEBUFFER, oldFBO);
+	
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, vram8);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1024, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, vram4);
@@ -168,13 +174,13 @@ void gpu::InitGL() {
 
 void gpu::SyncVRAM() {
 	glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
-	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 1024, 512);
+	glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 1024 * scaling_factor, 512 * scaling_factor);
 }
 
 void gpu::SetOpenGLState() {
-	glViewport(0, 0, 1024, 512);
+	glViewport(0, 0, 1024 * scaling_factor, 512 * scaling_factor);
 	glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-	glScissor(drawing_topleft_x, drawing_topleft_y, (drawing_bottomright_x - drawing_topleft_x), (drawing_bottomright_y - drawing_topleft_y));
+	glScissor(drawing_topleft_x * scaling_factor, drawing_topleft_y * scaling_factor, (drawing_bottomright_x - drawing_topleft_x) * scaling_factor, (drawing_bottomright_y - drawing_topleft_y) * scaling_factor);
 	glEnable(GL_SCISSOR_TEST);
 
 	if (DrawingTextured) {
@@ -521,14 +527,14 @@ void gpu::execute_gp0(uint32_t command) {
 			drawing_topleft_x = command & 1023;
 			drawing_topleft_y = (command >> 10) & 511;
 			debug_printf("[GP0] Set Drawing Area top left\n");
-			glScissor(drawing_topleft_x, drawing_topleft_y, (drawing_bottomright_x - drawing_topleft_x), (drawing_bottomright_y - drawing_topleft_y));
+			glScissor(drawing_topleft_x * scaling_factor, drawing_topleft_y * scaling_factor, (drawing_bottomright_x - drawing_topleft_x) * scaling_factor, (drawing_bottomright_y - drawing_topleft_y) * scaling_factor);
 			break;
 		}
 		case 0xE4: {	// Set Drawing Area bottom right
 			drawing_bottomright_x = command & 1023;
 			drawing_bottomright_y = (command >> 10) & 511;
 			debug_printf("[GP0] Set Drawing Area bottom right\n");
-			glScissor(drawing_topleft_x, drawing_topleft_y, (drawing_bottomright_x - drawing_topleft_x), (drawing_bottomright_y - drawing_topleft_y));
+			glScissor(drawing_topleft_x * scaling_factor, drawing_topleft_y * scaling_factor, (drawing_bottomright_x - drawing_topleft_x) * scaling_factor, (drawing_bottomright_y - drawing_topleft_y) * scaling_factor);
 			break;
 		}
 		case 0xE5: {	// Set Drawing Area Offset
@@ -630,15 +636,34 @@ void gpu::execute_gp0(uint32_t command) {
 			height &= 0x1ff;
 			auto x = coords & 0xffff;
 			auto y = coords >> 16;
+			const auto scaled_x = x * scaling_factor;
+			const auto scaled_y = y * scaling_factor;
+			const auto scaled_width = width * scaling_factor;
+			const auto scaled_height = height * scaling_factor;
 
 			if (cmd_left == 0) {
 				gp0_mode = 0;
-				glBindTexture(GL_TEXTURE_2D, VramTexture);
-				glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &WriteBuffer[0]);
+				if (scaling_factor == 1) {
+					glBindTexture(GL_TEXTURE_2D, VramTexture);
+				}
+				else {
+					glBindTexture(GL_TEXTURE_2D, SampleVramTexture);
+				}
+				glTexSubImage2D(GL_TEXTURE_2D, 0, scaled_x, scaled_y, width, height, GL_RGBA, GL_UNSIGNED_SHORT_1_5_5_5_REV, &WriteBuffer[0]);
 				for (int i = 0; i < (1024 * 512); i++) WriteBuffer[i] = 0;
 				//WriteBuffer.clear();
 				WriteBufferCnt = 0;
-				SyncVRAM();
+				if (scaling_factor == 1) {
+					SyncVRAM();
+				}
+				else {
+					glDisable(GL_SCISSOR_TEST);
+					glBindFramebuffer(GL_READ_FRAMEBUFFER, tempFBO);
+					glBlitFramebuffer(scaled_x, scaled_y, scaled_x + width, scaled_y + height, scaled_x, scaled_y, scaled_x + scaled_width, scaled_y + scaled_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+					glEnable(GL_SCISSOR_TEST);
+					glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
+					SyncVRAM();
+				}
 				break;
 			}
 			//WriteBuffer.push_back(command);
@@ -2309,7 +2334,7 @@ void gpu::monochrome_rectangle_16x16_opaque() {
 
 void gpu::fill_rectangle() {
 	debug_printf("[GP0] Fill Rectangle\n");
-	glViewport(0, 0, 1024, 512);
+	glViewport(0, 0, 1024 * scaling_factor, 512 * scaling_factor);
 	uint8_t r = (fifo[0] & 0xff);
 	uint8_t g = ((fifo[0] >> 8) & 0xff);
 	uint8_t b = ((fifo[0] >> 16) & 0xff);
@@ -2319,9 +2344,9 @@ void gpu::fill_rectangle() {
 	uint32_t height = fifo[2] >> 16;
 
 	glClearColor(r / 255.f, g / 255.f, b / 255.f, 1.f);
-	glScissor(x, y, width, height);
+	glScissor(x * scaling_factor, y * scaling_factor, width * scaling_factor, height * scaling_factor);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glScissor(drawing_topleft_x, drawing_topleft_y, (drawing_bottomright_x - drawing_topleft_x), (drawing_bottomright_y - drawing_topleft_y));
+	glScissor(drawing_topleft_x * scaling_factor, drawing_topleft_y * scaling_factor, (drawing_bottomright_x - drawing_topleft_x) * scaling_factor, (drawing_bottomright_y - drawing_topleft_y) * scaling_factor);
 }
 
 void gpu::vram_to_vram() {

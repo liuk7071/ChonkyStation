@@ -53,11 +53,13 @@ public:
 	void SetLoc();
 	void Play();
 	void SeekL();
+	void SeekP();
 	void ReadN();
 	void ReadS();
 	void Stop();
 	void Pause();
 	void init();
+	void Mute();
 	void Demute();
 	void SetFilter();
 	void Setmode();

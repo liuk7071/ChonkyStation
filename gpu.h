@@ -20,6 +20,7 @@ public:
 	GLuint TextureVBO;
 
 	GLuint FBO = 0;
+	GLuint tempFBO = 0;
 	GLuint VramTexture = 0;
 	GLuint SampleVramTexture = 0;
 	void SyncVRAM();
@@ -89,7 +90,7 @@ public:
 			return int(floor(f * 31.0 + 0.5));
 		}
 		int sample16(ivec2 coords) {
-			vec4 colour = texelFetch(vram, coords, 0);
+			vec4 colour = texelFetch(vram, coords * 6, 0);
 			int r = floatToU5(colour.r);
 			int g = floatToU5(colour.g);
 			int b = floatToU5(colour.b);
@@ -99,12 +100,12 @@ public:
 		vec4 fetchTexel4Bit(ivec2 coords) {
 			int texel = sample16(ivec2(coords.x / 4, coords.y) + ivec2(texpageCoords));
 			int idx = (texel >> ((coords.x % 4) * 4)) & 0xf;
-			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
+			return texelFetch(vram, ivec2(clut.x + idx, clut.y) * 6, 0);
 		}
 		vec4 fetchTexel8Bit(ivec2 coords) {
 			int texel = sample16(ivec2(coords.x / 2, coords.y) + ivec2(texpageCoords));
 			int idx = (texel >> ((coords.x % 2) * 8)) & 0xff;
-			return texelFetch(vram, ivec2(clut.x + idx, clut.y), 0);
+			return texelFetch(vram, ivec2(clut.x + idx, clut.y) * 6, 0);
 		}
 		void main()
 		{
@@ -146,6 +147,10 @@ public:
 public:
 	gpu();
 	void InitGL();
+
+	// Upscaling
+	int scaling_factor = 6;
+
 	void ClearScreen();
 	void SetOpenGLState();
 	void SwitchToTextured();

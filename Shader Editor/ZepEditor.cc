@@ -136,7 +136,7 @@ void ZepEditor::draw() {
 
         // Check USB Keys
         for (auto& usbKey : MapUSBKeys) {
-            if (ImGui::IsKeyPressed(usbKey.first)) {
+            if (ImGui::IsKeyPressed((ImGuiKey)usbKey.first)) {
                 buffer.GetMode()->AddKeyPress(usbKey.second, mod);
                 return;
             }
@@ -183,21 +183,21 @@ void ZepEditor::draw() {
             buffer.GetMode()->AddKeyPress(Zep::ExtKeys::PAGEUP, mod);
             return;
         } else if (io.KeyCtrl) {
-            if (ImGui::IsKeyPressed('1')) {
+            if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_1))) {
                 m_editor->SetGlobalMode(Zep::ZepMode_Standard::StaticName());
                 handled = true;
-            } else if (ImGui::IsKeyPressed('2')) {
+            } else if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_2))) {
                 m_editor->SetGlobalMode(Zep::ZepMode_Vim::StaticName());
                 handled = true;
             } else {
                 for (int ch = 'A'; ch <= 'Z'; ch++) {
-                    if (ImGui::IsKeyPressed(ch)) {
+                    if (ImGui::IsKeyPressed((ImGuiKey)ch)) {
                         buffer.GetMode()->AddKeyPress(ch - 'A' + 'a', mod);
                         handled = true;
                     }
                 }
 
-                if (ImGui::IsKeyPressed(GLFW_KEY_SPACE)) {
+                if (ImGui::IsKeyPressed((ImGuiKey)GLFW_KEY_SPACE)) {
                     buffer.GetMode()->AddKeyPress(' ', mod);
                     handled = true;
                 }
