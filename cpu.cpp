@@ -396,12 +396,12 @@ void cpu::do_dma() {
 					spu_addr &= 0x7ffff;
 
 					uint32_t word = bus.mem.read32(current_addr);
-					uint16_t halfword1 = (word >> 16);
-					uint16_t halfword2 = (word & 0xffff);
-					bus.mem.Spu->spu_ram[spu_addr + 1] = (halfword1 >> 8);
+					uint16_t halfword1 = (word & 0xffff);
+					uint16_t halfword2 = (word >> 16);
 					bus.mem.Spu->spu_ram[spu_addr + 0] = (halfword1 & 0xff);
-					bus.mem.Spu->spu_ram[spu_addr + 3] = (halfword2 >> 8);
+					bus.mem.Spu->spu_ram[spu_addr + 1] = (halfword1 >> 8);
 					bus.mem.Spu->spu_ram[spu_addr + 2] = (halfword2 & 0xff);
+					bus.mem.Spu->spu_ram[spu_addr + 3] = (halfword2 >> 8);
 
 					spu_addr += 4;
 					if (incrementing) addr += 4; else addr -= 4;

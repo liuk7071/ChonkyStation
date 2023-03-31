@@ -35,7 +35,8 @@ static int16_t minmax(int16_t val, int16_t min, int16_t max) {
 struct voice {
 	uint16_t volume_left = 0;
 	uint16_t volume_right = 0;
-	uint16_t sample_rate = 0;
+	uint16_t pitch = 0;
+	uint32_t pitch_counter = 0;
 	uint32_t adsr = 0;
 	uint16_t adpcm_start = 0;
 	uint16_t adpcm_repeat = 0;

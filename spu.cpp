@@ -26,6 +26,7 @@ auto voice::step() {
 	bool endx = false;
 
 	if (samples.empty()) {
+		pitch_counter = 0;
 		printf("Decoding samples at 0x%08x\n", current_addr);
 		decode_samples(&ram[current_addr]);
 
@@ -54,6 +55,7 @@ auto voice::step() {
 		current_addr += 16;	
 		if (end) {
 			endx = true;
+			enabled = false;
 			if (repeat) {
 				current_addr = adpcm_repeat;
 			}
@@ -65,7 +67,13 @@ auto voice::step() {
 	}
 
 	std::optional<int16_t> sample = samples.front();
-	samples.pop();
+
+	// Pitch counter
+	auto old = pitch_counter >> 12;
+	if (pitch > 0x3FFF) pitch = 0x4000;
+	pitch_counter += pitch;
+	if ((pitch_counter >> 12) > old) 
+		samples.pop();
 	return std::make_pair(sample, endx);
 }
 
@@ -104,7 +112,7 @@ void spu::write(uint32_t addr, uint32_t data) {
 		switch (addr & 0xf) {
 		case 0x0: voices[voice].volume_left = data; break;
 		case 0x2: voices[voice].volume_right = data; break;
-		case 0x4: voices[voice].sample_rate = data; break;
+		case 0x4: voices[voice].pitch = data; break;
 		case 0x6: voices[voice].adpcm_start = data; break;
 		case 0x8: WRITE_LOWER(voices[voice].adsr, data); break;
 		case 0xa: WRITE_UPPER(voices[voice].adsr, data); break;
@@ -132,13 +140,13 @@ void spu::write(uint32_t addr, uint32_t data) {
 	else if (addr == 0x1f801d8c) {
 		WRITE_LOWER(key_off, data);
 		for (int i = 0; i < 16; i++) {
-			if ((key_on >> i) & 1) voices[i].off();
+			if ((key_off >> i) & 1) voices[i].off();
 		}
 	}
 	else if (addr == 0x1f801d8e) {
 		WRITE_UPPER(key_off, data);
 		for (int i = 16; i < 24; i++) {
-			if ((key_on >> i) & 1) voices[i].off();
+			if ((key_off >> i) & 1) voices[i].off();
 		}
 	}
 	else if (addr == 0x1f801d90) WRITE_LOWER(pmod, data)
@@ -262,7 +270,7 @@ uint16_t spu::read(uint32_t addr) {
 		switch (addr & 0xf) {
 		case 0x0: return voices[voice].volume_left;
 		case 0x2: return voices[voice].volume_right;
-		case 0x4: return voices[voice].sample_rate;
+		case 0x4: return voices[voice].pitch;
 		case 0x6: return voices[voice].adpcm_start;
 		case 0x8: return voices[voice].adsr;
 		case 0xa: return voices[voice].adsr >> 16;
@@ -304,6 +312,6 @@ void spu::step(int cycles) {
 		}*/
 		if (voices[2].enabled) sample = voices[2].step().first.value();
 		//sample = minmax(sample, INT16_MIN, INT16_MAX);
-		//file.write((const char*)&sample, sizeof(int16_t));
+		file.write((const char*)&sample, sizeof(int16_t));
 	}
 }
