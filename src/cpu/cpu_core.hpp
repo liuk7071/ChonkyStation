@@ -8,15 +8,15 @@
 class CpuCore {
 public:
 	union Instruction {
-		u32 raw;
-		BitField<0, 16, u32> imm;
-		BitField<0, 26, u32> jumpImm;
-		BitField<6,  5, u32> sa;
-		BitField<11, 5, u32> rd;
-		BitField<16, 5, u32> rt;
-		BitField<21, 5, u32> rs;
-		BitField<26, 6, u32> primaryOpc;
-		BitField<0,  6, u32> secondaryOpc;
+	    u32 raw;
+	    BitField<0, 16, u32> imm;
+	    BitField<0, 26, u32> jumpImm;
+	    BitField<6,  5, u32> sa;
+	    BitField<11, 5, u32> rd;
+	    BitField<16, 5, u32> rt;
+	    BitField<21, 5, u32> rs;
+	    BitField<26, 6, u32> primaryOpc;
+	    BitField<0,  6, u32> secondaryOpc;
 	};
 
     u32 pc = 0xbfc00000;
@@ -112,14 +112,14 @@ public:
     MAKE_LOG_FUNCTION(log, cpuTraceLogger)
 
 	std::string gprNames[32] = { "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
-							"$t0", "$t1", "$t2", "$t3","$t4", "$t5", "$t6", "$t7",
-							"$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
-							"$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra" };
+	                        "$t0", "$t1", "$t2", "$t3","$t4", "$t5", "$t6", "$t7",
+	                        "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
+	                        "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra" };
 
 	void disassemble(Instruction instr) {
-		switch (instr.primaryOpc) {
+        switch (instr.primaryOpc) {
         case Opcode::LUI: log("0x%08x: lui %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value()); break;
         default: log("0x%08x: (not disassembled primary opc 0x%02x)\n", pc, instr.primaryOpc.Value());
-		}
+        }
 	}
 };

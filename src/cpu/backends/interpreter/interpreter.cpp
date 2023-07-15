@@ -9,6 +9,18 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 	auto& gprs = core->gprs;
 
 	switch (instr.primaryOpc) {
+	case CpuCore::Opcode::ANDI: {
+		gprs[instr.rt] = gprs[instr.rs] & instr.imm;
+		break;
+	}
+	case CpuCore::Opcode::ORI: {
+		gprs[instr.rt] = gprs[instr.rs] | instr.imm;
+		break;
+	}
+	case CpuCore::Opcode::XORI: {
+		gprs[instr.rt] = gprs[instr.rs] ^ instr.imm;
+		break;
+	}
 	case CpuCore::Opcode::LUI: {
 		gprs[instr.rt] = instr.imm << 16;
 		break;
