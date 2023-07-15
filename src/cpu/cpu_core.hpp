@@ -119,6 +119,7 @@ public:
 
 	void disassemble(Instruction instr) {
         switch (instr.primaryOpc) {
+        case Opcode::ORI: log("0x%08x: ori %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value()); break;
         case Opcode::LUI: log("0x%08x: lui %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value()); break;
         default: log("0x%08x: (not disassembled primary opc 0x%02x)\n", pc, instr.primaryOpc.Value());
         }
