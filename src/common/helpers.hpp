@@ -21,6 +21,8 @@ using s16 = std::int16_t;
 using s32 = std::int32_t;
 using s64 = std::int64_t;
 
+using uptr = std::uintptr_t;
+
 constexpr size_t operator""KB(unsigned long long int x) { return 1024ULL * x; }
 constexpr size_t operator""MB(unsigned long long int x) { return 1024KB * x; }
 constexpr size_t operator""GB(unsigned long long int x) { return 1024MB * x; }
@@ -65,6 +67,12 @@ namespace Helpers {
 	template<typename T>
 	static inline bool inRange(T num, T start, T end) {
 		if ((start <= num) && (num <= end)) return true;
+		else return false;
+	}
+
+	template<typename T>
+	static inline bool inRangeSized(T num, T start, T size) {
+		if ((start <= num) && (num < (start + size))) return true;
 		else return false;
 	}
 }	// End namespace Helpers

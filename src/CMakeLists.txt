@@ -1,26 +1,20 @@
 set(SOURCE_FILES
-"main.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/main.cpp"
 
-"cpu/cpu.cpp"
-"cpu/backends/interpreter/interpreter.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/cpu/cpu.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/cpu/backends/interpreter/interpreter.cpp"
 
-"memory/memory.cpp"
-)
+"${CMAKE_CURRENT_SOURCE_DIR}/memory/memory.cpp"
+PARENT_SCOPE)
 
 set(HEADER_FILES
-"playstation.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/playstation.hpp"
 
-"common/helpers.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/common/helpers.hpp"
 
-"cpu/cpu_core.hpp"
-"cpu/cpu.hpp"
-"cpu/backends/interpreter/interpreter.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/cpu/cpu_core.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/cpu/cpu.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/cpu/backends/interpreter/interpreter.hpp"
 
-"memory/memory.hpp"
-)
-
-include_directories(common)
-include_directories(cpu)
-include_directories(memory)
-
-add_executable(ChonkyStation ${SOURCE_FILES} ${HEADER_FILES})
+"${CMAKE_CURRENT_SOURCE_DIR}/memory/memory.hpp"
+PARENT_SCOPE)

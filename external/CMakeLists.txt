@@ -1,0 +1,10 @@
+set(DOLPHIN_HEADER_FILES
+"${CMAKE_CURRENT_SOURCE_DIR}/Dolphin/BitField.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/Dolphin/CommonTypes.hpp"
+PARENT_SCOPE)
+
+set(PANDA3DS_HEADER_FILES
+"${CMAKE_CURRENT_SOURCE_DIR}/Panda3DS/logger.hpp"
+PARENT_SCOPE)
+
+add_subdirectory(fmt)
