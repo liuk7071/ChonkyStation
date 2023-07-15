@@ -70,7 +70,7 @@ auto voice::step() {
 
 	// Pitch counter
 	auto old = pitch_counter >> 12;
-	if (pitch > 0x3FFF) pitch = 0x4000;
+	if (pitch > 0x3fff) pitch = 0x4000;
 	pitch_counter += pitch;
 	if ((pitch_counter >> 12) > old) 
 		samples.pop();
