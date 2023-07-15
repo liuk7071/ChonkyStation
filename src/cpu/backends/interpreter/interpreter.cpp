@@ -9,6 +9,25 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 	auto& gprs = core->gprs;
 
 	switch (instr.primaryOpc) {
+	case CpuCore::Opcode::SPECIAL: {
+		switch (instr.secondaryOpc) {
+		case CpuCore::SPECIALOpcode::SLL: {
+			gprs[instr.rd] = gprs[instr.rt] << instr.shiftImm;
+			break;
+		}
+		case CpuCore::SPECIALOpcode::SRL: {
+			gprs[instr.rd] = gprs[instr.rt] >> instr.shiftImm;
+			break;
+		}
+		case CpuCore::SPECIALOpcode::SRA: {
+			gprs[instr.rd] = (s32)gprs[instr.rt] >> instr.shiftImm;
+			break;
+		}
+		default:
+			Helpers::panic("[FATAL] Unimplemented secondary instruction 0x%02x (raw: 0x%08x)\n", instr.secondaryOpc.Value(), instr.raw);
+		}
+		break;
+	}
 	case CpuCore::Opcode::ANDI: {
 		gprs[instr.rt] = gprs[instr.rs] & instr.imm;
 		break;
@@ -26,7 +45,7 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 		break;
 	}
 	default:
-		Helpers::panic("[FATAL] Unimplemented instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
+		Helpers::panic("[FATAL] Unimplemented primary instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
 	}
 
 	core->pc += 4;

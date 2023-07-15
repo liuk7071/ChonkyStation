@@ -11,6 +11,7 @@ public:
 	    u32 raw;
 	    BitField<0, 16, u32> imm;
 	    BitField<0, 26, u32> jumpImm;
+        BitField<6,  5, u32> shiftImm;
 	    BitField<6,  5, u32> sa;
 	    BitField<11, 5, u32> rd;
 	    BitField<16, 5, u32> rt;
