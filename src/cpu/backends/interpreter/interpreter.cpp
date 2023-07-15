@@ -23,6 +23,18 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 			gprs[instr.rd] = (s32)gprs[instr.rt] >> instr.shiftImm;
 			break;
 		}
+		case CpuCore::SPECIALOpcode::SLLV: {
+			gprs[instr.rd] = gprs[instr.rt] << (gprs[instr.rs] & 0x1f);
+			break;
+		}
+		case CpuCore::SPECIALOpcode::SRLV: {
+			gprs[instr.rd] = gprs[instr.rt] >> (gprs[instr.rs] & 0x1f);
+			break;
+		}
+		case CpuCore::SPECIALOpcode::SRAV: {
+			gprs[instr.rd] = (s32)gprs[instr.rt] >> (gprs[instr.rs] & 0x1f);
+			break;
+		}
 		default:
 			Helpers::panic("[FATAL] Unimplemented secondary instruction 0x%02x (raw: 0x%08x)\n", instr.secondaryOpc.Value(), instr.raw);
 		}
