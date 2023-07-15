@@ -1,4 +1,0 @@
-	This file uses tabs
-	First Indent
-		Second Indent
-			Third Indent
