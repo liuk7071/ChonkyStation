@@ -53,6 +53,14 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 			gprs[instr.rd] = ~(gprs[instr.rs] | gprs[instr.rt]);
 			break;
 		}
+		case CpuCore::SPECIALOpcode::SLT: {
+			gprs[instr.rd] = (s32)gprs[instr.rs] < (s32)gprs[instr.rt];
+			break;
+		}
+		case CpuCore::SPECIALOpcode::SLTU: {
+			gprs[instr.rd] = gprs[instr.rs] < gprs[instr.rt];
+			break;
+		}
 		default:
 			Helpers::panic("[FATAL] Unimplemented secondary instruction 0x%02x (raw: 0x%08x)\n", instr.secondaryOpc.Value(), instr.raw);
 		}
@@ -93,6 +101,14 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 	}
 	case CpuCore::Opcode::ADDIU: {
 		gprs[instr.rt] = gprs[instr.rs] + (u32)(s16)instr.imm;
+		break;
+	}
+	case CpuCore::Opcode::SLTI: {
+		gprs[instr.rt] = (s32)gprs[instr.rs] < (u32)(s16)instr.imm;
+		break;
+	}
+	case CpuCore::Opcode::SLTIU: {
+		gprs[instr.rt] = gprs[instr.rs] < instr.imm;
 		break;
 	}
 	case CpuCore::Opcode::ANDI: {
