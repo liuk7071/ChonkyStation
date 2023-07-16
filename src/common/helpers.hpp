@@ -8,6 +8,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 
 // Types
@@ -27,6 +28,7 @@ constexpr size_t operator""KB(unsigned long long int x) { return 1024ULL * x; }
 constexpr size_t operator""MB(unsigned long long int x) { return 1024KB * x; }
 constexpr size_t operator""GB(unsigned long long int x) { return 1024MB * x; }
 
+namespace fs = std::filesystem;
 
 namespace Helpers {
 	[[noreturn]] static void panic(const char* fmt, ...) {
@@ -37,7 +39,7 @@ namespace Helpers {
 		exit(0);
 	}
 
-	static auto readBinary(std::string directory) -> std::vector<u8> {
+	static auto readBinary(const fs::path& directory) -> std::vector<u8> {
 		std::ifstream file(directory, std::ios::binary);
 		if (!file.is_open()) {
 			std::cout << "Couldn't find ROM at " << directory << "\n";

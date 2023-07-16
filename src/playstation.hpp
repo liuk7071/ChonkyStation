@@ -2,13 +2,21 @@
 
 #include <cpu.hpp>
 #include <memory.hpp>
+#include <helpers.hpp>
 
 
 class PlayStation {
 public:
-    PlayStation(const char* biosPath) {
+    PlayStation(const fs::path& biosPath) : mem(), cpu(&mem) {
         mem.loadBios(biosPath);
     }
-    Memory mem = Memory();
-    Cpu cpu = Cpu(&mem);
+
+    // Steps the system
+    void step() {
+        cpu.step();
+    }
+
+private:
+    Memory mem;
+    Cpu cpu;
 };

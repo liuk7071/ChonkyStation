@@ -35,7 +35,7 @@ Memory::Memory() {
 	}
 }
 
-void Memory::loadBios(const char* biosPath) {
+void Memory::loadBios(const fs::path& biosPath) {
 	auto temp = Helpers::readBinary(biosPath);
 	std::memcpy(bios, temp.data(), 512KB);
 }
@@ -65,10 +65,37 @@ u32 Memory::read(u32 vaddr) {
 		return *(u32*)(pointer + (vaddr & 0xffff));
 	}
 
-	//if (Helpers::inRangeSized(paddr, (u32)MemoryBase::BIOS, (u32)MemorySize::BIOS)) {
-	//	paddr &= (u32)MemorySize::BIOS - 1;
-	//	u32 data;
-	//}
-	//else
-		Helpers::panic("[FATAL] Unhandled read32 @ 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+	Helpers::panic("[FATAL] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+}
+
+
+template<>
+void Memory::write(u32 vaddr, u8 data) {
+	u32 paddr = maskAddress(vaddr);
+
+	Helpers::panic("[FATAL] Unhandled write8 0x%08x (virtual 0x%08x) <- 0x%02x\n", paddr, vaddr, data);
+}
+
+template<>
+void Memory::write(u32 vaddr, u16 data) {
+	u32 paddr = maskAddress(vaddr);
+
+	Helpers::panic("[FATAL] Unhandled write16 0x%08x (virtual 0x%08x) <- 0x%04x\n", paddr, vaddr, data);
+}
+
+template<>
+void Memory::write(u32 vaddr, u32 data) {
+	u32 paddr = maskAddress(vaddr);
+
+	const auto page = vaddr >> 16;
+	const auto pointer = writeTable[page];
+
+	// Use fast memory if the address is in the fastmem table
+	if (pointer) {
+		*(u32*)(pointer + (vaddr & 0xffff)) = data;
+	}
+
+	if (paddr == 0x1f801010) return;	// BIOS ROM Delay/Size (usually 0013243Fh) (512Kbytes, 8bit bus)
+	else
+		Helpers::panic("[FATAL] Unhandled write32 0x%08x (virtual 0x%08x) <- 0x%08x\n", paddr, vaddr, data);
 }

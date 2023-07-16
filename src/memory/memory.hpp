@@ -6,7 +6,7 @@
 class Memory {
 public:
 	Memory();
-	void loadBios(const char* biosPath);
+    void loadBios(const fs::path& biosPath);
 
 	u8* ram = new u8[2MB];
 	u8* scratchpad = new u8[1KB];
@@ -36,6 +36,7 @@ public:
 
     u32 maskAddress(u32 vaddr);
 	template<typename T> T read(u32 vaddr);
+    template<typename T> void write(u32 vaddr, T data);
 
 private:
     // Software fastmem implementation

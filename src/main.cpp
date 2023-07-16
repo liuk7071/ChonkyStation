@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     PlayStation playstation = PlayStation(argv[1]);
 
     while(true)
-        playstation.cpu.step();
+        playstation.step();
 
     return 0;
 }
