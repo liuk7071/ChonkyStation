@@ -70,6 +70,22 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			core->lo = gprs[instr.rs];
 			break;
 		}
+		case CpuCore::SPECIALOpcode::MULT: {
+			s64 x = (s64)(s32)gprs[instr.rs];
+			s64 y = (s64)(s32)gprs[instr.rt];
+			u64 res = x * y;
+			core->hi = res >> 32;
+			core->lo = res & 0xffffffff;
+			break;
+		}
+		case CpuCore::SPECIALOpcode::MULTU: {
+			u64 x = gprs[instr.rs];
+			u64 y = gprs[instr.rt];
+			u64 res = x * y;
+			core->hi = res >> 32;
+			core->lo = res & 0xffffffff;
+			break;
+		}
 		case CpuCore::SPECIALOpcode::DIV: {
 			const s32 n = (s32)gprs[instr.rs];
 			const s32 d = (s32)gprs[instr.rt];
