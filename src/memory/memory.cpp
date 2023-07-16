@@ -55,8 +55,6 @@ u32 Memory::maskAddress(u32 vaddr) {
 
 template<>
 u8 Memory::read(u32 vaddr) {
-	u32 paddr = maskAddress(vaddr);
-
 	const auto page = vaddr >> 16;
 	const auto pointer = readTable[page];
 
@@ -64,14 +62,16 @@ u8 Memory::read(u32 vaddr) {
 	if (pointer) {
 		return *(u8*)(pointer + (vaddr & 0xffff));
 	}
+	
+	u32 paddr = maskAddress(vaddr);
 
-	Helpers::panic("[FATAL] Unhandled read8 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+	if (Helpers::inRangeSized<u32>(paddr, 0x1f000000, 0x400)) return 0xff;
+	else
+		Helpers::panic("[FATAL] Unhandled read8 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
 
 template<>
 u16 Memory::read(u32 vaddr) {
-	u32 paddr = maskAddress(vaddr);
-
 	const auto page = vaddr >> 16;
 	const auto pointer = readTable[page];
 
@@ -80,13 +80,13 @@ u16 Memory::read(u32 vaddr) {
 		return *(u16*)(pointer + (vaddr & 0xffff));
 	}
 
+	u32 paddr = maskAddress(vaddr);
+
 	Helpers::panic("[FATAL] Unhandled read16 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
 
 template<>
 u32 Memory::read(u32 vaddr) {
-	u32 paddr = maskAddress(vaddr);
-
 	const auto page = vaddr >> 16;
 	const auto pointer = readTable[page];
 
@@ -95,12 +95,23 @@ u32 Memory::read(u32 vaddr) {
 		return *(u32*)(pointer + (vaddr & 0xffff));
 	}
 
+	u32 paddr = maskAddress(vaddr);
+
 	Helpers::panic("[FATAL] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
 
 
 template<>
 void Memory::write(u32 vaddr, u8 data) {
+	const auto page = vaddr >> 16;
+	const auto pointer = writeTable[page];
+
+	// Use fast memory if the address is in the fastmem table
+	if (pointer) {
+		*(u8*)(pointer + (vaddr & 0xffff)) = data;
+		return;
+	}
+	
 	u32 paddr = maskAddress(vaddr);
 
 	if (paddr == 0x1f802041) return;	// POST - External 7-segment Display (W)
@@ -110,6 +121,15 @@ void Memory::write(u32 vaddr, u8 data) {
 
 template<>
 void Memory::write(u32 vaddr, u16 data) {
+	const auto page = vaddr >> 16;
+	const auto pointer = writeTable[page];
+
+	// Use fast memory if the address is in the fastmem table
+	if (pointer) {
+		*(u16*)(pointer + (vaddr & 0xffff)) = data;
+		return;
+	}
+
 	u32 paddr = maskAddress(vaddr);
 
 	// SPU
@@ -120,8 +140,6 @@ void Memory::write(u32 vaddr, u16 data) {
 
 template<>
 void Memory::write(u32 vaddr, u32 data) {
-	u32 paddr = maskAddress(vaddr);
-
 	const auto page = vaddr >> 16;
 	const auto pointer = writeTable[page];
 
@@ -131,7 +149,17 @@ void Memory::write(u32 vaddr, u32 data) {
 		return;
 	}
 
-	if (paddr == 0x1f801010) return;	// BIOS ROM Delay/Size (usually 0013243Fh) (512Kbytes, 8bit bus)
+	u32 paddr = maskAddress(vaddr);
+
+	if (paddr == 0x1f801000) return;	// Expansion 1 Base Address (usually 1F000000h)
+	else if (paddr == 0x1f801004) return;	// Expansion 2 Base Address (usually 1F802000h)
+	else if (paddr == 0x1f801008) return;	// Expansion 1 Delay/Size (usually 0013243Fh) (512Kbytes, 8bit bus)
+	else if (paddr == 0x1f80100C) return;	// Expansion 3 Delay/Size (usually 00003022h) (1 byte)
+	else if (paddr == 0x1f801010) return;	// BIOS ROM Delay/Size (usually 0013243Fh) (512Kbytes, 8bit bus)
+	else if (paddr == 0x1f801014) return;	// SPU Delay/Size (200931E1h) (use 220931E1h for SPU-RAM reads)
+	else if (paddr == 0x1f801018) return;	// CDROM Delay/Size (00020843h or 00020943h)
+	else if (paddr == 0x1f80101C) return;	// Expansion 2 Delay/Size (usually 00070777h) (128 bytes, 8bit bus)
+	else if (paddr == 0x1f801020) return;	// COM_DELAY / COMMON_DELAY (00031125h or 0000132Ch or 00001325h)
 	else if (paddr == 0x1f801060) return;	// RAM_SIZE (R/W) (usually 00000B88h) (or 00000888h)
 	else if (paddr == 0xfffe0130) return;	// Cache Control (R/W)
 	else

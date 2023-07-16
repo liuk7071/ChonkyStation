@@ -205,6 +205,8 @@ public:
             switch (instr.secondaryOpc) {
             case SPECIALOpcode::SLL:    log("0x%08x: sll    %s, %s, 0x%04x\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rt].c_str(), instr.shiftImm.Value()); break;
             case SPECIALOpcode::ADD:    log("0x%08x: add    %s, %s, %s\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str()); break;
+            case SPECIALOpcode::JR:     log("0x%08x: jr     %s\n", pc, gprNames[instr.rs].c_str()); break;
+            case SPECIALOpcode::JALR:   log("0x%08x: jalr   %s\n", pc, gprNames[instr.rs].c_str()); break;
             case SPECIALOpcode::ADDU:   log("0x%08x: addu   %s, %s, %s\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str()); break;
             case SPECIALOpcode::SLTU:   log("0x%08x: sltu   %s, %s, %s\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str()); break;
             default:                    log("0x%08x: (not disassembled secondary opc 0x%02x)\n", pc, instr.secondaryOpc.Value());

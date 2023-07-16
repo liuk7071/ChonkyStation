@@ -37,6 +37,23 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 			gprs[instr.rd] = (s32)gprs[instr.rt] >> (gprs[instr.rs] & 0x1f);
 			break;
 		}
+		case CpuCore::SPECIALOpcode::JR: {
+			const u32 addr = gprs[instr.rs];
+			if (addr & 3) {
+				Helpers::panic("Bad JR addr\n");
+			}
+			core->nextPc = addr - 4;
+			break;
+		}
+		case CpuCore::SPECIALOpcode::JALR: {
+			const u32 addr = gprs[instr.rs];
+			if (addr & 3) {
+				Helpers::panic("Bad JALR addr\n");
+			}
+			core->nextPc = addr - 4;
+			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
+			break;
+		}
 		case CpuCore::SPECIALOpcode::ADD: {
 			gprs[instr.rd] = gprs[instr.rs] + gprs[instr.rt];
 			// TODO: overflow exception
@@ -91,7 +108,7 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 	}
 	case CpuCore::Opcode::JAL: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
-		gprs[CpuCore::CpuReg::RA] = core->pc + 8;
+		gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 		core->nextPc -= 4;
 		break;
 	}
