@@ -8,7 +8,9 @@
 
 class Cpu {
 public:
-    Cpu(Memory* mem) : mem(mem) {}
+    Cpu(Memory* mem) : mem(mem) {
+        memset(core.gprs, 0, sizeof(u32) * 32);
+    }
 
     Memory* mem;
 

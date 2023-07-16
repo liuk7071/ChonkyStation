@@ -96,6 +96,7 @@ void Memory::write(u32 vaddr, u32 data) {
 	}
 
 	if (paddr == 0x1f801010) return;	// BIOS ROM Delay/Size (usually 0013243Fh) (512Kbytes, 8bit bus)
+	if (paddr == 0x1f801060) return;	// RAM_SIZE (R/W) (usually 00000B88h) (or 00000888h)
 	else
 		Helpers::panic("[FATAL] Unhandled write32 0x%08x (virtual 0x%08x) <- 0x%08x\n", paddr, vaddr, data);
 }

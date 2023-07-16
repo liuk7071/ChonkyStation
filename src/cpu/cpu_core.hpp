@@ -21,6 +21,7 @@ public:
 	};
 
     u32 pc = 0xbfc00000;
+    u32 nextPc = pc;
     u32 gprs[32];
     u32 hi, lo;
 
@@ -119,10 +120,18 @@ public:
 
 	void disassemble(Instruction instr) {
         switch (instr.primaryOpc) {
+        case Opcode::SPECIAL: {
+            switch (instr.secondaryOpc) {
+            case SPECIALOpcode::SLL:    log("0x%08x: sll %s, %s, 0x%04x\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rt].c_str(), instr.shiftImm.Value()); break;
+            default:                    log("0x%08x: (not disassembled secondary opc 0x%02x)\n", pc, instr.secondaryOpc.Value());
+            }
+            break;
+        }
+        case Opcode::ADDIU: log("0x%08x: addiu %s, %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
         case Opcode::ORI:   log("0x%08x: ori %s, %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
         case Opcode::LUI:   log("0x%08x: lui %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value()); break;
         case Opcode::SW:    log("0x%08x: sw %s, 0x%04x(%s)      ; addr: 0x%08x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value(), gprNames[instr.rs].c_str(), gprs[instr.rs] + (u32)(s16)instr.imm); break;
-        default: log("0x%08x: (not disassembled primary opc 0x%02x)\n", pc, instr.primaryOpc.Value());
+        default:            log("0x%08x: (not disassembled primary opc 0x%02x)\n", pc, instr.primaryOpc.Value());
         }
 	}
 };

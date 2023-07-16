@@ -6,6 +6,8 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 
 	core->disassemble(instr);
 
+	core->pc = core->nextPc;
+
 	auto& gprs = core->gprs;
 
 	switch (instr.primaryOpc) {
@@ -38,6 +40,15 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 		default:
 			Helpers::panic("[FATAL] Unimplemented secondary instruction 0x%02x (raw: 0x%08x)\n", instr.secondaryOpc.Value(), instr.raw);
 		}
+		break;
+	}
+	case CpuCore::Opcode::ADDI: {
+		gprs[instr.rt] = gprs[instr.rs] + (u32)(s16)instr.imm;
+		// TODO: overflow exception
+		break;
+	}
+	case CpuCore::Opcode::ADDIU: {
+		gprs[instr.rt] = gprs[instr.rs] + (u32)(s16)instr.imm;
 		break;
 	}
 	case CpuCore::Opcode::ANDI: {
@@ -81,5 +92,5 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 		Helpers::panic("[FATAL] Unimplemented primary instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
 	}
 
-	core->pc += 4;
+	core->nextPc += 4;
 }
