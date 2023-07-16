@@ -190,7 +190,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	}
 	case CpuCore::Opcode::LB: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
-		gprs[instr.rt] = mem->read<u8>(addr);
+		gprs[instr.rt] = (u32)(s8)mem->read<u8>(addr);
 		break;
 	}
 	case CpuCore::Opcode::LH: {
@@ -198,7 +198,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		if (addr & 1) {
 			Helpers::panic("Bad lh addr 0x%08x\n", addr);
 		}
-		gprs[instr.rt] = mem->read<u16>(addr);
+		gprs[instr.rt] = (u32)(s16)mem->read<u16>(addr);
 		break;
 	}
 	case CpuCore::Opcode::LW: {
