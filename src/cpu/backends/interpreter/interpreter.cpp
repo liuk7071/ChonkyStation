@@ -37,6 +37,22 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 			gprs[instr.rd] = (s32)gprs[instr.rt] >> (gprs[instr.rs] & 0x1f);
 			break;
 		}
+		case CpuCore::SPECIALOpcode::AND: {
+			gprs[instr.rd] = gprs[instr.rs] & gprs[instr.rt];
+			break;
+		}
+		case CpuCore::SPECIALOpcode::OR: {
+			gprs[instr.rd] = gprs[instr.rs] | gprs[instr.rt];
+			break;
+		}
+		case CpuCore::SPECIALOpcode::XOR: {
+			gprs[instr.rd] = gprs[instr.rs] ^ gprs[instr.rt];
+			break;
+		}
+		case CpuCore::SPECIALOpcode::NOR: {
+			gprs[instr.rd] = ~(gprs[instr.rs] | gprs[instr.rt]);
+			break;
+		}
 		default:
 			Helpers::panic("[FATAL] Unimplemented secondary instruction 0x%02x (raw: 0x%08x)\n", instr.secondaryOpc.Value(), instr.raw);
 		}
@@ -71,12 +87,25 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 		gprs[instr.rt] = instr.imm << 16;
 		break;
 	}
+	case CpuCore::Opcode::COP0: {
+		switch (instr.cop0Opc) {
+		case CpuCore::COPOpcode::MT: {
+			core->cop0.write(instr.rd, gprs[instr.rt]);
+			break;
+		}
+		default:
+			Helpers::panic("[FATAL] Unimplemented cop0 instruction 0x%02x (raw: 0x%08x)\n", instr.cop0Opc.Value(), instr.raw);
+		}
+		break;
+	}
 	case CpuCore::Opcode::SB: {
+		if (core->cop0.status.isc) return;
 		u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		mem->write<u8>(addr, gprs[instr.rt]);
 		break;
 	}
 	case CpuCore::Opcode::SH: {
+		if (core->cop0.status.isc) return;
 		u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 1) {
 			Helpers::panic("Bad sh addr 0x%08x\n", addr);
@@ -85,6 +114,7 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 		break;
 	}
 	case CpuCore::Opcode::SW: {
+		if (core->cop0.status.isc) break;
 		u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 3) {
 			Helpers::panic("Bad sw addr 0x%08x\n", addr);

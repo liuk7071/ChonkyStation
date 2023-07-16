@@ -5,6 +5,72 @@
 #include <logger.hpp>
 
 
+struct COP0 {
+    enum class COP0Reg {
+        BPC = 0x03,
+        BDA = 0x05,
+        JumpDest = 0x06,
+        DCIC = 0x07,
+        BadVAddr = 0x08,
+        BDAM = 0x09,
+        BPCM = 0x0B,
+        Status = 0x0C,
+        Cause = 0x0D,
+        EPC = 0x0E,
+        PRId = 0x0F,
+    };
+
+    union {
+        u32 raw;
+        BitField<2, 5, u32> exc;
+        BitField<8, 8, u32> ip;
+        BitField<28, 2, u32> ce;
+        BitField<31, 1, u32> bd;
+    } cause;
+
+    union {
+        u32 raw;
+        BitField<0, 1, u32> iec;
+        BitField<1, 1, u32> kuc;
+        BitField<2, 1, u32> iep;
+        BitField<3, 1, u32> kup;
+        BitField<4, 1, u32> ieo;
+        BitField<5, 1, u32> kuo;
+        BitField<8, 8, u32> im;
+        BitField<16, 1, u32> isc;
+        BitField<17, 1, u32> swcSwappedCache;
+        BitField<18, 1, u32> pz;
+        BitField<19, 1, u32> cm;
+        BitField<20, 1, u32> pe;
+        BitField<21, 1, u32> ts;
+        BitField<22, 1, u32> bev;
+        BitField<25, 1, u32> re;
+        BitField<28, 1, u32> cu0;
+        BitField<29, 1, u32> cu1;
+        BitField<30, 1, u32> cu2;
+        BitField<31, 1, u32> cu3;
+    } status;
+
+    u32 epc;
+    u32 badVaddr;
+    u32 prid = 2;
+
+    void write(u32 cop0r, u32 data) {
+        switch (cop0r) {
+        case (u32)COP0Reg::Status: status.raw = data; break;
+        default:
+            Helpers::panic("Unimplemented cop0 register write cop0r%d <- 0x%08x\n", cop0r, data);
+        }
+    }
+
+    u32 read(u32 cop0r) {
+        switch (cop0r) {
+        default:
+            Helpers::panic("Unimplemented cop0 register read cop0r%d\n", cop0r);
+        }
+    }
+};
+
 class CpuCore {
 public:
 	union Instruction {
@@ -18,12 +84,15 @@ public:
 	    BitField<21, 5, u32> rs;
 	    BitField<26, 6, u32> primaryOpc;
 	    BitField<0,  6, u32> secondaryOpc;
+        BitField<21, 5, u32> cop0Opc;
 	};
 
     u32 pc = 0xbfc00000;
     u32 nextPc = pc;
     u32 gprs[32];
     u32 hi, lo;
+
+    COP0 cop0;
 
     enum Opcode {
         SPECIAL = 0x00,
@@ -111,13 +180,6 @@ public:
     };
 
 	// Disassembler
-    MAKE_LOG_FUNCTION(log, cpuTraceLogger)
-
-	std::string gprNames[32] = { "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
-	                        "$t0", "$t1", "$t2", "$t3","$t4", "$t5", "$t6", "$t7",
-	                        "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
-	                        "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra" };
-
 	void disassemble(Instruction instr) {
         switch (instr.primaryOpc) {
         case Opcode::SPECIAL: {
@@ -134,4 +196,11 @@ public:
         default:            log("0x%08x: (not disassembled primary opc 0x%02x)\n", pc, instr.primaryOpc.Value());
         }
 	}
+
+private:
+        MAKE_LOG_FUNCTION(log, cpuTraceLogger)
+        std::string gprNames[32] = { "$zero", "$at", "$v0", "$v1", "$a0", "$a1", "$a2", "$a3",
+                                "$t0", "$t1", "$t2", "$t3","$t4", "$t5", "$t6", "$t7",
+                                "$s0", "$s1", "$s2", "$s3", "$s4", "$s5", "$s6", "$s7",
+                                "$t8", "$t9", "$k0", "$k1", "$gp", "$sp", "$fp", "$ra" };
 };
