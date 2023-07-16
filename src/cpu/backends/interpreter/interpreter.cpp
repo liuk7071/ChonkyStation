@@ -88,6 +88,11 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		break;
 	}
+	case CpuCore::Opcode::JAL: {
+		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
+		gprs[CpuCore::CpuReg::RA] = core->pc + 8;
+		break;
+	}
 	case CpuCore::Opcode::BEQ: {
 		if (gprs[instr.rs] == gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);

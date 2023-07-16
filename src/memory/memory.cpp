@@ -103,14 +103,19 @@ template<>
 void Memory::write(u32 vaddr, u8 data) {
 	u32 paddr = maskAddress(vaddr);
 
-	Helpers::panic("[FATAL] Unhandled write8 0x%08x (virtual 0x%08x) <- 0x%02x\n", paddr, vaddr, data);
+	if (paddr == 0x1f802041) return;	// POST - External 7-segment Display (W)
+	else
+		Helpers::panic("[FATAL] Unhandled write8 0x%08x (virtual 0x%08x) <- 0x%02x\n", paddr, vaddr, data);
 }
 
 template<>
 void Memory::write(u32 vaddr, u16 data) {
 	u32 paddr = maskAddress(vaddr);
 
-	Helpers::panic("[FATAL] Unhandled write16 0x%08x (virtual 0x%08x) <- 0x%04x\n", paddr, vaddr, data);
+	// SPU
+	if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return;
+	else
+		Helpers::panic("[FATAL] Unhandled write16 0x%08x (virtual 0x%08x) <- 0x%04x\n", paddr, vaddr, data);
 }
 
 template<>

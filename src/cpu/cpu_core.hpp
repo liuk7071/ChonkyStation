@@ -101,6 +101,18 @@ public:
 
     COP0 cop0;
 
+    enum CpuReg {
+        R0 = 0, AT = 1, V0 = 2, V1 = 3,
+        A0 = 4, A1 = 5, A2 = 6, A3 = 7,
+        T0 = 8, T1 = 9, T2 = 10, T3 = 11,
+        T4 = 12, T5 = 13, T6 = 14, T7 = 15,
+        S0 = 16, S1 = 17, S2 = 18, S3 = 19,
+        S4 = 20, S5 = 21, S6 = 22, S7 = 23,
+        T8 = 24, T9 = 25, K0 = 26, K1 = 27,
+        GP = 28, SP = 29, S8 = 30, RA = 31,
+        LO = 32, HI = 33
+    };
+
     enum Opcode {
         SPECIAL = 0x00,
         REGIMM = 0x01,
@@ -133,7 +145,7 @@ public:
         SW = 0x2B,
         SWR = 0x2E,
         LWC2 = 0x32,
-        SWC2 = 0x3A,
+        SWC2 = 0x3A
     };
 
     enum SPECIALOpcode {
@@ -164,14 +176,14 @@ public:
         XOR = 0x26,
         NOR = 0x27,
         SLT = 0x2A,
-        SLTU = 0x2B,
+        SLTU = 0x2B
     };
 
     enum REGIMMOpcode {
         BLTZ = 0x00,
         BGEZ = 0x01,
         BLTZAL = 0x10,
-        BGEZAL = 0x11,
+        BGEZAL = 0x11
     };
 
     enum COPOpcode {
@@ -179,11 +191,11 @@ public:
         CF = 0x02,
         MT = 0x04,
         CT = 0x06,
-        CO = 0x10,
+        CO = 0x10
     };
 
     enum COP0Opcode {
-        RFE = 0x10,
+        RFE = 0x10
     };
 
 	// Disassembler
@@ -191,16 +203,26 @@ public:
         switch (instr.primaryOpc) {
         case Opcode::SPECIAL: {
             switch (instr.secondaryOpc) {
-            case SPECIALOpcode::SLL:    log("0x%08x: sll %s, %s, 0x%04x\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rt].c_str(), instr.shiftImm.Value()); break;
+            case SPECIALOpcode::SLL:    log("0x%08x: sll    %s, %s, 0x%04x\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rt].c_str(), instr.shiftImm.Value()); break;
+            case SPECIALOpcode::ADD:    log("0x%08x: add    %s, %s, %s\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str()); break;
+            case SPECIALOpcode::ADDU:   log("0x%08x: addu   %s, %s, %s\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str()); break;
+            case SPECIALOpcode::SLTU:   log("0x%08x: sltu   %s, %s, %s\n", pc, gprNames[instr.rd].c_str(), gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str()); break;
             default:                    log("0x%08x: (not disassembled secondary opc 0x%02x)\n", pc, instr.secondaryOpc.Value());
             }
             break;
         }
-        case Opcode::ADDIU: log("0x%08x: addiu %s, %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
-        case Opcode::ORI:   log("0x%08x: ori %s, %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
-        case Opcode::LUI:   log("0x%08x: lui %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value()); break;
-        case Opcode::SW:    log("0x%08x: sw %s, 0x%04x(%s)      ; addr: 0x%08x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value(), gprNames[instr.rs].c_str(), gprs[instr.rs] + (u32)(s16)instr.imm); break;
-        default:            log("0x%08x: (not disassembled primary opc 0x%02x)\n", pc, instr.primaryOpc.Value());
+        case Opcode::J:                 log("0x%08x: j      0x%08x\n", pc, instr.jumpImm); break;
+        case Opcode::JAL:               log("0x%08x: jal    0x%08x\n", pc, instr.jumpImm); break;
+        case Opcode::BNE:               log("0x%08x: bne    %s, %s, 0x%04x\n", pc, gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str(), instr.imm.Value()); break;
+        case Opcode::ADDI:              log("0x%08x: addi   %s, %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
+        case Opcode::ADDIU:             log("0x%08x: addiu  %s, %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
+        case Opcode::ANDI:              log("0x%08x: andi   %s, %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
+        case Opcode::ORI:               log("0x%08x: ori    %s, %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
+        case Opcode::LUI:               log("0x%08x: lui    %s, 0x%04x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value()); break;
+        case Opcode::SB:                log("0x%08x: sb     %s, 0x%04x(%s)      ; addr: 0x%08x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value(), gprNames[instr.rs].c_str(), gprs[instr.rs] + (u32)(s16)instr.imm); break;
+        case Opcode::SH:                log("0x%08x: sh     %s, 0x%04x(%s)      ; addr: 0x%08x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value(), gprNames[instr.rs].c_str(), gprs[instr.rs] + (u32)(s16)instr.imm); break;
+        case Opcode::SW:                log("0x%08x: sw     %s, 0x%04x(%s)      ; addr: 0x%08x\n", pc, gprNames[instr.rt].c_str(), instr.imm.Value(), gprNames[instr.rs].c_str(), gprs[instr.rs] + (u32)(s16)instr.imm); break;
+        default:                        log("0x%08x: (not disassembled primary opc 0x%02x)\n", pc, instr.primaryOpc.Value());
         }
 	}
 
