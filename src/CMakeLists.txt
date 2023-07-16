@@ -9,6 +9,8 @@ set(SOURCE_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/disassembler/disassembler.cpp"
 
 "${CMAKE_CURRENT_SOURCE_DIR}/memory/memory.cpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/dma/dma.cpp"
 PARENT_SCOPE)
 
 set(HEADER_FILES
@@ -25,4 +27,6 @@ set(HEADER_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/disassembler/disassembler.hpp"
 
 "${CMAKE_CURRENT_SOURCE_DIR}/memory/memory.hpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/dma/dma.hpp"
 PARENT_SCOPE)

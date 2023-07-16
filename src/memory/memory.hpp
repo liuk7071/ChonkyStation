@@ -2,11 +2,12 @@
 
 #include <helpers.hpp>
 #include <intc.hpp>
+#include <dma.hpp>
 
 
 class Memory {
 public:
-	Memory(INTC* intc);
+	Memory(INTC* intc, DMA* dma);
     void loadBios(const fs::path& biosPath);
 
 	u8* ram = new u8[2MB];
@@ -14,6 +15,7 @@ public:
 	u8* bios = new u8[512KB];
 
     INTC* intc;
+    DMA* dma;
 
     // Base addresses
     enum class MemoryBase {

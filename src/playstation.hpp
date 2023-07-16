@@ -4,11 +4,12 @@
 #include <cpu.hpp>
 #include <memory.hpp>
 #include <intc.hpp>
+#include <dma.hpp>
 
 
 class PlayStation {
 public:
-    PlayStation(const fs::path& biosPath) : intc(), mem(&intc), cpu(&mem) {
+    PlayStation(const fs::path& biosPath) : intc(), dma(), mem(&intc, &dma), cpu(&mem) {
         mem.loadBios(biosPath);
     }
 
@@ -19,6 +20,7 @@ public:
 
 private:
     Cpu cpu;
+    DMA dma;
     Memory mem;
     INTC intc;
 };

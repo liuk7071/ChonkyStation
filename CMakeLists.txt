@@ -8,8 +8,9 @@ add_subdirectory(src)
 
 include_directories(src/common)
 include_directories(src/cpu)
-include_directories(src/memory)
 include_directories(src/intc)
+include_directories(src/memory)
+include_directories(src/dma)
 
 include_directories(external/Dolphin)
 include_directories(external/Panda3DS)
