@@ -72,6 +72,14 @@ struct COP0 {
 
     u32 read(u32 cop0r) {
         switch (cop0r) {
+        case (u32)COP0Reg::BPC:         return 0;
+        case (u32)COP0Reg::BDA:         return 0;
+        case (u32)COP0Reg::JumpDest:    return 0;
+        case (u32)COP0Reg::DCIC:        return 0;
+        case (u32)COP0Reg::BDAM:        return 0;
+        case (u32)COP0Reg::BPCM:        return 0;
+        case (u32)COP0Reg::Status:      return status.raw;
+        case (u32)COP0Reg::Cause:       return cause.raw;
         default:
             Helpers::panic("Unimplemented cop0 register read cop0r%d\n", cop0r);
         }

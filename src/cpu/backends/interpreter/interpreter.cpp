@@ -175,6 +175,10 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 	}
 	case CpuCore::Opcode::COP0: {
 		switch (instr.cop0Opc) {
+		case CpuCore::COPOpcode::MF: {
+			gprs[instr.rt] = core->cop0.read(instr.rd);
+			break;
+		}
 		case CpuCore::COPOpcode::MT: {
 			core->cop0.write(instr.rd, gprs[instr.rt]);
 			break;
