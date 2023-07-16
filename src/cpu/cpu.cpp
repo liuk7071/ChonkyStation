@@ -2,5 +2,5 @@
 
 
 void Cpu::step() {
-    (*stepFunc)(&core, mem);
+    (*stepFunc)(&core, mem, &disassembler);
 }

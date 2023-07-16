@@ -1,10 +1,10 @@
 #include "interpreter.hpp"
 
 
-void Interpreter::step(CpuCore* core, Memory* mem) {
+void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	CpuCore::Instruction instr = { .raw = mem->read<u32>(core->pc) };
 
-	core->disassemble(instr);
+	disassembler->disassemble(instr, core);
 
 	core->pc = core->nextPc;
 
