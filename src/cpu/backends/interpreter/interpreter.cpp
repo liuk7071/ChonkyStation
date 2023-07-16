@@ -62,6 +62,30 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		break;
 	}
+	case CpuCore::Opcode::BEQ: {
+		if (gprs[instr.rs] == gprs[instr.rt]) {
+			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+		}
+		break;
+	}
+	case CpuCore::Opcode::BNE: {
+		if (gprs[instr.rs] != gprs[instr.rt]) {
+			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+		}
+		break;
+	}
+	case CpuCore::Opcode::BLEZ: {
+		if ((s32)gprs[instr.rs] <= 0) {
+			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+		}
+		break;
+	}
+	case CpuCore::Opcode::BGTZ: {
+		if ((s32)gprs[instr.rs] > 0) {
+			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+		}
+		break;
+	}
 	case CpuCore::Opcode::ADDI: {
 		gprs[instr.rt] = gprs[instr.rs] + (u32)(s16)instr.imm;
 		// TODO: overflow exception
@@ -100,13 +124,13 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 	}
 	case CpuCore::Opcode::SB: {
 		if (core->cop0.status.isc) return;
-		u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
+		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		mem->write<u8>(addr, gprs[instr.rt]);
 		break;
 	}
 	case CpuCore::Opcode::SH: {
 		if (core->cop0.status.isc) return;
-		u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
+		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 1) {
 			Helpers::panic("Bad sh addr 0x%08x\n", addr);
 		}
@@ -115,7 +139,7 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 	}
 	case CpuCore::Opcode::SW: {
 		if (core->cop0.status.isc) break;
-		u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
+		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 3) {
 			Helpers::panic("Bad sw addr 0x%08x\n", addr);
 		}
