@@ -57,7 +57,14 @@ struct COP0 {
 
     void write(u32 cop0r, u32 data) {
         switch (cop0r) {
-        case (u32)COP0Reg::Status: status.raw = data; break;
+        case (u32)COP0Reg::BPC:         break;
+        case (u32)COP0Reg::BDA:         break;
+        case (u32)COP0Reg::JumpDest:    break;
+        case (u32)COP0Reg::DCIC:        break;
+        case (u32)COP0Reg::BDAM:        break;
+        case (u32)COP0Reg::BPCM:        break;
+        case (u32)COP0Reg::Status:  status.raw = data; break;
+        case (u32)COP0Reg::Cause:   cause.raw = data; break;
         default:
             Helpers::panic("Unimplemented cop0 register write cop0r%d <- 0x%08x\n", cop0r, data);
         }
