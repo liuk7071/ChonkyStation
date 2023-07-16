@@ -80,6 +80,7 @@ struct COP0 {
         case (u32)COP0Reg::BPCM:        return 0;
         case (u32)COP0Reg::Status:      return status.raw;
         case (u32)COP0Reg::Cause:       return cause.raw;
+        case (u32)COP0Reg::EPC:         return epc;
         default:
             Helpers::panic("Unimplemented cop0 register read cop0r%d\n", cop0r);
         }
@@ -101,6 +102,7 @@ public:
 	    BitField<0,  6, u32> secondaryOpc;
         BitField<16, 5, u32> regimmOpc;
         BitField<21, 5, u32> cop0Opc;
+        BitField<0,  6, u32> func;
 	};
 
     u32 pc = 0xbfc00000;

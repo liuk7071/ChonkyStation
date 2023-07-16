@@ -54,6 +54,10 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 			break;
 		}
+		case CpuCore::SPECIALOpcode::SYSCALL: {
+			core->exception(CpuCore::Exception::SysCall);
+			return;
+		}
 		case CpuCore::SPECIALOpcode::MFHI: {
 			gprs[instr.rd] = core->hi;
 			break;
@@ -286,8 +290,19 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			core->cop0.write(instr.rd, gprs[instr.rt]);
 			break;
 		}
+		case CpuCore::COPOpcode::CO: {
+			switch (instr.func) {
+			case CpuCore::COP0Opcode::RFE: {
+				core->cop0.status.raw = (core->cop0.status.raw & 0xfffffff0) | ((core->cop0.status.raw & 0x3c) >> 2);
+				break;
+			}
+			default:
+				Helpers::panic("[FATAL] Invalid cop0 instruction 0x%02 (raw:0x%08x)\n", instr.func.Value(), instr.raw);
+			}
+			break;
+		}
 		default:
-			Helpers::panic("[FATAL] Unimplemented cop0 instruction 0x%02x (raw: 0x%08x)\n", instr.cop0Opc.Value(), instr.raw);
+			Helpers::panic("[FATAL] Unimplemented cop instruction 0x%02x (raw: 0x%08x)\n", instr.cop0Opc.Value(), instr.raw);
 		}
 		break;
 	}
