@@ -97,7 +97,9 @@ u32 Memory::read(u32 vaddr) {
 
 	u32 paddr = maskAddress(vaddr);
 
-	Helpers::panic("[FATAL] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+	if (paddr == 0x1f801074) return intc->readImask();
+	else
+		Helpers::panic("[FATAL] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
 
 
@@ -134,6 +136,8 @@ void Memory::write(u32 vaddr, u16 data) {
 
 	// SPU
 	if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return;
+	// Timers
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return;
 	else
 		Helpers::panic("[FATAL] Unhandled write16 0x%08x (virtual 0x%08x) <- 0x%04x\n", paddr, vaddr, data);
 }

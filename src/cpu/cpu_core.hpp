@@ -110,6 +110,43 @@ public:
 
     COP0 cop0;
 
+    enum class Exception {
+        INT = 0x0,
+        BadFetchAddr = 0x4,
+        BadStoreAddr = 0x5,
+        SysCall = 0x8,
+        Break = 0x9,
+        Reserved_Instruction = 0xA,
+        Overflow = 0xC
+    };
+
+    void exception(Exception exception) {
+        const bool isDelaySlot = nextPc != (pc + 4);
+
+        if (isDelaySlot)
+            cop0.cause.bd = true;
+        else
+            cop0.cause.bd = false;
+
+        if (exception == Exception::BadFetchAddr || exception == Exception::BadStoreAddr)
+            cop0.badVaddr = pc;
+
+        u32 handler = 0x80000000;
+        if (cop0.status.bev)
+            handler = 0xbfc00180;
+
+        u32 temp = cop0.status.raw & 0x3f;
+        cop0.status.raw &= ~0x3f;
+        cop0.status.raw |= (temp << 2) & 0x3f;
+        cop0.cause.raw &= ~0xff;
+        cop0.cause.raw |= (u32)exception << 2;
+        cop0.epc = pc;
+        if (isDelaySlot)
+            cop0.epc -= 4;
+        pc = handler;
+        nextPc = handler;
+    }
+
     enum CpuReg {
         R0 = 0, AT = 1, V0 = 2, V1 = 3,
         A0 = 4, A1 = 5, A2 = 6, A3 = 7,
