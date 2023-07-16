@@ -1,16 +1,19 @@
 #pragma once
 
 #include <helpers.hpp>
+#include <intc.hpp>
 
 
 class Memory {
 public:
-	Memory();
+	Memory(INTC* intc);
     void loadBios(const fs::path& biosPath);
 
 	u8* ram = new u8[2MB];
 	u8* scratchpad = new u8[1KB];
 	u8* bios = new u8[512KB];
+
+    INTC* intc;
 
     // Base addresses
     enum class MemoryBase {

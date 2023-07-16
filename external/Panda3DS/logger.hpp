@@ -24,7 +24,7 @@ public:
 };
 
 // Our loggers here. Enable/disable by toggling the template param
-static auto cpuTraceLogger = Logger<true>("[CPU TRACE] ");
+static auto cpuTraceLogger = Logger<false>("[CPU TRACE] ");
 
 
 #define MAKE_LOG_FUNCTION(functionName, logger)          \

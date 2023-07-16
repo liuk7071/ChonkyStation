@@ -1,7 +1,7 @@
 #include <memory.hpp>
 
 
-Memory::Memory() {
+Memory::Memory(INTC* intc) : intc(intc) {
 	std::memset(ram, 0, 2MB);
 	std::memset(scratchpad, 0, 1KB);
 
@@ -151,7 +151,13 @@ void Memory::write(u32 vaddr, u32 data) {
 
 	u32 paddr = maskAddress(vaddr);
 
-	if (paddr == 0x1f801000) return;	// Expansion 1 Base Address (usually 1F000000h)
+	if (paddr == 0x1f801070) {
+		intc->writeIstat(data);
+	}
+	else if (paddr == 0x1f801074) {
+		intc->writeImask(data);
+	}
+	else if (paddr == 0x1f801000) return;	// Expansion 1 Base Address (usually 1F000000h)
 	else if (paddr == 0x1f801004) return;	// Expansion 2 Base Address (usually 1F802000h)
 	else if (paddr == 0x1f801008) return;	// Expansion 1 Delay/Size (usually 0013243Fh) (512Kbytes, 8bit bus)
 	else if (paddr == 0x1f80100C) return;	// Expansion 3 Delay/Size (usually 00003022h) (1 byte)

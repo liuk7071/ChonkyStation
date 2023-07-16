@@ -1,13 +1,14 @@
 #pragma once
 
+#include <helpers.hpp>
 #include <cpu.hpp>
 #include <memory.hpp>
-#include <helpers.hpp>
+#include <intc.hpp>
 
 
 class PlayStation {
 public:
-    PlayStation(const fs::path& biosPath) : mem(), cpu(&mem) {
+    PlayStation(const fs::path& biosPath) : intc(), mem(&intc), cpu(&mem) {
         mem.loadBios(biosPath);
     }
 
@@ -17,6 +18,7 @@ public:
     }
 
 private:
-    Memory mem;
     Cpu cpu;
+    Memory mem;
+    INTC intc;
 };
