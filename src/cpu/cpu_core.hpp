@@ -99,6 +99,7 @@ public:
 	    BitField<21, 5, u32> rs;
 	    BitField<26, 6, u32> primaryOpc;
 	    BitField<0,  6, u32> secondaryOpc;
+        BitField<16, 5, u32> regimmOpc;
         BitField<21, 5, u32> cop0Opc;
 	};
 

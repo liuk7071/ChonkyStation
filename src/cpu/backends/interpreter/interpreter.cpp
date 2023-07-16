@@ -101,6 +101,43 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		}
 		break;
 	}
+	case CpuCore::Opcode::REGIMM: {
+		switch (instr.regimmOpc) {
+		case CpuCore::REGIMMOpcode::BLTZ: {
+			if ((s32)gprs[instr.rs] < 0) {
+				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+				core->nextPc -= 4;
+			}
+			break;
+		}
+		case CpuCore::REGIMMOpcode::BGEZ: {
+			if ((s32)gprs[instr.rs] >= 0) {
+				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+				core->nextPc -= 4;
+			}
+			break;
+		}
+		case CpuCore::REGIMMOpcode::BLTZAL: {
+			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
+			if ((s32)gprs[instr.rs] < 0) {
+				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+				core->nextPc -= 4;
+			}
+			break;
+		}
+		case CpuCore::REGIMMOpcode::BGEZAL: {
+			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
+			if ((s32)gprs[instr.rs] >= 0) {
+				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+				core->nextPc -= 4;
+			}
+			break;
+		}
+		default:
+			Helpers::panic("[FATAL] Invalid REGIMM instruction 0x%02x (raw: 0x%08x)\n", instr.regimmOpc.Value(), instr.raw);
+		}
+		break;
+	}
 	case CpuCore::Opcode::J: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		core->nextPc -= 4;
