@@ -54,6 +54,56 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 			break;
 		}
+		case CpuCore::SPECIALOpcode::MFHI: {
+			gprs[instr.rd] = core->hi;
+			break;
+		}
+		case CpuCore::SPECIALOpcode::MTHI: {
+			core->hi = gprs[instr.rs];
+			break;
+		}
+		case CpuCore::SPECIALOpcode::MFLO: {
+			gprs[instr.rd] = core->lo;
+			break;
+		}
+		case CpuCore::SPECIALOpcode::MTLO: {
+			core->lo = gprs[instr.rs];
+			break;
+		}
+		case CpuCore::SPECIALOpcode::DIV: {
+			const s32 n = (s32)gprs[instr.rs];
+			const s32 d = (s32)gprs[instr.rt];
+
+			if (d == 0) {
+				core->hi = n;
+				if (n >= 0)
+					core->lo = -1;
+				else
+					core->lo = 1;
+				break;
+			}
+			if (n == 0x80000000 && d == -1) {
+				core->hi = 0;
+				core->lo = 0x80000000;
+				break;
+			}
+			core->hi = n % d;
+			core->lo = n / d;
+			break;
+		}
+		case CpuCore::SPECIALOpcode::DIVU: {
+			const u32 n = gprs[instr.rs];
+			const u32 d = gprs[instr.rt];
+			
+			if (d == 0) {
+				core->hi = n;
+				core->lo = 0xffffffff;
+				break;
+			}
+			core->hi = n % d;
+			core->lo = n / d;
+			break;
+		}
 		case CpuCore::SPECIALOpcode::ADD: {
 			gprs[instr.rd] = gprs[instr.rs] + gprs[instr.rt];
 			// TODO: overflow exception
