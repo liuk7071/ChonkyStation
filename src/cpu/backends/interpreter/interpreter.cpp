@@ -42,6 +42,10 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 		}
 		break;
 	}
+	case CpuCore::Opcode::J: {
+		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
+		break;
+	}
 	case CpuCore::Opcode::ADDI: {
 		gprs[instr.rt] = gprs[instr.rs] + (u32)(s16)instr.imm;
 		// TODO: overflow exception
