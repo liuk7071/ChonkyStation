@@ -86,34 +86,40 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 	}
 	case CpuCore::Opcode::J: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
+		core->nextPc -= 4;
 		break;
 	}
 	case CpuCore::Opcode::JAL: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		gprs[CpuCore::CpuReg::RA] = core->pc + 8;
+		core->nextPc -= 4;
 		break;
 	}
 	case CpuCore::Opcode::BEQ: {
 		if (gprs[instr.rs] == gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+			core->nextPc -= 4;
 		}
 		break;
 	}
 	case CpuCore::Opcode::BNE: {
 		if (gprs[instr.rs] != gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+			core->nextPc -= 4;
 		}
 		break;
 	}
 	case CpuCore::Opcode::BLEZ: {
 		if ((s32)gprs[instr.rs] <= 0) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+			core->nextPc -= 4;
 		}
 		break;
 	}
 	case CpuCore::Opcode::BGTZ: {
 		if ((s32)gprs[instr.rs] > 0) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
+			core->nextPc -= 4;
 		}
 		break;
 	}
