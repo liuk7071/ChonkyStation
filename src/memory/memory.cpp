@@ -54,6 +54,36 @@ u32 Memory::maskAddress(u32 vaddr) {
 }
 
 template<>
+u8 Memory::read(u32 vaddr) {
+	u32 paddr = maskAddress(vaddr);
+
+	const auto page = vaddr >> 16;
+	const auto pointer = readTable[page];
+
+	// Use fast memory if the address is in the fastmem table
+	if (pointer) {
+		return *(u8*)(pointer + (vaddr & 0xffff));
+	}
+
+	Helpers::panic("[FATAL] Unhandled read8 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+}
+
+template<>
+u16 Memory::read(u32 vaddr) {
+	u32 paddr = maskAddress(vaddr);
+
+	const auto page = vaddr >> 16;
+	const auto pointer = readTable[page];
+
+	// Use fast memory if the address is in the fastmem table
+	if (pointer) {
+		return *(u16*)(pointer + (vaddr & 0xffff));
+	}
+
+	Helpers::panic("[FATAL] Unhandled read16 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+}
+
+template<>
 u32 Memory::read(u32 vaddr) {
 	u32 paddr = maskAddress(vaddr);
 
