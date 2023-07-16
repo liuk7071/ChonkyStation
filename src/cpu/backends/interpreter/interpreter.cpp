@@ -37,6 +37,24 @@ void Interpreter::step(CpuCore* core, Memory* mem) {
 			gprs[instr.rd] = (s32)gprs[instr.rt] >> (gprs[instr.rs] & 0x1f);
 			break;
 		}
+		case CpuCore::SPECIALOpcode::ADD: {
+			gprs[instr.rd] = gprs[instr.rs] + gprs[instr.rt];
+			// TODO: overflow exception
+			break;
+		}
+		case CpuCore::SPECIALOpcode::ADDU: {
+			gprs[instr.rd] = gprs[instr.rs] + gprs[instr.rt];
+			break;
+		}
+		case CpuCore::SPECIALOpcode::SUB: {
+			gprs[instr.rd] = gprs[instr.rs] - gprs[instr.rt];
+			// TODO: overflow exception
+			break;
+		}
+		case CpuCore::SPECIALOpcode::SUBU: {
+			gprs[instr.rd] = gprs[instr.rs] - gprs[instr.rt];
+			break;
+		}
 		case CpuCore::SPECIALOpcode::AND: {
 			gprs[instr.rd] = gprs[instr.rs] & gprs[instr.rt];
 			break;
