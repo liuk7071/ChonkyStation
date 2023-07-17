@@ -109,6 +109,8 @@ public:
     u32 nextPc = pc;
     u32 gprs[32];
     u32 hi, lo;
+    bool branched = false;
+    bool isDelaySlot = false;
 
     COP0 cop0;
 
@@ -123,8 +125,6 @@ public:
     };
 
     void exception(Exception exception) {
-        const bool isDelaySlot = nextPc != (pc + 4);
-
         if (isDelaySlot)
             cop0.cause.bd = true;
         else
@@ -133,7 +133,7 @@ public:
         if (exception == Exception::BadFetchAddr || exception == Exception::BadStoreAddr)
             cop0.badVaddr = pc;
 
-        u32 handler = 0x80000000;
+        u32 handler = 0x80000080;
         if (cop0.status.bev)
             handler = 0xbfc00180;
 

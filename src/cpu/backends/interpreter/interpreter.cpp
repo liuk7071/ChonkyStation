@@ -10,9 +10,14 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 
 	auto& gprs = core->gprs;
 
-	if (mem->maskAddress(core->nextPc) == 0xB0) {
+	if (mem->maskAddress(core->pc) == 0xB0) {
 		if (gprs[9] == 0x3d)
 			std::putc(gprs[4], stdout);
+	}
+
+	if (core->branched) {
+		core->branched = false;
+		core->isDelaySlot = true;
 	}
 
 	switch (instr.primaryOpc) {
@@ -48,6 +53,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 				Helpers::panic("Bad JR addr\n");
 			}
 			core->nextPc = addr - 4;
+			core->branched = true;
 			break;
 		}
 		case CpuCore::SPECIALOpcode::JALR: {
@@ -57,6 +63,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			}
 			core->nextPc = addr - 4;
 			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
+			core->branched = true;
 			break;
 		}
 		case CpuCore::SPECIALOpcode::SYSCALL: {
@@ -182,6 +189,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->nextPc -= 4;
+				core->branched = true;
 			}
 			break;
 		}
@@ -189,6 +197,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			if ((s32)gprs[instr.rs] >= 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->nextPc -= 4;
+				core->branched = true;
 			}
 			break;
 		}
@@ -197,6 +206,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->nextPc -= 4;
+				core->branched = true;
 			}
 			break;
 		}
@@ -205,6 +215,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			if ((s32)gprs[instr.rs] >= 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->nextPc -= 4;
+				core->branched = true;
 			}
 			break;
 		}
@@ -216,18 +227,21 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	case CpuCore::Opcode::J: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		core->nextPc -= 4;
+		core->branched = true;
 		break;
 	}
 	case CpuCore::Opcode::JAL: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 		core->nextPc -= 4;
+		core->branched = true;
 		break;
 	}
 	case CpuCore::Opcode::BEQ: {
 		if (gprs[instr.rs] == gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 			core->nextPc -= 4;
+			core->branched = true;
 		}
 		break;
 	}
@@ -235,6 +249,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		if (gprs[instr.rs] != gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 			core->nextPc -= 4;
+			core->branched = true;
 		}
 		break;
 	}
@@ -242,6 +257,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		if ((s32)gprs[instr.rs] <= 0) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 			core->nextPc -= 4;
+			core->branched = true;
 		}
 		break;
 	}
@@ -249,6 +265,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		if ((s32)gprs[instr.rs] > 0) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 			core->nextPc -= 4;
+			core->branched = true;
 		}
 		break;
 	}
@@ -374,4 +391,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	}
 
 	core->nextPc += 4;
+
+	if (core->isDelaySlot) core->isDelaySlot = false;
 }
