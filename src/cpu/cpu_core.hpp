@@ -106,7 +106,7 @@ public:
 	};
 
     u32 pc = 0xbfc00000;
-    u32 nextPc = pc;
+    u32 nextPc = pc + 4;
     u32 gprs[32];
     u32 hi, lo;
     bool branched = false;
@@ -146,7 +146,7 @@ public:
         if (isDelaySlot)
             cop0.epc -= 4;
         pc = handler;
-        nextPc = handler;
+        nextPc = handler + 4;
     }
 
     enum CpuReg {

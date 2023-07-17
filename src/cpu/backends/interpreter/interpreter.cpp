@@ -7,6 +7,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	disassembler->disassemble(instr, core);
 
 	core->pc = core->nextPc;
+	core->nextPc += 4;
 
 	auto& gprs = core->gprs;
 	gprs[0] = 0;	// $zero
@@ -53,7 +54,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			if (addr & 3) {
 				Helpers::panic("Bad JR addr\n");
 			}
-			core->nextPc = addr - 4;
+			core->nextPc = addr;
 			core->branched = true;
 			break;
 		}
@@ -62,7 +63,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			if (addr & 3) {
 				Helpers::panic("Bad JALR addr\n");
 			}
-			core->nextPc = addr - 4;
+			core->nextPc = addr;
 			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 			core->branched = true;
 			break;
@@ -189,7 +190,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		case CpuCore::REGIMMOpcode::BLTZ: {
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
-				core->nextPc -= 4;
 				core->branched = true;
 			}
 			break;
@@ -197,7 +197,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		case CpuCore::REGIMMOpcode::BGEZ: {
 			if ((s32)gprs[instr.rs] >= 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
-				core->nextPc -= 4;
 				core->branched = true;
 			}
 			break;
@@ -206,7 +205,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
-				core->nextPc -= 4;
 				core->branched = true;
 			}
 			break;
@@ -215,7 +213,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 			if ((s32)gprs[instr.rs] >= 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
-				core->nextPc -= 4;
 				core->branched = true;
 			}
 			break;
@@ -227,21 +224,18 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	}
 	case CpuCore::Opcode::J: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
-		core->nextPc -= 4;
 		core->branched = true;
 		break;
 	}
 	case CpuCore::Opcode::JAL: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		gprs[CpuCore::CpuReg::RA] = core->pc + 4;
-		core->nextPc -= 4;
 		core->branched = true;
 		break;
 	}
 	case CpuCore::Opcode::BEQ: {
 		if (gprs[instr.rs] == gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
-			core->nextPc -= 4;
 			core->branched = true;
 		}
 		break;
@@ -249,7 +243,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	case CpuCore::Opcode::BNE: {
 		if (gprs[instr.rs] != gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
-			core->nextPc -= 4;
 			core->branched = true;
 		}
 		break;
@@ -257,7 +250,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	case CpuCore::Opcode::BLEZ: {
 		if ((s32)gprs[instr.rs] <= 0) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
-			core->nextPc -= 4;
 			core->branched = true;
 		}
 		break;
@@ -265,7 +257,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	case CpuCore::Opcode::BGTZ: {
 		if ((s32)gprs[instr.rs] > 0) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
-			core->nextPc -= 4;
 			core->branched = true;
 		}
 		break;
@@ -390,8 +381,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	default:
 		Helpers::panic("[FATAL] Unimplemented primary instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
 	}
-
-	core->nextPc += 4;
 
 	if (core->isDelaySlot) core->isDelaySlot = false;
 }
