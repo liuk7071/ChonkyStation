@@ -1,7 +1,7 @@
 #include <memory.hpp>
 
 
-Memory::Memory(INTC* intc, DMA* dma) : intc(intc), dma(dma) {
+Memory::Memory(INTC* intc, DMA* dma, Gpu* gpu) : intc(intc), dma(dma), gpu(gpu) {
 	std::memset(ram, 0, 2MB);
 	std::memset(scratchpad, 0, 1KB);
 
@@ -82,9 +82,12 @@ u16 Memory::read(u32 vaddr) {
 
 	u32 paddr = maskAddress(vaddr);
 
+	// INTC
+	if (paddr == 0x1f801074) return intc->readImask();
 	// SPU
-	if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return 0;
-	Helpers::panic("[FATAL] Unhandled read16 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return 0;
+	else
+		Helpers::panic("[FATAL] Unhandled read16 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
 
 template<>
@@ -99,10 +102,13 @@ u32 Memory::read(u32 vaddr) {
 
 	u32 paddr = maskAddress(vaddr);
 
+	// GPU
+	if (paddr == 0x1f801814) return gpu->getStat();
 	// INTC
-	if (paddr == 0x1f801074) return intc->readImask();
+	else if (paddr == 0x1f801074) return intc->readImask();
 	// DMA
 	else if (paddr == 0x1f8010f0) return dma->dpcr;
+	else if (paddr == 0x1f8010f4) return dma->dicr;
 	else
 		Helpers::panic("[FATAL] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
@@ -139,8 +145,10 @@ void Memory::write(u32 vaddr, u16 data) {
 
 	u32 paddr = maskAddress(vaddr);
 
+	// INTC
+	if (paddr == 0x1f801074) intc->writeImask(data);
 	// SPU
-	if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return;
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return;
 	// Timers
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return;
 	else
@@ -160,17 +168,17 @@ void Memory::write(u32 vaddr, u32 data) {
 
 	u32 paddr = maskAddress(vaddr);
 
+	// GPU
+	if (paddr == 0x1f801810) gpu->writeGp0(data);
 	// INTC
-	if (paddr == 0x1f801070) {
-		intc->writeIstat(data);
-	}
-	else if (paddr == 0x1f801074) {
-		intc->writeImask(data);
-	}
+	else if (paddr == 0x1f801070) intc->writeIstat(data);
+	else if (paddr == 0x1f801074) intc->writeImask(data);
 	// DMA
-	else if (paddr == 0x1f8010f0) {
-		dma->dpcr = data;
-	}
+	else if (paddr == 0x1f8010f0) dma->dpcr = data;
+	else if (paddr == 0x1f8010f4) dma->dicr = data;
+	// Timers
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return;
+
 	else if (paddr == 0x1f801000) return;	// Expansion 1 Base Address (usually 1F000000h)
 	else if (paddr == 0x1f801004) return;	// Expansion 2 Base Address (usually 1F802000h)
 	else if (paddr == 0x1f801008) return;	// Expansion 1 Delay/Size (usually 0013243Fh) (512Kbytes, 8bit bus)

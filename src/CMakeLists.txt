@@ -11,6 +11,8 @@ set(SOURCE_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/memory/memory.cpp"
 
 "${CMAKE_CURRENT_SOURCE_DIR}/dma/dma.cpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/gpu/gpu.cpp"
 PARENT_SCOPE)
 
 set(HEADER_FILES
@@ -29,4 +31,6 @@ set(HEADER_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/memory/memory.hpp"
 
 "${CMAKE_CURRENT_SOURCE_DIR}/dma/dma.hpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/gpu/gpu.hpp"
 PARENT_SCOPE)

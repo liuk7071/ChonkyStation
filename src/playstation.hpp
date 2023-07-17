@@ -5,11 +5,12 @@
 #include <memory.hpp>
 #include <intc.hpp>
 #include <dma.hpp>
+#include <gpu.hpp>
 
 
 class PlayStation {
 public:
-    PlayStation(const fs::path& biosPath) : intc(), dma(), mem(&intc, &dma), cpu(&mem) {
+    PlayStation(const fs::path& biosPath) : intc(), gpu(), dma(), mem(&intc, &dma, &gpu), cpu(&mem) {
         mem.loadBios(biosPath);
     }
 
@@ -23,4 +24,5 @@ private:
     DMA dma;
     Memory mem;
     INTC intc;
+    Gpu gpu;
 };

@@ -10,6 +10,11 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 
 	auto& gprs = core->gprs;
 
+	if (mem->maskAddress(core->nextPc) == 0xB0) {
+		if (gprs[9] == 0x3d)
+			std::putc(gprs[4], stdout);
+	}
+
 	switch (instr.primaryOpc) {
 	case CpuCore::Opcode::SPECIAL: {
 		switch (instr.secondaryOpc) {

@@ -3,11 +3,12 @@
 #include <helpers.hpp>
 #include <intc.hpp>
 #include <dma.hpp>
+#include <gpu.hpp>
 
 
 class Memory {
 public:
-	Memory(INTC* intc, DMA* dma);
+	Memory(INTC* intc, DMA* dma, Gpu* gpu);
     void loadBios(const fs::path& biosPath);
 
 	u8* ram = new u8[2MB];
@@ -16,6 +17,7 @@ public:
 
     INTC* intc;
     DMA* dma;
+    Gpu* gpu;
 
     // Base addresses
     enum class MemoryBase {
