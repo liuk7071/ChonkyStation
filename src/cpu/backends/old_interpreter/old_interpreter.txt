@@ -1,0 +1,2 @@
+This is the interpreter of the pre-rewrite ChonkyStation.
+It's taken straight out of the old emulator.

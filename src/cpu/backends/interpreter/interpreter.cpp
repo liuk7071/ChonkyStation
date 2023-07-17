@@ -9,6 +9,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	core->pc = core->nextPc;
 
 	auto& gprs = core->gprs;
+	gprs[0] = 0;	// $zero
 
 	if (mem->maskAddress(core->pc) == 0xB0) {
 		if (gprs[9] == 0x3d)
