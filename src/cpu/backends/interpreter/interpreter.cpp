@@ -6,9 +6,6 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 
 	disassembler->disassemble(instr, core);
 
-	core->pc = core->nextPc;
-	core->nextPc += 4;
-
 	auto& gprs = core->gprs;
 	gprs[0] = 0;	// $zero
 
@@ -16,6 +13,9 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		if (gprs[9] == 0x3d)
 			std::putc(gprs[4], stdout);
 	}
+
+	core->pc = core->nextPc;
+	core->nextPc += 4;
 
 	if (core->branched) {
 		core->branched = false;

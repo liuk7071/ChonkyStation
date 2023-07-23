@@ -15,8 +15,8 @@ void Disassembler::disassemble(CpuCore::Instruction instr, CpuCore* core) {
         }
         break;
     }
-    case CpuCore::Opcode::J:                 log("0x%08x: j      0x%08x\n", core->pc, instr.jumpImm); break;
-    case CpuCore::Opcode::JAL:               log("0x%08x: jal    0x%08x\n", core->pc, instr.jumpImm); break;
+    case CpuCore::Opcode::J:                 log("0x%08x: j      0x%08x\n", core->pc, instr.jumpImm.Value()); break;
+    case CpuCore::Opcode::JAL:               log("0x%08x: jal    0x%08x\n", core->pc, instr.jumpImm.Value()); break;
     case CpuCore::Opcode::BNE:               log("0x%08x: bne    %s, %s, 0x%04x\n", core->pc, gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str(), instr.imm.Value()); break;
     case CpuCore::Opcode::ADDI:              log("0x%08x: addi   %s, %s, 0x%04x\n", core->pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
     case CpuCore::Opcode::ADDIU:             log("0x%08x: addiu  %s, %s, 0x%04x\n", core->pc, gprNames[instr.rt].c_str(), gprNames[instr.rs].c_str(), instr.imm.Value()); break;
