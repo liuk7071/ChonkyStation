@@ -63,14 +63,15 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			if (addr & 3) {
 				Helpers::panic("Bad JALR addr\n");
 			}
+			gprs[CpuCore::CpuReg::RA] = core->nextPc;
 			core->nextPc = addr;
-			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 			core->branched = true;
 			break;
 		}
 		case CpuCore::SPECIALOpcode::SYSCALL: {
+			core->pc -= 4;
 			core->exception(CpuCore::Exception::SysCall);
-			return;
+			break;
 		}
 		case CpuCore::SPECIALOpcode::MFHI: {
 			gprs[instr.rd] = core->hi;
@@ -202,7 +203,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			break;
 		}
 		case CpuCore::REGIMMOpcode::BLTZAL: {
-			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
+			gprs[CpuCore::CpuReg::RA] = core->nextPc;
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->branched = true;
@@ -210,7 +211,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			break;
 		}
 		case CpuCore::REGIMMOpcode::BGEZAL: {
-			gprs[CpuCore::CpuReg::RA] = core->pc + 4;
+			gprs[CpuCore::CpuReg::RA] = core->nextPc;
 			if ((s32)gprs[instr.rs] >= 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->branched = true;
@@ -228,8 +229,8 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		break;
 	}
 	case CpuCore::Opcode::JAL: {
+		gprs[CpuCore::CpuReg::RA] = core->nextPc;
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
-		gprs[CpuCore::CpuReg::RA] = core->pc + 4;
 		core->branched = true;
 		break;
 	}
