@@ -1,7 +1,7 @@
 #include <memory.hpp>
 
 
-Memory::Memory(INTC* intc, DMA* dma, Gpu* gpu) : intc(intc), dma(dma), gpu(gpu) {
+Memory::Memory(Interrupt* interrupt, DMA* dma, Gpu* gpu) : interrupt(interrupt), dma(dma), gpu(gpu) {
 	std::memset(ram, 0, 2MB);
 	std::memset(scratchpad, 0, 1KB);
 
@@ -82,8 +82,8 @@ u16 Memory::read(u32 vaddr) {
 
 	u32 paddr = maskAddress(vaddr);
 
-	// INTC
-	if (paddr == 0x1f801074) return intc->readImask();
+	// Interrupt
+	if (paddr == 0x1f801074) return interrupt->readImask();
 	// SPU
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return 0;
 	else
@@ -104,8 +104,8 @@ u32 Memory::read(u32 vaddr) {
 
 	// GPU
 	if (paddr == 0x1f801814) return gpu->getStat();
-	// INTC
-	else if (paddr == 0x1f801074) return intc->readImask();
+	// Interrupt
+	else if (paddr == 0x1f801074) return interrupt->readImask();
 	// DMA
 	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {
 		const auto channel = ((paddr >> 4) & 0xf) - 8;
@@ -156,8 +156,8 @@ void Memory::write(u32 vaddr, u16 data) {
 
 	u32 paddr = maskAddress(vaddr);
 
-	// INTC
-	if (paddr == 0x1f801074) intc->writeImask(data);
+	// Interrupt
+	if (paddr == 0x1f801074) interrupt->writeImask(data);
 	// SPU
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return;
 	// Timers
@@ -181,9 +181,9 @@ void Memory::write(u32 vaddr, u32 data) {
 
 	// GPU
 	if (paddr == 0x1f801810) gpu->writeGp0(data);
-	// INTC
-	else if (paddr == 0x1f801070) intc->writeIstat(data);
-	else if (paddr == 0x1f801074) intc->writeImask(data);
+	// Interrupt
+	else if (paddr == 0x1f801070) interrupt->writeIstat(data);
+	else if (paddr == 0x1f801074) interrupt->writeImask(data);
 	// DMA
 	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {
 		const auto channel = ((paddr >> 4) & 0xf) - 8;

@@ -3,14 +3,14 @@
 #include <helpers.hpp>
 #include <cpu.hpp>
 #include <memory.hpp>
-#include <intc.hpp>
+#include <interrupt.hpp>
 #include <dma.hpp>
 #include <gpu.hpp>
 
 
 class PlayStation {
 public:
-    PlayStation(const fs::path& biosPath) : intc(), gpu(), dma(), mem(&intc, &dma, &gpu), cpu(&mem) {
+    PlayStation(const fs::path& biosPath) : interrupt(), gpu(), dma(), mem(&interrupt, &dma, &gpu), cpu(&mem) {
         mem.loadBios(biosPath);
         //cpu.switchBackend(Cpu::Backend::OldInterpreter);
     }
@@ -24,6 +24,6 @@ private:
     Cpu cpu;
     DMA dma;
     Memory mem;
-    INTC intc;
+    Interrupt interrupt;
     Gpu gpu;
 };

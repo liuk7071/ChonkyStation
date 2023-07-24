@@ -3,7 +3,7 @@
 #include <helpers.hpp>
 
 
-class INTC {
+class Interrupt {
 public:
 	void writeImask(u16 data);
 	void writeIstat(u16 data);

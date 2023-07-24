@@ -4,8 +4,7 @@ set(SOURCE_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/cpu.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/backends/interpreter/interpreter.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/backends/old_interpreter/old_interpreter.cpp"
-
-"${CMAKE_CURRENT_SOURCE_DIR}/intc/intc.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/cpu/interrupt.cpp"
 
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/disassembler/disassembler.cpp"
 
@@ -25,8 +24,7 @@ set(HEADER_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/cpu.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/backends/interpreter/interpreter.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/backends/old_interpreter/old_interpreter.hpp"
-
-"${CMAKE_CURRENT_SOURCE_DIR}/intc/intc.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/cpu/interrupt.hpp"
 
 "${CMAKE_CURRENT_SOURCE_DIR}/cpu/disassembler/disassembler.hpp"
 

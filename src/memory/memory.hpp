@@ -1,21 +1,21 @@
 #pragma once
 
 #include <helpers.hpp>
-#include <intc.hpp>
+#include <interrupt.hpp>
 #include <dma.hpp>
 #include <gpu.hpp>
 
 
 class Memory {
 public:
-	Memory(INTC* intc, DMA* dma, Gpu* gpu);
+	Memory(Interrupt* interrupt, DMA* dma, Gpu* gpu);
     void loadBios(const fs::path& biosPath);
 
 	u8* ram = new u8[2MB];
 	u8* scratchpad = new u8[1KB];
 	u8* bios = new u8[512KB];
 
-    INTC* intc;
+    Interrupt* interrupt;
     DMA* dma;
     Gpu* gpu;
 
