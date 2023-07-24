@@ -28,6 +28,8 @@ public:
 		} chcr;
 	};
 
+	DMAChannel channels[7];
+
 	u32 dpcr = 0;
 	u32 dicr = 0;
 };

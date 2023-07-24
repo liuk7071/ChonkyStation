@@ -39,6 +39,16 @@ namespace Helpers {
 		exit(0);
 	}
 
+	static void assert(bool cond, const char* fmt, ...) {
+		if (!cond) [[unlikely]] {
+			va_list args;
+			va_start(args, fmt);
+			vprintf(fmt, args);
+			va_end(args);
+			exit(0);
+		}
+	}
+
 	static auto readBinary(const fs::path& directory) -> std::vector<u8> {
 		std::ifstream file(directory, std::ios::binary);
 		if (!file.is_open()) {

@@ -107,6 +107,17 @@ u32 Memory::read(u32 vaddr) {
 	// INTC
 	else if (paddr == 0x1f801074) return intc->readImask();
 	// DMA
+	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {
+		const auto channel = ((paddr >> 4) & 0xf) - 8;
+		Helpers::assert(channel < 8, "Tried to access %dth DMA channel", channel);	// Should not get triggered
+
+		switch (paddr & 0xf) {
+		case 0x0: return dma->channels[channel].madr;
+		case 0x4: return dma->channels[channel].bcr.raw;
+		case 0x8: return dma->channels[channel].chcr.raw;
+		default: Helpers::panic("[FATAL] Unhandled DMA read32 0x%08x\n", paddr);
+		}
+	}
 	else if (paddr == 0x1f8010f0) return dma->dpcr;
 	else if (paddr == 0x1f8010f4) return dma->dicr;
 	else
@@ -174,6 +185,17 @@ void Memory::write(u32 vaddr, u32 data) {
 	else if (paddr == 0x1f801070) intc->writeIstat(data);
 	else if (paddr == 0x1f801074) intc->writeImask(data);
 	// DMA
+	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {
+		const auto channel = ((paddr >> 4) & 0xf) - 8;
+		Helpers::assert(channel < 8, "Tried to access %dth DMA channel", channel);	// Should not get triggered
+
+		switch (paddr & 0xf) {
+		case 0x0: dma->channels[channel].madr	  = data;
+		case 0x4: dma->channels[channel].bcr.raw  = data;
+		case 0x8: dma->channels[channel].chcr.raw = data;
+		default: Helpers::panic("[FATAL] Unhandled DMA write32 0x%08x <- 0x%08x\n", paddr, data);
+		}
+	}
 	else if (paddr == 0x1f8010f0) dma->dpcr = data;
 	else if (paddr == 0x1f8010f4) dma->dicr = data;
 	// Timers
