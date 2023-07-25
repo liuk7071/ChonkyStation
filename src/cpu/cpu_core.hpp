@@ -161,7 +161,7 @@ public:
         LO = 32, HI = 33
     };
 
-    enum Opcode {
+    enum class Opcode {
         SPECIAL = 0x00,
         REGIMM = 0x01,
         J = 0x02,
@@ -196,7 +196,7 @@ public:
         SWC2 = 0x3A
     };
 
-    enum SPECIALOpcode {
+    enum class SPECIALOpcode {
         SLL = 0x00,
         SRL = 0x02,
         SRA = 0x03,
@@ -227,14 +227,14 @@ public:
         SLTU = 0x2B
     };
 
-    enum REGIMMOpcode {
+    enum class REGIMMOpcode {
         BLTZ = 0x00,
         BGEZ = 0x01,
         BLTZAL = 0x10,
         BGEZAL = 0x11
     };
 
-    enum COPOpcode {
+    enum class COPOpcode {
         MF = 0x00,
         CF = 0x02,
         MT = 0x04,
@@ -242,7 +242,7 @@ public:
         CO = 0x10
     };
 
-    enum COP0Opcode {
+    enum class COP0Opcode {
         RFE = 0x10
     };
 };

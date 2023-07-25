@@ -1,8 +1,8 @@
 #include "old_interpreter.hpp"
 
-#define debug_log()
-#define debug_err()
-#define debug_warn()
+#define debug_log(...)
+#define debug_err(...)
+#define debug_warn(...)
 
 
 /*void OldInterpreter::sideloadExecutable(std::string directory) {

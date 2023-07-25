@@ -22,9 +22,9 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		core->isDelaySlot = true;
 	}
 
-	switch (instr.primaryOpc) {
+	switch ((CpuCore::Opcode)instr.primaryOpc.Value()) {
 	case CpuCore::Opcode::SPECIAL: {
-		switch (instr.secondaryOpc) {
+		switch ((CpuCore::SPECIALOpcode)instr.secondaryOpc.Value()) {
 		case CpuCore::SPECIALOpcode::SLL: {
 			gprs[instr.rd] = gprs[instr.rt] << instr.shiftImm;
 			break;
@@ -187,7 +187,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		break;
 	}
 	case CpuCore::Opcode::REGIMM: {
-		switch (instr.regimmOpc) {
+		switch ((CpuCore::REGIMMOpcode)instr.regimmOpc.Value()) {
 		case CpuCore::REGIMMOpcode::BLTZ: {
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
@@ -296,7 +296,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		break;
 	}
 	case CpuCore::Opcode::COP0: {
-		switch (instr.cop0Opc) {
+		switch ((CpuCore::COPOpcode)instr.cop0Opc.Value()) {
 		case CpuCore::COPOpcode::MF: {
 			gprs[instr.rt] = core->cop0.read(instr.rd);
 			break;
@@ -306,7 +306,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			break;
 		}
 		case CpuCore::COPOpcode::CO: {
-			switch (instr.func) {
+			switch ((CpuCore::COP0Opcode)instr.func.Value()) {
 			case CpuCore::COP0Opcode::RFE: {
 				core->cop0.status.raw = (core->cop0.status.raw & 0xfffffff0) | ((core->cop0.status.raw & 0x3c) >> 2);
 				break;

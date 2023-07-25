@@ -2,9 +2,9 @@
 
 
 void Disassembler::disassemble(CpuCore::Instruction instr, CpuCore* core) {
-    switch (instr.primaryOpc) {
+    switch ((CpuCore::Opcode)instr.primaryOpc.Value()) {
     case CpuCore::Opcode::SPECIAL: {
-        switch (instr.secondaryOpc) {
+        switch ((CpuCore::SPECIALOpcode)instr.secondaryOpc.Value()) {
         case CpuCore::SPECIALOpcode::SLL:    log("0x%08x: sll    %s, %s, 0x%04x\n", core->pc, gprNames[instr.rd].c_str(), gprNames[instr.rt].c_str(), instr.shiftImm.Value()); break;
         case CpuCore::SPECIALOpcode::ADD:    log("0x%08x: add    %s, %s, %s\n", core->pc, gprNames[instr.rd].c_str(), gprNames[instr.rs].c_str(), gprNames[instr.rt].c_str()); break;
         case CpuCore::SPECIALOpcode::JR:     log("0x%08x: jr     %s\n", core->pc, gprNames[instr.rs].c_str()); break;
