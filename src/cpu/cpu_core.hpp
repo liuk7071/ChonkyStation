@@ -148,101 +148,103 @@ public:
         pc = handler;
         nextPc = handler + 4;
     }
-
-    enum CpuReg {
-        R0 = 0, AT = 1, V0 = 2, V1 = 3,
-        A0 = 4, A1 = 5, A2 = 6, A3 = 7,
-        T0 = 8, T1 = 9, T2 = 10, T3 = 11,
-        T4 = 12, T5 = 13, T6 = 14, T7 = 15,
-        S0 = 16, S1 = 17, S2 = 18, S3 = 19,
-        S4 = 20, S5 = 21, S6 = 22, S7 = 23,
-        T8 = 24, T9 = 25, K0 = 26, K1 = 27,
-        GP = 28, SP = 29, S8 = 30, RA = 31,
-        LO = 32, HI = 33
-    };
-
-    enum class Opcode {
-        SPECIAL = 0x00,
-        REGIMM = 0x01,
-        J = 0x02,
-        JAL = 0x03,
-        BEQ = 0x04,
-        BNE = 0x05,
-        BLEZ = 0x06,
-        BGTZ = 0x07,
-        ADDI = 0x08,
-        ADDIU = 0x09,
-        SLTI = 0x0A,
-        SLTIU = 0x0B,
-        ANDI = 0x0C,
-        ORI = 0x0D,
-        XORI = 0x0E,
-        LUI = 0x0F,
-        COP0 = 0x10,
-        COP2 = 0x12,
-        LB = 0x20,
-        LH = 0x21,
-        LWL = 0x22,
-        LW = 0x23,
-        LBU = 0x24,
-        LHU = 0x25,
-        LWR = 0x26,
-        SB = 0x28,
-        SH = 0x29,
-        SWL = 0x2A,
-        SW = 0x2B,
-        SWR = 0x2E,
-        LWC2 = 0x32,
-        SWC2 = 0x3A
-    };
-
-    enum class SPECIALOpcode {
-        SLL = 0x00,
-        SRL = 0x02,
-        SRA = 0x03,
-        SLLV = 0x04,
-        SRLV = 0x06,
-        SRAV = 0x07,
-        JR = 0x08,
-        JALR = 0x09,
-        SYSCALL = 0x0C,
-        BREAK = 0x0D,
-        MFHI = 0x10,
-        MTHI = 0x11,
-        MFLO = 0x12,
-        MTLO = 0x13,
-        MULT = 0x18,
-        MULTU = 0x19,
-        DIV = 0x1A,
-        DIVU = 0x1B,
-        ADD = 0x20,
-        ADDU = 0x21,
-        SUB = 0x22,
-        SUBU = 0x23,
-        AND = 0x24,
-        OR = 0x25,
-        XOR = 0x26,
-        NOR = 0x27,
-        SLT = 0x2A,
-        SLTU = 0x2B
-    };
-
-    enum class REGIMMOpcode {
-        BLTZ = 0x00,
-        BGEZ = 0x01,
-        BLTZAL = 0x10,
-        BGEZAL = 0x11
-    };
-
-    enum class COPOpcode {
-        MF = 0x00,
-        CF = 0x02,
-        MT = 0x04,
-        CT = 0x06,
-        CO = 0x10
-    };
-
-    enum class COP0Opcode {
-        RFE = 0x10
-    };
 };
+
+namespace CpuOpcodes {
+enum CpuReg {
+    R0 = 0, AT = 1, V0 = 2, V1 = 3,
+    A0 = 4, A1 = 5, A2 = 6, A3 = 7,
+    T0 = 8, T1 = 9, T2 = 10, T3 = 11,
+    T4 = 12, T5 = 13, T6 = 14, T7 = 15,
+    S0 = 16, S1 = 17, S2 = 18, S3 = 19,
+    S4 = 20, S5 = 21, S6 = 22, S7 = 23,
+    T8 = 24, T9 = 25, K0 = 26, K1 = 27,
+    GP = 28, SP = 29, S8 = 30, RA = 31,
+    LO = 32, HI = 33
+};
+
+enum Opcode {
+    SPECIAL = 0x00,
+    REGIMM = 0x01,
+    J = 0x02,
+    JAL = 0x03,
+    BEQ = 0x04,
+    BNE = 0x05,
+    BLEZ = 0x06,
+    BGTZ = 0x07,
+    ADDI = 0x08,
+    ADDIU = 0x09,
+    SLTI = 0x0A,
+    SLTIU = 0x0B,
+    ANDI = 0x0C,
+    ORI = 0x0D,
+    XORI = 0x0E,
+    LUI = 0x0F,
+    COP0 = 0x10,
+    COP2 = 0x12,
+    LB = 0x20,
+    LH = 0x21,
+    LWL = 0x22,
+    LW = 0x23,
+    LBU = 0x24,
+    LHU = 0x25,
+    LWR = 0x26,
+    SB = 0x28,
+    SH = 0x29,
+    SWL = 0x2A,
+    SW = 0x2B,
+    SWR = 0x2E,
+    LWC2 = 0x32,
+    SWC2 = 0x3A
+};
+
+enum SPECIALOpcode {
+    SLL = 0x00,
+    SRL = 0x02,
+    SRA = 0x03,
+    SLLV = 0x04,
+    SRLV = 0x06,
+    SRAV = 0x07,
+    JR = 0x08,
+    JALR = 0x09,
+    SYSCALL = 0x0C,
+    BREAK = 0x0D,
+    MFHI = 0x10,
+    MTHI = 0x11,
+    MFLO = 0x12,
+    MTLO = 0x13,
+    MULT = 0x18,
+    MULTU = 0x19,
+    DIV = 0x1A,
+    DIVU = 0x1B,
+    ADD = 0x20,
+    ADDU = 0x21,
+    SUB = 0x22,
+    SUBU = 0x23,
+    AND = 0x24,
+    OR = 0x25,
+    XOR = 0x26,
+    NOR = 0x27,
+    SLT = 0x2A,
+    SLTU = 0x2B
+};
+
+enum REGIMMOpcode {
+    BLTZ = 0x00,
+    BGEZ = 0x01,
+    BLTZAL = 0x10,
+    BGEZAL = 0x11
+};
+
+enum COPOpcode {
+    MF = 0x00,
+    CF = 0x02,
+    MT = 0x04,
+    CT = 0x06,
+    CO = 0x10
+};
+
+enum COP0Opcode {
+    RFE = 0x10
+};
+}   // End namespace CpuOpcodes

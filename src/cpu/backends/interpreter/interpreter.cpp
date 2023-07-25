@@ -22,34 +22,34 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		core->isDelaySlot = true;
 	}
 
-	switch ((CpuCore::Opcode)instr.primaryOpc.Value()) {
-	case CpuCore::Opcode::SPECIAL: {
-		switch ((CpuCore::SPECIALOpcode)instr.secondaryOpc.Value()) {
-		case CpuCore::SPECIALOpcode::SLL: {
+	switch (instr.primaryOpc) {
+	case CpuOpcodes::Opcode::SPECIAL: {
+		switch (instr.secondaryOpc) {
+		case CpuOpcodes::SPECIALOpcode::SLL: {
 			gprs[instr.rd] = gprs[instr.rt] << instr.shiftImm;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SRL: {
+		case CpuOpcodes::SPECIALOpcode::SRL: {
 			gprs[instr.rd] = gprs[instr.rt] >> instr.shiftImm;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SRA: {
+		case CpuOpcodes::SPECIALOpcode::SRA: {
 			gprs[instr.rd] = (s32)gprs[instr.rt] >> instr.shiftImm;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SLLV: {
+		case CpuOpcodes::SPECIALOpcode::SLLV: {
 			gprs[instr.rd] = gprs[instr.rt] << (gprs[instr.rs] & 0x1f);
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SRLV: {
+		case CpuOpcodes::SPECIALOpcode::SRLV: {
 			gprs[instr.rd] = gprs[instr.rt] >> (gprs[instr.rs] & 0x1f);
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SRAV: {
+		case CpuOpcodes::SPECIALOpcode::SRAV: {
 			gprs[instr.rd] = (s32)gprs[instr.rt] >> (gprs[instr.rs] & 0x1f);
 			break;
 		}
-		case CpuCore::SPECIALOpcode::JR: {
+		case CpuOpcodes::SPECIALOpcode::JR: {
 			const u32 addr = gprs[instr.rs];
 			if (addr & 3) {
 				Helpers::panic("Bad JR addr\n");
@@ -58,38 +58,38 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			core->branched = true;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::JALR: {
+		case CpuOpcodes::SPECIALOpcode::JALR: {
 			const u32 addr = gprs[instr.rs];
 			if (addr & 3) {
 				Helpers::panic("Bad JALR addr\n");
 			}
-			gprs[CpuCore::CpuReg::RA] = core->nextPc;
+			gprs[CpuOpcodes::CpuReg::RA] = core->nextPc;
 			core->nextPc = addr;
 			core->branched = true;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SYSCALL: {
+		case CpuOpcodes::SPECIALOpcode::SYSCALL: {
 			core->pc -= 4;
 			core->exception(CpuCore::Exception::SysCall);
 			break;
 		}
-		case CpuCore::SPECIALOpcode::MFHI: {
+		case CpuOpcodes::SPECIALOpcode::MFHI: {
 			gprs[instr.rd] = core->hi;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::MTHI: {
+		case CpuOpcodes::SPECIALOpcode::MTHI: {
 			core->hi = gprs[instr.rs];
 			break;
 		}
-		case CpuCore::SPECIALOpcode::MFLO: {
+		case CpuOpcodes::SPECIALOpcode::MFLO: {
 			gprs[instr.rd] = core->lo;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::MTLO: {
+		case CpuOpcodes::SPECIALOpcode::MTLO: {
 			core->lo = gprs[instr.rs];
 			break;
 		}
-		case CpuCore::SPECIALOpcode::MULT: {
+		case CpuOpcodes::SPECIALOpcode::MULT: {
 			s64 x = (s64)(s32)gprs[instr.rs];
 			s64 y = (s64)(s32)gprs[instr.rt];
 			u64 res = x * y;
@@ -97,7 +97,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			core->lo = res & 0xffffffff;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::MULTU: {
+		case CpuOpcodes::SPECIALOpcode::MULTU: {
 			u64 x = gprs[instr.rs];
 			u64 y = gprs[instr.rt];
 			u64 res = x * y;
@@ -105,7 +105,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			core->lo = res & 0xffffffff;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::DIV: {
+		case CpuOpcodes::SPECIALOpcode::DIV: {
 			const s32 n = (s32)gprs[instr.rs];
 			const s32 d = (s32)gprs[instr.rt];
 
@@ -126,7 +126,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			core->lo = n / d;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::DIVU: {
+		case CpuOpcodes::SPECIALOpcode::DIVU: {
 			const u32 n = gprs[instr.rs];
 			const u32 d = gprs[instr.rt];
 			
@@ -139,45 +139,45 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			core->lo = n / d;
 			break;
 		}
-		case CpuCore::SPECIALOpcode::ADD: {
+		case CpuOpcodes::SPECIALOpcode::ADD: {
 			gprs[instr.rd] = gprs[instr.rs] + gprs[instr.rt];
 			// TODO: overflow exception
 			break;
 		}
-		case CpuCore::SPECIALOpcode::ADDU: {
+		case CpuOpcodes::SPECIALOpcode::ADDU: {
 			gprs[instr.rd] = gprs[instr.rs] + gprs[instr.rt];
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SUB: {
+		case CpuOpcodes::SPECIALOpcode::SUB: {
 			gprs[instr.rd] = gprs[instr.rs] - gprs[instr.rt];
 			// TODO: overflow exception
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SUBU: {
+		case CpuOpcodes::SPECIALOpcode::SUBU: {
 			gprs[instr.rd] = gprs[instr.rs] - gprs[instr.rt];
 			break;
 		}
-		case CpuCore::SPECIALOpcode::AND: {
+		case CpuOpcodes::SPECIALOpcode::AND: {
 			gprs[instr.rd] = gprs[instr.rs] & gprs[instr.rt];
 			break;
 		}
-		case CpuCore::SPECIALOpcode::OR: {
+		case CpuOpcodes::SPECIALOpcode::OR: {
 			gprs[instr.rd] = gprs[instr.rs] | gprs[instr.rt];
 			break;
 		}
-		case CpuCore::SPECIALOpcode::XOR: {
+		case CpuOpcodes::SPECIALOpcode::XOR: {
 			gprs[instr.rd] = gprs[instr.rs] ^ gprs[instr.rt];
 			break;
 		}
-		case CpuCore::SPECIALOpcode::NOR: {
+		case CpuOpcodes::SPECIALOpcode::NOR: {
 			gprs[instr.rd] = ~(gprs[instr.rs] | gprs[instr.rt]);
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SLT: {
+		case CpuOpcodes::SPECIALOpcode::SLT: {
 			gprs[instr.rd] = (s32)gprs[instr.rs] < (s32)gprs[instr.rt];
 			break;
 		}
-		case CpuCore::SPECIALOpcode::SLTU: {
+		case CpuOpcodes::SPECIALOpcode::SLTU: {
 			gprs[instr.rd] = gprs[instr.rs] < gprs[instr.rt];
 			break;
 		}
@@ -186,32 +186,32 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		}
 		break;
 	}
-	case CpuCore::Opcode::REGIMM: {
-		switch ((CpuCore::REGIMMOpcode)instr.regimmOpc.Value()) {
-		case CpuCore::REGIMMOpcode::BLTZ: {
+	case CpuOpcodes::Opcode::REGIMM: {
+		switch (instr.regimmOpc) {
+		case CpuOpcodes::REGIMMOpcode::BLTZ: {
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->branched = true;
 			}
 			break;
 		}
-		case CpuCore::REGIMMOpcode::BGEZ: {
+		case CpuOpcodes::REGIMMOpcode::BGEZ: {
 			if ((s32)gprs[instr.rs] >= 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->branched = true;
 			}
 			break;
 		}
-		case CpuCore::REGIMMOpcode::BLTZAL: {
-			gprs[CpuCore::CpuReg::RA] = core->nextPc;
+		case CpuOpcodes::REGIMMOpcode::BLTZAL: {
+			gprs[CpuOpcodes::CpuReg::RA] = core->nextPc;
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->branched = true;
 			}
 			break;
 		}
-		case CpuCore::REGIMMOpcode::BGEZAL: {
-			gprs[CpuCore::CpuReg::RA] = core->nextPc;
+		case CpuOpcodes::REGIMMOpcode::BGEZAL: {
+			gprs[CpuOpcodes::CpuReg::RA] = core->nextPc;
 			if ((s32)gprs[instr.rs] >= 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 				core->branched = true;
@@ -223,91 +223,91 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		}
 		break;
 	}
-	case CpuCore::Opcode::J: {
+	case CpuOpcodes::Opcode::J: {
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		core->branched = true;
 		break;
 	}
-	case CpuCore::Opcode::JAL: {
-		gprs[CpuCore::CpuReg::RA] = core->nextPc;
+	case CpuOpcodes::Opcode::JAL: {
+		gprs[CpuOpcodes::CpuReg::RA] = core->nextPc;
 		core->nextPc = (core->pc & 0xf0000000) | (instr.jumpImm << 2);
 		core->branched = true;
 		break;
 	}
-	case CpuCore::Opcode::BEQ: {
+	case CpuOpcodes::Opcode::BEQ: {
 		if (gprs[instr.rs] == gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 			core->branched = true;
 		}
 		break;
 	}
-	case CpuCore::Opcode::BNE: {
+	case CpuOpcodes::Opcode::BNE: {
 		if (gprs[instr.rs] != gprs[instr.rt]) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 			core->branched = true;
 		}
 		break;
 	}
-	case CpuCore::Opcode::BLEZ: {
+	case CpuOpcodes::Opcode::BLEZ: {
 		if ((s32)gprs[instr.rs] <= 0) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 			core->branched = true;
 		}
 		break;
 	}
-	case CpuCore::Opcode::BGTZ: {
+	case CpuOpcodes::Opcode::BGTZ: {
 		if ((s32)gprs[instr.rs] > 0) {
 			core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
 			core->branched = true;
 		}
 		break;
 	}
-	case CpuCore::Opcode::ADDI: {
+	case CpuOpcodes::Opcode::ADDI: {
 		gprs[instr.rt] = gprs[instr.rs] + (u32)(s16)instr.imm;
 		// TODO: overflow exception
 		break;
 	}
-	case CpuCore::Opcode::ADDIU: {
+	case CpuOpcodes::Opcode::ADDIU: {
 		gprs[instr.rt] = gprs[instr.rs] + (u32)(s16)instr.imm;
 		break;
 	}
-	case CpuCore::Opcode::SLTI: {
+	case CpuOpcodes::Opcode::SLTI: {
 		gprs[instr.rt] = (s32)gprs[instr.rs] < (u32)(s16)instr.imm;
 		break;
 	}
-	case CpuCore::Opcode::SLTIU: {
+	case CpuOpcodes::Opcode::SLTIU: {
 		gprs[instr.rt] = gprs[instr.rs] < instr.imm;
 		break;
 	}
-	case CpuCore::Opcode::ANDI: {
+	case CpuOpcodes::Opcode::ANDI: {
 		gprs[instr.rt] = gprs[instr.rs] & instr.imm;
 		break;
 	}
-	case CpuCore::Opcode::ORI: {
+	case CpuOpcodes::Opcode::ORI: {
 		gprs[instr.rt] = gprs[instr.rs] | instr.imm;
 		break;
 	}
-	case CpuCore::Opcode::XORI: {
+	case CpuOpcodes::Opcode::XORI: {
 		gprs[instr.rt] = gprs[instr.rs] ^ instr.imm;
 		break;
 	}
-	case CpuCore::Opcode::LUI: {
+	case CpuOpcodes::Opcode::LUI: {
 		gprs[instr.rt] = instr.imm << 16;
 		break;
 	}
-	case CpuCore::Opcode::COP0: {
-		switch ((CpuCore::COPOpcode)instr.cop0Opc.Value()) {
-		case CpuCore::COPOpcode::MF: {
+	case CpuOpcodes::Opcode::COP0: {
+		switch (instr.cop0Opc) {
+		case CpuOpcodes::COPOpcode::MF: {
 			gprs[instr.rt] = core->cop0.read(instr.rd);
 			break;
 		}
-		case CpuCore::COPOpcode::MT: {
+		case CpuOpcodes::COPOpcode::MT: {
 			core->cop0.write(instr.rd, gprs[instr.rt]);
 			break;
 		}
-		case CpuCore::COPOpcode::CO: {
-			switch ((CpuCore::COP0Opcode)instr.func.Value()) {
-			case CpuCore::COP0Opcode::RFE: {
+		case CpuOpcodes::COPOpcode::CO: {
+			switch (instr.func) {
+			case CpuOpcodes::COP0Opcode::RFE: {
 				core->cop0.status.raw = (core->cop0.status.raw & 0xfffffff0) | ((core->cop0.status.raw & 0x3c) >> 2);
 				break;
 			}
@@ -321,12 +321,12 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		}
 		break;
 	}
-	case CpuCore::Opcode::LB: {
+	case CpuOpcodes::Opcode::LB: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		gprs[instr.rt] = (u32)(s8)mem->read<u8>(addr);
 		break;
 	}
-	case CpuCore::Opcode::LH: {
+	case CpuOpcodes::Opcode::LH: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 1) {
 			Helpers::panic("Bad lh addr 0x%08x\n", addr);
@@ -334,7 +334,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		gprs[instr.rt] = (u32)(s16)mem->read<u16>(addr);
 		break;
 	}
-	case CpuCore::Opcode::LW: {
+	case CpuOpcodes::Opcode::LW: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 3) {
 			Helpers::panic("Bad lw addr 0x%08x\n", addr);
@@ -342,12 +342,12 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		gprs[instr.rt] = mem->read<u32>(addr);
 		break;
 	}
-	case CpuCore::Opcode::LBU: {
+	case CpuOpcodes::Opcode::LBU: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		gprs[instr.rt] = mem->read<u8>(addr);
 		break;
 	}
-	case CpuCore::Opcode::LHU: {
+	case CpuOpcodes::Opcode::LHU: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 1) {
 			Helpers::panic("Bad lhu addr 0x%08x\n", addr);
@@ -355,13 +355,13 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		gprs[instr.rt] = mem->read<u16>(addr);
 		break;
 	}
-	case CpuCore::Opcode::SB: {
+	case CpuOpcodes::Opcode::SB: {
 		if (core->cop0.status.isc) return;
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		mem->write<u8>(addr, gprs[instr.rt]);
 		break;
 	}
-	case CpuCore::Opcode::SH: {
+	case CpuOpcodes::Opcode::SH: {
 		if (core->cop0.status.isc) return;
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 1) {
@@ -370,7 +370,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		mem->write<u16>(addr, gprs[instr.rt]);
 		break;
 	}
-	case CpuCore::Opcode::SW: {
+	case CpuOpcodes::Opcode::SW: {
 		if (core->cop0.status.isc) break;
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 3) {
