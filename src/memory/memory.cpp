@@ -103,7 +103,8 @@ u32 Memory::read(u32 vaddr) {
 	u32 paddr = maskAddress(vaddr);
 
 	// GPU
-	if (paddr == 0x1f801814) return gpu->getStat();
+	if (paddr == 0x1f801810) return gpu->gpuRead();
+	else if (paddr == 0x1f801814) return gpu->getStat();
 	// Interrupt
 	else if (paddr == 0x1f801074) return interrupt->readImask();
 	// DMA
@@ -181,6 +182,7 @@ void Memory::write(u32 vaddr, u32 data) {
 
 	// GPU
 	if (paddr == 0x1f801810) gpu->writeGp0(data);
+	else if (paddr == 0x1f801814) gpu->writeGp1(data);
 	// Interrupt
 	else if (paddr == 0x1f801070) interrupt->writeIstat(data);
 	else if (paddr == 0x1f801074) interrupt->writeImask(data);
@@ -190,9 +192,9 @@ void Memory::write(u32 vaddr, u32 data) {
 		Helpers::assert(channel < 8, "Tried to access %dth DMA channel", channel);	// Should not get triggered
 
 		switch (paddr & 0xf) {
-		case 0x0: dma->channels[channel].madr	  = data;
-		case 0x4: dma->channels[channel].bcr.raw  = data;
-		case 0x8: dma->channels[channel].chcr.raw = data;
+		case 0x0: dma->channels[channel].madr	  = data; break;
+		case 0x4: dma->channels[channel].bcr.raw  = data; break;
+		case 0x8: dma->channels[channel].chcr.raw = data; break;
 		default: Helpers::panic("[FATAL] Unhandled DMA write32 0x%08x <- 0x%08x\n", paddr, data);
 		}
 	}
