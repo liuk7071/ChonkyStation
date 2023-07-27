@@ -46,7 +46,12 @@ public:
     template<typename T> void write(u32 vaddr, T data);
 
 private:
+
+    //uint8_t* regs = new uint8_t[0xffffff];
+    //uint8_t* mem = new uint8_t[0xffffffff];
+    
     // Software fastmem implementation
+
     std::vector<uptr> readTable;
     std::vector<uptr> writeTable;
 };
