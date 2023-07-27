@@ -12,16 +12,16 @@ public:
 	DMA();
 
 	struct DMAChannel {
-		u32 madr;
+		u32 madr = 0;
 
 		union {
-			u32 raw;
+			u32 raw = 0;
 			BitField<0, 16, u32> bs;
 			BitField<0, 16, u32> ba;
 		} bcr;
 
 		union {
-			u32 raw;
+			u32 raw = 0;
 			BitField<0,  1, u32> dir;
 			BitField<1,  1, u32> step;
 			BitField<8,  1, u32> chopping;
@@ -47,6 +47,6 @@ public:
 		LinkedList
 	};
 
-	/*void doDMA(int channel, Memory* memory);
-	static void otcDMA(Memory* memory);*/
+	void doDMA(int channel, Memory* memory);
+	static void otcDMA(Memory* memory);
 };

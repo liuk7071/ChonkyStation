@@ -110,7 +110,7 @@ u32 Memory::read(u32 vaddr) {
 	// DMA
 	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {
 		const auto channel = ((paddr >> 4) & 0xf) - 8;
-		Helpers::assert(channel < 8, "Tried to access %dth DMA channel", channel);	// Should not get triggered
+		Helpers::assert(channel < 7, "Tried to access %dth DMA channel", channel);	// Should not get triggered
 
 		switch (paddr & 0xf) {
 		case 0x0: return dma->channels[channel].madr;
@@ -187,19 +187,17 @@ void Memory::write(u32 vaddr, u32 data) {
 	else if (paddr == 0x1f801070) interrupt->writeIstat(data);
 	else if (paddr == 0x1f801074) interrupt->writeImask(data);
 	// DMA
-	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {
-		printf("panda\n");
+	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {	
 		const auto channel = ((paddr >> 4) & 0xf) - 8;
-		Helpers::assert(channel < 8, "Tried to access %dth DMA channel", channel);	// Should not get triggered
-		// TODO: /Ob2 doesnt work
+		Helpers::assert(channel < 7, "Tried to access %dth DMA channel", channel);	// Should not get triggered
+
 		switch (paddr & 0xf) {
 		case 0x0: dma->channels[channel].madr	  = data; break;
 		case 0x4: dma->channels[channel].bcr.raw  = data; break;
 		case 0x8: {
 			dma->channels[channel].chcr.raw = data;
 			if (dma->channels[channel].shouldStartDMA()) {
-				Helpers::panic("AAAAAAAAAAAA\n");
-				//dma->doDMA(channel, this);
+				dma->doDMA(channel, this);
 			}
 			break;
 		}
