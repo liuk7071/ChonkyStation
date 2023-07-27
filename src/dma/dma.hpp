@@ -4,8 +4,13 @@
 #include <BitField.hpp>
 
 
+// Circular dependency
+class Memory;
+
 class DMA {
 public:
+	DMA();
+
 	struct DMAChannel {
 		u32 madr;
 
@@ -23,13 +28,25 @@ public:
 			BitField<9,  2, u32> syncMode;
 			BitField<16, 3, u32> choppingDmaSize;
 			BitField<20, 3, u32> choppingCpuSize;
-			BitField<24, 1, u32> busy;
+			BitField<24, 1, u32> enable;
 			BitField<28, 1, u32> trigger;
 		} chcr;
+
+		bool shouldStartDMA();
+		void (*doDMA)(Memory*);
 	};
 
 	DMAChannel channels[7];
 
 	u32 dpcr = 0;
 	u32 dicr = 0;
+
+	enum class SyncMode {
+		Block,
+		Sync,
+		LinkedList
+	};
+
+	/*void doDMA(int channel, Memory* memory);
+	static void otcDMA(Memory* memory);*/
 };
