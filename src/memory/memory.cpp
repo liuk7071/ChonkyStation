@@ -121,6 +121,8 @@ u32 Memory::read(u32 vaddr) {
 	}
 	else if (paddr == 0x1f8010f0) return dma->dpcr;
 	else if (paddr == 0x1f8010f4) return dma->dicr;
+	// Timers
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return 0;
 	else
 		Helpers::panic("[FATAL] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }

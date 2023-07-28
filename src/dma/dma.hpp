@@ -1,6 +1,7 @@
 #pragma once
 
 #include <helpers.hpp>
+#include <logger.hpp>
 #include <BitField.hpp>
 
 
@@ -16,8 +17,9 @@ public:
 
 		union {
 			u32 raw = 0;
-			BitField<0, 16, u32> bs;
-			BitField<0, 16, u32> ba;
+			BitField<0,  16, u32> bc;
+			BitField<0,  16, u32> bs;
+			BitField<16, 16, u32> ba;
 		} bcr;
 
 		union {
