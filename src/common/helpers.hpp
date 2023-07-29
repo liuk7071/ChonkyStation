@@ -10,6 +10,7 @@
 #include <vector>
 #include <filesystem>
 #include <iterator>
+#include <cstring>
 
 
 // Types
