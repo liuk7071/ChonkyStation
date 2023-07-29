@@ -37,8 +37,9 @@ jobs:
       run: brew install dylibbundler imagemagick
 
     - name: Run bundle script
-      run: chmod +x ./.github/macos-bundle.sh
-      run: ./.github/macos-bundle.sh
+      run: |
+        chmod +x ./.github/macos-bundle.sh
+        ./.github/macos-bundle.sh
 
     - name: Sign the App
       run: codesign --force -s - -vvvv ChonkyStation.app
