@@ -8,3 +8,7 @@ set(PANDA3DS_HEADER_FILES
 PARENT_SCOPE)
 
 add_subdirectory(fmt)
+
+set(SDL_STATIC ON CACHE BOOL "" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "" FORCE)
+add_subdirectory(SDL)

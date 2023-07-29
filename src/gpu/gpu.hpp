@@ -3,13 +3,19 @@
 #include <helpers.hpp>
 #include <BitField.hpp>
 #include <logger.hpp>
+#include <backends/software/gpu_software.hpp>
+#include <backends/base.hpp>
 
 
 class GPU {
 public:
+	GPU() {
+		backend = &software;
+	}
 	std::vector<u32> fifo;
 	u32 getStat();
 	u32 gpuRead();
+	u8* getVRAM() { return backend->getVRAM(); };
 
 	// Command processing
 	void writeGp0(u32 data);
@@ -39,6 +45,9 @@ public:
 
 private:
 	u32 stat = 0x14802000;
+
+	GPUBackend* backend;
+	GPUSoftware software;
 
 	bool hasCommand = false;
 	u32 paramsLeft = 0;	// Parameters needed for command

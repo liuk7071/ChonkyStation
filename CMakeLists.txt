@@ -18,5 +18,8 @@ include_directories(external/Panda3DS)
 source_group("Header Files/External/Dolphin" FILES ${DOLPHIN_HEADER_FILES})
 source_group("Header Files/External/Panda3DS" FILES ${PANDA3DS_HEADER_FILES})
 
+add_compile_definitions(SDL_MAIN_HANDLED)
+
 add_executable(ChonkyStation ${SOURCE_FILES} ${HEADER_FILES} ${DOLPHIN_HEADER_FILES} ${PANDA3DS_HEADER_FILES})
-target_link_libraries(ChonkyStation PRIVATE fmt)
+target_include_directories(ChonkyStation PRIVATE ${SDL2_INCLUDE_DIR})
+target_link_libraries(ChonkyStation PRIVATE fmt SDL2-static)

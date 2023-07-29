@@ -22,6 +22,7 @@ public:
 
     u32 getPC() { return cpu.core.pc; }
     u8* getRAM() { return mem.ram; }
+    u8* getVRAM() { return gpu.getVRAM(); }
 
 private:
     Cpu cpu;
