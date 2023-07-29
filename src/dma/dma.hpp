@@ -47,6 +47,10 @@ public:
 		ToRam,
 		ToDevice
 	};
+	enum class Step {
+		Forward,
+		Backward
+	};
 	enum class SyncMode {
 		Block,
 		Sync,

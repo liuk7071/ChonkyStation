@@ -27,6 +27,40 @@ void DMA::gpuDMA(Memory* memory) {
 	log("Start GPU DMA\n");
 
 	switch (ch.chcr.syncMode) {
+	case (u32)SyncMode::Sync: {
+		// We currently implement this one big whole transfer
+		u32 addr = ch.madr & 0x1ffffc;
+		// SyncMode 1 sets MADR to the start address of the currently transferred block
+		// We fake this here
+		const auto offset = (ch.bcr.ba - 1) * ch.bcr.bs;
+		if (ch.chcr.step == (u32)Step::Forward)
+			ch.madr += offset;
+		else
+			ch.madr -= offset;
+			
+		u32 words = ch.bcr.bs * ch.bcr.ba;
+		// SyncMode 1 decrements BA to 0
+		ch.bcr.ba = 0;
+
+		u32 data = 0;
+		switch (ch.chcr.dir) {
+		case (u32)Direction::ToDevice: {
+			while (words-- > 0) {
+				data = memory->read<u32>(addr);
+				memory->gpu->writeGp0(data);
+				if (ch.chcr.step == (u32)Step::Forward)
+					addr += 4;
+				else
+					addr -= 4;
+				// TODO: Maybe mask with 0x1ffffc again after stepping?
+			}
+			break;
+		}
+		default:
+			Helpers::panic("[DMA] Unimplemented GPU Sync DMA direction %d\n", ch.chcr.dir.Value());
+		}
+		break;
+	}
 	case (u32)SyncMode::LinkedList: {
 		Helpers::debugAssert(ch.chcr.dir == (u32)Direction::ToDevice, "[FATAL] GPU LinkedList with direction ToRam");
 		

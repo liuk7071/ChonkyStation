@@ -12,6 +12,8 @@ public:
 	GPU() {
 		backend = &software;
 	}
+
+	bool uploadingTexture = false;
 	std::vector<u32> fifo;
 	u32 getStat();
 	u32 gpuRead();
@@ -25,6 +27,7 @@ public:
 	enum class GP0Command {
 		NOP							= 0x00,
 		ClearCache					= 0x01,
+		UploadTexture				= 0xA0,
 		DrawModeSetting				= 0xE1,
 		TextureWindowSetting		= 0xE2,
 		SetDrawingAreaTopLeft		= 0xE3,

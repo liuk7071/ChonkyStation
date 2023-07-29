@@ -21,12 +21,52 @@ u32	GPU::gpuRead() {
 void GPU::writeGp0(u32 data) {
 	if (!hasCommand) {
 		startCommand(data);
+		fifo.push_back(data);
+		return;
 	}
 
 	paramsLeft--;
+	if (uploadingTexture) {
+		backend->textureUploadData(data & 0xffff);
+		backend->textureUploadData(data >> 16);
+	}
+	else {
+		fifo.push_back(data);
+	}
+
 	if (paramsLeft == 0) {
-		// TODO: execute command
-		hasCommand = false;
+		if (!uploadingTexture) {
+			switch (fifo[0] >> 24) {
+			case (u32)GP0Command::UploadTexture: {
+				uploadingTexture = true;
+				// Calculate size
+				const u16 width = fifo[2] & 0xffff;
+				const u16 height = fifo[2] >> 16;
+				auto size = width * height;
+				// Round
+				size++;
+				size &= ~1;
+				// Each word contains two pixels, so we divide the amount of parameters left by 2
+				paramsLeft = size / 2;
+				uploadingTexture = true;
+
+				const u16 x = fifo[1] & 0xffff;
+				const u16 y = fifo[1] >> 16;
+				backend->beginTextureUpload(x, y, width);
+
+				log("  Width : %d\n", width);
+				log("  Height: %d\n", height);
+				log("  (x, y): (%d, %d)\n", x, y);
+				break;
+			}
+			default:
+				hasCommand = false;
+			}
+		}
+		else {
+			backend->endTextureUpload();
+			uploadingTexture = false;
+		}
 	}
 }
 
@@ -74,6 +114,8 @@ void GPU::writeGp1(u32 data) {
 }
 
 void GPU::startCommand(u32 rawCommand) {
+	// Clear FIFO
+	fifo.clear();
 	// We handle single-word commands (i.e. all the configuration ones) in this function
 	const auto cmd = (rawCommand >> 24) & 0xff;
 	switch (cmd) {
@@ -85,6 +127,12 @@ void GPU::startCommand(u32 rawCommand) {
 	case (u32)GP0Command::ClearCache: {
 		log("ClearCache\n");
 		// Stubbed
+		break;
+	}
+	case (u32)GP0Command::UploadTexture: {
+		log("UploadTexture\n");
+		paramsLeft = 2;
+		hasCommand = true;
 		break;
 	}
 	case (u32)GP0Command::DrawModeSetting: {
