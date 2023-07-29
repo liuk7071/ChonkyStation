@@ -84,6 +84,12 @@ void GPU::writeGp1(u32 data) {
 		stat |= (data & 3) << 29;
 		break;
 	}
+	case (u32)GP1Command::DisplayEnable: {
+		// Bits 0 is copied to GPUSTAT.23
+		stat &= ~(1 << 23);
+		stat |= (data & 1) << 23;
+		break;
+	}
 	case (u32)GP1Command::StartOfDisplayArea: {
 		// TODO: Stubbed for now
 		break;

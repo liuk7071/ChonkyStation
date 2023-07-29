@@ -38,6 +38,7 @@ public:
 	
 	enum class GP1Command {
 		ResetGPU				= 0x00,
+		DisplayEnable			= 0x03,
 		DMADirection			= 0x04,
 		StartOfDisplayArea		= 0x05,
 		HorizontalDisplayRange	= 0x06,

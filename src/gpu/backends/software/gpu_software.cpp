@@ -19,6 +19,8 @@ void GPUSoftware::beginTextureUpload(u16 x, u16 y, u16 width) {
 }
 
 void GPUSoftware::textureUploadData(u16 data) {
+	if (!uploadingTexture) Helpers::panic("[FATAL] Attempted to upload texture data before starting a texture transfer\n");
+
 	writePixel(curX, curY, data);
 
 	curX++;
