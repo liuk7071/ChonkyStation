@@ -40,7 +40,7 @@ namespace Helpers {
 		exit(0);
 	}
 
-	static void assert(bool cond, const char* fmt, ...) {
+	static void debugAssert(bool cond, const char* fmt, ...) {
 		if (!cond) [[unlikely]] {
 			va_list args;
 			va_start(args, fmt);

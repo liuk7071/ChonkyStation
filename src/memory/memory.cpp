@@ -109,7 +109,7 @@ u32 Memory::read(u32 vaddr) {
 	// DMA
 	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {
 		const auto channel = ((paddr >> 4) & 0xf) - 8;
-		Helpers::assert(channel < 7, "Tried to access %dth DMA channel", channel);	// Should not get triggered
+		Helpers::debugAssert(channel < 7, "Tried to access %dth DMA channel", channel);	// Should not get triggered
 
 		switch (paddr & 0xf) {
 		case 0x0: return dma->channels[channel].madr;
@@ -190,7 +190,7 @@ void Memory::write(u32 vaddr, u32 data) {
 	// DMA
 	else if (Helpers::inRange<u32>(paddr, 0x1f801080, 0x1f8010e8)) {	
 		const auto channel = ((paddr >> 4) & 0xf) - 8;
-		Helpers::assert(channel < 7, "Tried to access %dth DMA channel", channel);	// Should not get triggered
+		Helpers::debugAssert(channel < 7, "Tried to access %dth DMA channel", channel);	// Should not get triggered
 
 		switch (paddr & 0xf) {
 		case 0x0: dma->channels[channel].madr	  = data; break;

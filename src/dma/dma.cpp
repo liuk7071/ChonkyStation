@@ -28,7 +28,7 @@ void DMA::gpuDMA(Memory* memory) {
 
 	switch (ch.chcr.syncMode) {
 	case (u32)SyncMode::LinkedList: {
-		Helpers::assert(ch.chcr.dir == (u32)Direction::ToDevice, "[FATAL] GPU LinkedList with direction ToRam");
+		Helpers::debugAssert(ch.chcr.dir == (u32)Direction::ToDevice, "[FATAL] GPU LinkedList with direction ToRam");
 		
 		u32 header = 0;
 		u32 words = 0;
