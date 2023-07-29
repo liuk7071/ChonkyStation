@@ -3,7 +3,7 @@
 
 MAKE_LOG_FUNCTION(log, gpuLogger)
 
-u32 Gpu::getStat() {
+u32 GPU::getStat() {
 	// Stubbed
 	stat |= 1 << 26;	// Ready to receive cmd word
 	stat |= 1 << 27;	// Ready to send VRAM to CPU
@@ -13,12 +13,12 @@ u32 Gpu::getStat() {
 	return stat;
 }
 
-u32	Gpu::gpuRead() {
+u32	GPU::gpuRead() {
 	// Stubbed
 	return 0;
 }
 
-void Gpu::writeGp0(u32 data) {
+void GPU::writeGp0(u32 data) {
 	if (!hasCommand) {
 		startCommand(data);
 	}
@@ -30,11 +30,11 @@ void Gpu::writeGp0(u32 data) {
 	}
 }
 
-void Gpu::writeGp1(u32 data) {
+void GPU::writeGp1(u32 data) {
 	const auto cmd = (data >> 24) & 0xff;
 
 	switch (cmd) {
-	case (u32)GP1Command::ResetGpu: {
+	case (u32)GP1Command::ResetGPU: {
 		stat = 0x14802000;
 		break;
 	}
@@ -73,7 +73,7 @@ void Gpu::writeGp1(u32 data) {
 	}
 }
 
-void Gpu::startCommand(u32 rawCommand) {
+void GPU::startCommand(u32 rawCommand) {
 	// We handle single-word commands (i.e. all the configuration ones) in this function
 	const auto cmd = (rawCommand >> 24) & 0xff;
 	switch (cmd) {
@@ -130,7 +130,7 @@ void Gpu::startCommand(u32 rawCommand) {
 	}
 }
 
-Gpu::DrawCommand::DrawCommand(u32 raw) {
+GPU::DrawCommand::DrawCommand(u32 raw) {
 	Polygon temp = { .raw = raw };
 	this->raw = raw;
 	if (temp.polygonCommand == 1) {
@@ -146,7 +146,7 @@ Gpu::DrawCommand::DrawCommand(u32 raw) {
 }
 
 // Returns the amount of words required for the command
-u32 Gpu::DrawCommand::getCommandSize() {
+u32 GPU::DrawCommand::getCommandSize() {
 	u32 size = 1;
 	if (drawType == DrawType::Polygon) {
 		// Get number of words required per vertex

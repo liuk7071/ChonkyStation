@@ -28,5 +28,5 @@ private:
     DMA dma;
     Memory mem;
     Interrupt interrupt;
-    Gpu gpu;
+    GPU gpu;
 };

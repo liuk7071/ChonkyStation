@@ -5,7 +5,7 @@
 #include <logger.hpp>
 
 
-class Gpu {
+class GPU {
 public:
 	std::vector<u32> fifo;
 	u32 getStat();
@@ -28,7 +28,7 @@ public:
 	};
 	
 	enum class GP1Command {
-		ResetGpu				= 0x00,
+		ResetGPU				= 0x00,
 		DMADirection			= 0x04,
 		StartOfDisplayArea		= 0x05,
 		HorizontalDisplayRange	= 0x06,

@@ -13,6 +13,7 @@ set(SOURCE_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/dma/dma.cpp"
 
 "${CMAKE_CURRENT_SOURCE_DIR}/gpu/gpu.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/gpu/backends/software/gpu_software.cpp"
 PARENT_SCOPE)
 
 set(HEADER_FILES
@@ -33,4 +34,7 @@ set(HEADER_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/dma/dma.hpp"
 
 "${CMAKE_CURRENT_SOURCE_DIR}/gpu/gpu.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/gpu/backends/base.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/gpu/backends/vertex.hpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/gpu/backends/software/gpu_software.hpp"
 PARENT_SCOPE)

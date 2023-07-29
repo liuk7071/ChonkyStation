@@ -8,7 +8,7 @@
 
 class Memory {
 public:
-	Memory(Interrupt* interrupt, DMA* dma, Gpu* gpu);
+	Memory(Interrupt* interrupt, DMA* dma, GPU* gpu);
     void loadBios(const fs::path& biosPath);
 
 	u8* ram = new u8[2_MB];
@@ -17,7 +17,7 @@ public:
 
     Interrupt* interrupt;
     DMA* dma;
-    Gpu* gpu;
+    GPU* gpu;
 
     // Base addresses
     enum class MemoryBase {

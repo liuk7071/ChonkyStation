@@ -1,7 +1,7 @@
 #include <memory.hpp>
 
 
-Memory::Memory(Interrupt* interrupt, DMA* dma, Gpu* gpu) : interrupt(interrupt), dma(dma), gpu(gpu) {
+Memory::Memory(Interrupt* interrupt, DMA* dma, GPU* gpu) : interrupt(interrupt), dma(dma), gpu(gpu) {
 	std::memset(ram, 0, 2_MB);
 	std::memset(scratchpad, 0, 1_KB);
 
