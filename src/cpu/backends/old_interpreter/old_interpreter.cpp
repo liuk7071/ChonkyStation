@@ -27,7 +27,7 @@ uint32_t jump = 0; // jump branch delay slot
 bool debug = false;
 bool log_kernel = false;
 bool exe = false;
-bool tty = false;
+bool tty = true;
 
 bool delay = false;
 

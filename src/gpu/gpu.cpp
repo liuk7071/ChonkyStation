@@ -1,12 +1,15 @@
 #include "gpu.hpp"
 
 
+MAKE_LOG_FUNCTION(log, gpuLogger)
+
 u32 Gpu::getStat() {
 	// Stubbed
 	stat |= 1 << 26;	// Ready to receive cmd word
 	stat |= 1 << 27;	// Ready to send VRAM to CPU
 	stat |= 1 << 28;	// Ready to receive DMA block
 	stat |= 1 << 30;	// DMA direction CPU -> GP0
+	stat ^= 1 << 31;	// Fake interlacing
 	return stat;
 }
 
@@ -16,8 +19,15 @@ u32	Gpu::gpuRead() {
 }
 
 void Gpu::writeGp0(u32 data) {
-	if (!hasCommand)
+	if (!hasCommand) {
 		startCommand(data);
+	}
+
+	paramsLeft--;
+	if (paramsLeft == 0) {
+		// TODO: execute command
+		hasCommand = false;
+	}
 }
 
 void Gpu::writeGp1(u32 data) {
@@ -72,6 +82,11 @@ void Gpu::startCommand(u32 rawCommand) {
 		// NOP
 		break;
 	}
+	case (u32)GP0Command::ClearCache: {
+		log("ClearCache\n");
+		// Stubbed
+		break;
+	}
 	case (u32)GP0Command::DrawModeSetting: {
 		log("DrawModeSetting\n");
 		// Bits 0-10 are copied into GPUSTAT
@@ -107,7 +122,43 @@ void Gpu::startCommand(u32 rawCommand) {
 		// TODO: Stubbed for now
 		break;
 	}
-	default:
-		Helpers::panic("[GPU] Unimplemented gp0 command 0x%02x\n", (u32)cmd);
+	default: {
+		DrawCommand drawCommand(rawCommand);
+		hasCommand = true;
+		paramsLeft = drawCommand.getCommandSize();
 	}
+	}
+}
+
+Gpu::DrawCommand::DrawCommand(u32 raw) {
+	Polygon temp = { .raw = raw };
+	this->raw = raw;
+	if (temp.polygonCommand == 1) {
+		log("Polygon:\n");
+		log(temp.quad ? "  Quad\n" : "  Tri\n");
+		log(temp.shading ? "  Shaded\n" : "  Monochrome\n");
+		log(temp.textured ? "  Textured\n" : "  Untextured\n");
+		drawType = DrawType::Polygon;
+	}
+	else {
+		Helpers::panic("[GPU] Unimplemented gp0 command 0x%02x (0x%08x)\n", raw >> 24, raw);
+	}
+}
+
+// Returns the amount of words required for the command
+u32 Gpu::DrawCommand::getCommandSize() {
+	u32 size = 1;
+	if (drawType == DrawType::Polygon) {
+		// Get number of words required per vertex
+		Polygon poly = { .raw = this->raw };
+		if (poly.shading)  size++;
+		if (poly.textured) size++;
+		// Multiply by number of vertices
+		size *= poly.quad ? 4 : 3;
+	}
+	else {
+		Helpers::panic("[GPU] Tried to get command size for unimplemented Line command\n");
+	}
+
+	return size;
 }

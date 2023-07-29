@@ -1,6 +1,7 @@
 #pragma once
 
 #include <helpers.hpp>
+#include <BitField.hpp>
 #include <logger.hpp>
 
 
@@ -14,11 +15,10 @@ public:
 	void writeGp0(u32 data);
 	void writeGp1(u32 data);
 
-	bool hasCommand = false;
-	u32 paramsLeft = 0;
 
 	enum class GP0Command {
 		NOP							= 0x00,
+		ClearCache					= 0x01,
 		DrawModeSetting				= 0xE1,
 		TextureWindowSetting		= 0xE2,
 		SetDrawingAreaTopLeft		= 0xE3,
@@ -36,10 +36,34 @@ public:
 		DisplayMode				= 0x08
 	};
 
-	void startCommand(u32 rawCommand);
 
 private:
 	u32 stat = 0x14802000;
 
-	MAKE_LOG_FUNCTION(log, gpuLogger)
+	bool hasCommand = false;
+	u32 paramsLeft = 0;	// Parameters needed for command
+	void startCommand(u32 rawCommand);
+
+	class DrawCommand {
+	public:
+		DrawCommand(u32 raw);
+		u32 getCommandSize();	// In words
+
+	private:
+		u32 raw;
+		enum class DrawType {
+			Polygon,
+			Line
+		} drawType;
+		union Polygon {
+			u32 raw;
+			BitField<0, 24, u32> rgb;				// Colour of vertex 0
+			BitField<24, 1, u32> rawTexture;
+			BitField<25, 1, u32> semiTransparent;
+			BitField<26, 1, u32> textured;
+			BitField<27, 1, u32> quad;				// If it's not a quad, it's a tri
+			BitField<28, 1, u32> shading;
+			BitField<29, 3, u32> polygonCommand;	// Should be 0b001
+		};
+	};
 };

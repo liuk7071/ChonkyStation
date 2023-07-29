@@ -12,13 +12,16 @@ class PlayStation {
 public:
     PlayStation(const fs::path& biosPath) : interrupt(), gpu(), dma(), mem(&interrupt, &dma, &gpu), cpu(&mem) {
         mem.loadBios(biosPath);
-        //cpu.switchBackend(Cpu::Backend::OldInterpreter);
+        cpu.switchBackend(Cpu::Backend::OldInterpreter);
     }
 
     // Steps the system
     void step() {
         cpu.step();
     }
+
+    u32 getPC() { return cpu.core.pc; }
+    u8* getRAM() { return mem.ram; }
 
 private:
     Cpu cpu;
