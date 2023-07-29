@@ -66,6 +66,7 @@ void GPU::writeGp0(u32 data) {
 		else {
 			backend->endTextureUpload();
 			uploadingTexture = false;
+			hasCommand = false;
 		}
 	}
 }
@@ -78,16 +79,24 @@ void GPU::writeGp1(u32 data) {
 		stat = 0x14802000;
 		break;
 	}
-	case (u32)GP1Command::DMADirection: {
-		// Bits 0-1 are copied to GPUSTAT.29-30
-		stat &= ~(3 << 29);
-		stat |= (data & 3) << 29;
+	case (u32)GP1Command::ResetCommandBuffer: {
+		// Stubbed
+		break;
+	}
+	case (u32)GP1Command::AcknowledgeIRQ1: {
+		stat &= ~(1 << 24);
 		break;
 	}
 	case (u32)GP1Command::DisplayEnable: {
 		// Bits 0 is copied to GPUSTAT.23
 		stat &= ~(1 << 23);
 		stat |= (data & 1) << 23;
+		break;
+	}
+	case (u32)GP1Command::DMADirection: {
+		// Bits 0-1 are copied to GPUSTAT.29-30
+		stat &= ~(3 << 29);
+		stat |= (data & 3) << 29;
 		break;
 	}
 	case (u32)GP1Command::StartOfDisplayArea: {
