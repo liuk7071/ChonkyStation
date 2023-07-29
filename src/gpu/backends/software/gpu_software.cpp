@@ -41,5 +41,5 @@ inline void GPUSoftware::writePixel(u16 x, u16 y, u16 pixel) {
 	y *= 2;
 	auto index = x + y * vramWidth;
 	vram[index + 0] = pixel & 0xff;
-	vram[index + 1] = pixel >> 16;
+	vram[index + 1] = pixel >> 8;
 }
