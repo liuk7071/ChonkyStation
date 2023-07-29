@@ -56,10 +56,12 @@ void Gpu::startCommand(u32 rawCommand) {
 	const auto cmd = (rawCommand >> 24) & 0xff;
 	switch (cmd) {
 	case (u32)GP0Command::NOP: {
+		log("NOP\n");
 		// NOP
 		break;
 	}
 	case (u32)GP0Command::DrawModeSetting: {
+		log("DrawModeSetting\n");
 		// Bits 0-10 are copied into GPUSTAT
 		stat &= ~0x7ff;
 		stat |= rawCommand & 0x7ff;

@@ -43,6 +43,10 @@ public:
 	u32 dpcr = 0;
 	u32 dicr = 0;
 
+	enum class Direction {
+		ToRam,
+		ToDevice
+	};
 	enum class SyncMode {
 		Block,
 		Sync,
@@ -50,5 +54,6 @@ public:
 	};
 
 	void doDMA(int channel, Memory* memory);
+	static void gpuDMA(Memory* memory);
 	static void otcDMA(Memory* memory);
 };

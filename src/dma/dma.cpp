@@ -5,6 +5,7 @@
 MAKE_LOG_FUNCTION(log, dmaLogger)
 
 DMA::DMA() {
+	channels[2].doDMA = &gpuDMA;
 	channels[6].doDMA = &otcDMA;
 }
 
@@ -20,14 +21,57 @@ void DMA::doDMA(int channel, Memory* memory) {
 	channels[channel].doDMA(memory);
 }
 
+void DMA::gpuDMA(Memory* memory) {
+	const auto& dma = memory->dma;
+	auto& ch = dma->channels[2];
+	log("Start GPU DMA\n");
+
+	switch (ch.chcr.syncMode) {
+	case (u32)SyncMode::LinkedList: {
+		Helpers::assert(ch.chcr.dir == (u32)Direction::ToDevice, "[FATAL] GPU LinkedList with direction ToRam");
+		
+		u32 header = 0;
+		u32 words = 0;
+		u32 data = 0;
+		u32 addr = ch.madr & 0x1ffffc;
+		while (true) {
+			header = memory->read<u32>(addr);
+
+			words = header >> 24;
+			while (words-- > 0) {
+				addr += 4;
+				data = memory->read<u32>(addr);
+				memory->gpu->writeGp0(data);
+			}
+
+			if (header & 0x800000)
+				break;
+
+			addr = header & 0x1ffffc;
+		}
+
+		// In SyncMode 2 (LinkedList), MADR is updated to hold the end marker
+		ch.madr = header;
+		break;
+	}
+	default:
+		Helpers::panic("[DMA] Unimplemented GPU DMA sync mode %d\n", ch.chcr.syncMode.Value());
+	}
+
+	ch.chcr.enable = 0;
+	ch.chcr.trigger = 0;
+	// TODO: Update DICR
+	log("GPU DMA done\n");
+}
+
 void DMA::otcDMA(Memory* memory) {
 	const auto& dma = memory->dma;
 	auto& ch = dma->channels[6];
+	log("Start OTC DMA\n");
 
 	// OTC DMA is always sync mode 0 and backwards memory address step and no chopping
 	switch (ch.chcr.syncMode) {
 	case (u32)SyncMode::Block: {
-		log("Start OTC DMA\n");
 		u32 addr = ch.madr & 0x1ffffc;	// SyncMode 0 with chopping disabled doesn't update MADR
 		u32 bc = ch.bcr.bc;				// SyncMode 0 with chopping disabled doesn't update BCR
 		if (!bc) bc = 0x10000;			// If bc is 0, we need to transfer 0x10000 words

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <helpers.hpp>
+#include <logger.hpp>
 
 
 class Gpu {
@@ -31,4 +32,6 @@ public:
 
 private:
 	u32 stat = 0x14802000;
+
+	MAKE_LOG_FUNCTION(log, gpuLogger)
 };
