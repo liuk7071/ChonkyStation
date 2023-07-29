@@ -2,7 +2,7 @@
 # For Plist buddy
 PATH="$PATH:/usr/libexec"
 
-
+chmod +r docs/img/icon.ico
 # Construct the app iconset.
 mkdir chonkystation.iconset
 convert docs/img/icon.ico -alpha off -background none -units PixelsPerInch -density 72 -resize 16x16 chonkystation.iconset/icon_16x16.png
