@@ -31,3 +31,9 @@ jobs:
     - name: Build
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
+    
+    - name: Upload executable
+      uses: actions/upload-artifact@v2
+      with:
+        name: Windows Executable
+        path: './build/Release/ChonkyStation.exe'

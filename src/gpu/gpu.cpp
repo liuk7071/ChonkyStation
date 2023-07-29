@@ -34,6 +34,18 @@ void Gpu::writeGp1(u32 data) {
 		stat |= (data & 3) << 29;
 		break;
 	}
+	case (u32)GP1Command::StartOfDisplayArea: {
+		// TODO: Stubbed for now
+		break;
+	}
+	case (u32)GP1Command::HorizontalDisplayRange: {
+		// TODO: Stubbed for now
+		break;
+	}
+	case (u32)GP1Command::VerticalDisplayRange: {
+		// TODO: Stubbed for now
+		break;
+	}
 	case (u32)GP1Command::DisplayMode: {
 		// Bits 0-5 are copied to GPUSTAT.17-22
 		stat &= ~(0x3f << 17);
@@ -68,6 +80,31 @@ void Gpu::startCommand(u32 rawCommand) {
 		// Bit 11 is copied into GPUSTAT.15
 		stat &= ~(1 << 15);
 		stat |= (rawCommand & (1 << 11)) << 4;
+		break;
+	}
+	case (u32)GP0Command::TextureWindowSetting: {
+		log("TextureWindowSetting\n");
+		// TODO: Stubbed for now
+		break;
+	}
+	case (u32)GP0Command::SetDrawingAreaTopLeft: {
+		log("SetDrawingAreaTopLeft\n");
+		// TODO: Stubbed for now
+		break;
+	}
+	case (u32)GP0Command::SetDrawingAreaBottomRight: {
+		log("SetDrawingAreaBottomRight\n");
+		// TODO: Stubbed for now
+		break;
+	}
+	case (u32)GP0Command::SetDrawingOffset: {
+		log("SetDrawingOffset\n");
+		// TODO: Stubbed for now
+		break;
+	}
+	case (u32)GP0Command::MaskBitSetting: {
+		log("MaskBitSetting\n");
+		// TODO: Stubbed for now
 		break;
 	}
 	default:

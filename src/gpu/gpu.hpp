@@ -18,14 +18,22 @@ public:
 	u32 paramsLeft = 0;
 
 	enum class GP0Command {
-		NOP				= 0x00,
-		DrawModeSetting = 0xE1
+		NOP							= 0x00,
+		DrawModeSetting				= 0xE1,
+		TextureWindowSetting		= 0xE2,
+		SetDrawingAreaTopLeft		= 0xE3,
+		SetDrawingAreaBottomRight	= 0xE4,
+		SetDrawingOffset			= 0xE5,
+		MaskBitSetting				= 0xE6
 	};
 	
 	enum class GP1Command {
-		ResetGpu		= 0x00,
-		DMADirection	= 0x04,
-		DisplayMode		= 0x08
+		ResetGpu				= 0x00,
+		DMADirection			= 0x04,
+		StartOfDisplayArea		= 0x05,
+		HorizontalDisplayRange	= 0x06,
+		VerticalDisplayRange	= 0x07,
+		DisplayMode				= 0x08
 	};
 
 	void startCommand(u32 rawCommand);
