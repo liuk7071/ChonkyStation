@@ -25,9 +25,9 @@ using s64 = std::int64_t;
 
 using uptr = std::uintptr_t;
 
-constexpr size_t operator""KB(unsigned long long int x) { return 1024ULL * x; }
-constexpr size_t operator""MB(unsigned long long int x) { return 1024KB * x; }
-constexpr size_t operator""GB(unsigned long long int x) { return 1024MB * x; }
+constexpr size_t operator""_KB(unsigned long long int x) { return 1024ULL * x; }
+constexpr size_t operator""_MB(unsigned long long int x) { return 1024_KB * x; }
+constexpr size_t operator""_GB(unsigned long long int x) { return 1024_MB * x; }
 
 namespace fs = std::filesystem;
 

@@ -11,9 +11,9 @@ public:
 	Memory(Interrupt* interrupt, DMA* dma, Gpu* gpu);
     void loadBios(const fs::path& biosPath);
 
-	u8* ram = new u8[2MB];
-	u8* scratchpad = new u8[1KB];
-	u8* bios = new u8[512KB];
+	u8* ram = new u8[2_MB];
+	u8* scratchpad = new u8[1_KB];
+	u8* bios = new u8[512_KB];
 
     Interrupt* interrupt;
     DMA* dma;

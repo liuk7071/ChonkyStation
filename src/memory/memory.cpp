@@ -2,14 +2,13 @@
 
 
 Memory::Memory(Interrupt* interrupt, DMA* dma, Gpu* gpu) : interrupt(interrupt), dma(dma), gpu(gpu) {
-	std::memset(ram, 0, 2MB);
-	std::memset(scratchpad, 0, 1KB);
+	std::memset(ram, 0, 2_MB);
+	std::memset(scratchpad, 0, 1_KB);
 
-	constexpr size_t pageSize = 64 * 1024; // 64KB pages
 	readTable.resize(0x10000, 0);
 	writeTable.resize(0x10000, 0);
 
-	constexpr u32 PAGE_SIZE = 64KB; // Page size = 64KB
+	constexpr u32 PAGE_SIZE = 64_KB; // Page size = 64KB
 #ifndef ENABLE_RAM_MIRRORING
 	constexpr auto ramPages = 32;
 #else
@@ -37,7 +36,7 @@ Memory::Memory(Interrupt* interrupt, DMA* dma, Gpu* gpu) : interrupt(interrupt),
 
 void Memory::loadBios(const fs::path& biosPath) {
 	auto temp = Helpers::readBinary(biosPath);
-	std::memcpy(bios, temp.data(), 512KB);
+	std::memcpy(bios, temp.data(), 512_KB);
 }
 
 u32 Memory::maskAddress(u32 vaddr) {
