@@ -7,7 +7,7 @@
 struct Vertex {
 	s16 x, y;
 	u8 r, g, b;
-	s16 u, v;
+	u8 u, v;
 	void writeBGR888(u32 bgr) {
 		r = bgr & 0xff;
 		g = (bgr >> 8) & 0xff;

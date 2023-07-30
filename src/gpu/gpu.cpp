@@ -70,33 +70,51 @@ void GPU::writeGp0(u32 data) {
 				DrawCommand drawCommand(fifo[0]);
 				if (drawCommand.drawType == DrawCommand::DrawType::Polygon) {
 					auto poly = drawCommand.getPolygon();
-					if (poly.textured) Helpers::panic("[GPU] Unimplemented textured polygon");
 					auto nVerts = poly.quad ? 4 : 3;
 					Vertex verts[4];
 					std::memset(verts, 0, sizeof(Vertex) * 4);
-					u32 col = fifo[0] & 0xffffff;
+					auto idx = 0;
+					u32 col = fifo[idx++] & 0xffffff;
 					verts[0].writeBGR888(col);
-					verts[0].x = fifo[1] & 0xffff;
-					verts[0].y = (fifo[1] >> 16) & 0xffff;
+					verts[0].x = fifo[idx] & 0xffff;
+					verts[0].y = (fifo[idx++] >> 16) & 0xffff;
+					if (poly.textured) {
+						const u16 uv = fifo[idx++];
+						verts[0].u = uv & 0xff;
+						verts[0].v = (uv >> 8) & 0xff;
+					}
 
-					auto idx = 1;
 					for (int i = 1; i < nVerts; i++) {
 						// Colour
 						if (poly.shaded)
-							verts[i].writeBGR888(fifo[++idx] & 0xffffff);
+							verts[i].writeBGR888(fifo[idx++] & 0xffffff);
 						else
 							verts[i].writeBGR888(col);
 						// Coords
-						const u32 coords = fifo[++idx];
+						const u32 coords = fifo[idx++];
 						verts[i].x = coords & 0xffff;
 						verts[i].y = (coords >> 16) & 0xffff;
-						// TODO: texcoords
+						// Texcoords
+						if (poly.textured) {
+							const u16 uv = fifo[idx++];
+							verts[i].u = uv & 0xff;
+							verts[i].v = (uv >> 8) & 0xff;
+						}
 					}
 					
 					// Draw
-					backend->drawTriUntextured(verts[0], verts[1], verts[2]);
-					if(poly.quad)
-						backend->drawTriUntextured(verts[1], verts[2], verts[3]);
+					if (!poly.textured) {
+						backend->drawTriUntextured(verts[0], verts[1], verts[2]);
+						if (poly.quad)
+							backend->drawTriUntextured(verts[1], verts[2], verts[3]);
+					}
+					else {
+						u16 clut = fifo[2] >> 16;
+						u16 texpage = fifo[4] >> 16;
+						backend->drawTriTextured(verts[0], verts[1], verts[2], clut, texpage);
+						if(poly.quad)
+							backend->drawTriTextured(verts[1], verts[2], verts[3], clut, texpage);
+					}
 				}
 			}
 		}

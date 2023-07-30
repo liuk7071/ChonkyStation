@@ -45,6 +45,23 @@ inline void GPUSoftware::writePixel(u16 x, u16 y, u16 pixel) {
 	vram[index + 1] = pixel >> 8;
 }
 
+u16 GPUSoftware::fetchBGR555(u16 x, u16 y) {
+	x *= 2;
+	y *= 2;
+	auto index = x + y * vramWidth;
+	return vram[index] | (vram[index + 1] << 8);
+}
+
+u16 GPUSoftware::fetch4bpp(u8 x, u8 y, u16 texpageX, u16 texpageY, u16 clutX, u16 clutY) {
+	u16 tex = fetchBGR555(x / 4 + texpageX, y + texpageY);
+	auto idx = (tex >> ((x % 4) * 4)) & 0xf;
+	return fetchBGR555(clutX + idx, clutY);
+}
+
+s32 GPUSoftware::edgeFunction(Vertex v0, Vertex v1, Vertex p) {
+	return (v1.x - v0.x) * (p.y - v0.y) - (v1.y - v0.y) * (p.x - v0.x);
+}
+
 void GPUSoftware::drawTriUntextured(Vertex v0, Vertex v1, Vertex v2) {
 	auto xMin = std::min({ v0.x, v1.x, v2.x });
 	auto yMin = std::min({ v0.y, v1.y, v2.y });
@@ -79,6 +96,53 @@ void GPUSoftware::drawTriUntextured(Vertex v0, Vertex v1, Vertex v2) {
 	}
 }
 
-s32 GPUSoftware::edgeFunction(Vertex v0, Vertex v1, Vertex p) {
-	return (v1.x - v0.x) * (p.y - v0.y) - (v1.y - v0.y) * (p.x - v0.x);
+void GPUSoftware::drawTriTextured(Vertex v0, Vertex v1, Vertex v2, u16 clut, u16 texpage) {
+	auto xMin = std::min({ v0.x, v1.x, v2.x });
+	auto yMin = std::min({ v0.y, v1.y, v2.y });
+	auto xMax = std::max({ v0.x, v1.x, v2.x });
+	auto yMax = std::max({ v0.y, v1.y, v2.y });
+
+	if (edgeFunction(v0, v1, v2) < 0) {
+		std::swap(v1, v2);
+	}
+
+	Vertex p;
+
+	const auto area = edgeFunction(v0, v1, v2);
+
+	for (p.y = yMin; p.y < yMax; p.y++) {
+		for (p.x = xMin; p.x < xMax; p.x++) {
+			s32 w0 = edgeFunction(v1, v2, p);
+			s32 w1 = edgeFunction(v2, v0, p);
+			s32 w2 = edgeFunction(v0, v1, p);
+			if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+				// Interpolate UV
+				float b0 = (float)w0 / area;
+				float b1 = (float)w1 / area;
+				float b2 = (float)w2 / area;
+				const u32 u = b0 * v0.u + b1 * v1.u + b2 * v2.u;
+				const u32 v = b0 * v0.v + b1 * v1.v + b2 * v2.v;
+				
+				// Fetch texel
+				const u16 texpageX = (texpage & 0xf) * 64;
+				const u16 texpageY = ((texpage >> 4) & 1) * 256;
+				const auto colDepth = (texpage >> 7) & 3;
+				const u16 clutX = (clut & 0x3f) * 16;
+				const u16 clutY = clut >> 6;
+				
+				u16 col = 0;
+				switch (colDepth) {
+				case (u32)ColDepth::Depth4: {
+					col = fetch4bpp(u, v, texpageX, texpageY, clutX, clutY);
+					break;
+				}
+				default:
+					Helpers::panic("[GPU Software] Unimplemented col depth %d\n", colDepth);
+				}
+
+				if (col == 0) continue;
+				writePixel(p.x, p.y, col);
+			}
+		}
+	}
 }
