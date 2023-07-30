@@ -59,8 +59,45 @@ void GPU::writeGp0(u32 data) {
 				log("  (x, y): (%d, %d)\n", x, y);
 				break;
 			}
+			case (u32)GP0Command::ReadVRAM: {
+				// TODO
+				hasCommand = false;
+				break;
+			}
 			default:
 				hasCommand = false;
+
+				DrawCommand drawCommand(fifo[0]);
+				if (drawCommand.drawType == DrawCommand::DrawType::Polygon) {
+					auto poly = drawCommand.getPolygon();
+					if (poly.textured) Helpers::panic("[GPU] Unimplemented textured polygon");
+					auto nVerts = poly.quad ? 4 : 3;
+					Vertex verts[4];
+					std::memset(verts, 0, sizeof(Vertex) * 4);
+					u32 col = fifo[0] & 0xffffff;
+					verts[0].writeBGR888(col);
+					verts[0].x = fifo[1] & 0xffff;
+					verts[0].y = (fifo[1] >> 16) & 0xffff;
+
+					auto idx = 1;
+					for (int i = 1; i < nVerts; i++) {
+						// Colour
+						if (poly.shaded)
+							verts[i].writeBGR888(fifo[++idx] & 0xffffff);
+						else
+							verts[i].writeBGR888(col);
+						// Coords
+						const u32 coords = fifo[++idx];
+						verts[i].x = coords & 0xffff;
+						verts[i].y = (coords >> 16) & 0xffff;
+						// TODO: texcoords
+					}
+					
+					// Draw
+					backend->drawTriUntextured(verts[0], verts[1], verts[2]);
+					if(poly.quad)
+						backend->drawTriUntextured(verts[1], verts[2], verts[3]);
+				}
 			}
 		}
 		else {
@@ -150,6 +187,12 @@ void GPU::startCommand(u32 rawCommand) {
 		hasCommand = true;
 		break;
 	}
+	case (u32)GP0Command::ReadVRAM: {
+		log("ReadVRAM\n");
+		paramsLeft = 2;
+		hasCommand = true;
+		break;
+	}
 	case (u32)GP0Command::DrawModeSetting: {
 		log("DrawModeSetting\n");
 		// Bits 0-10 are copied into GPUSTAT
@@ -186,6 +229,7 @@ void GPU::startCommand(u32 rawCommand) {
 		break;
 	}
 	default: {
+		if ((rawCommand >> 24) == 0x78) printf("I fucked up\n");
 		DrawCommand drawCommand(rawCommand);
 		hasCommand = true;
 		paramsLeft = drawCommand.getCommandSize();
@@ -199,7 +243,7 @@ GPU::DrawCommand::DrawCommand(u32 raw) {
 	if (temp.polygonCommand == 1) {
 		log("Polygon:\n");
 		log(temp.quad ? "  Quad\n" : "  Tri\n");
-		log(temp.shading ? "  Shaded\n" : "  Monochrome\n");
+		log(temp.shaded ? "  Shaded\n" : "  Monochrome\n");
 		log(temp.textured ? "  Textured\n" : "  Untextured\n");
 		drawType = DrawType::Polygon;
 	}
@@ -213,15 +257,22 @@ u32 GPU::DrawCommand::getCommandSize() {
 	u32 size = 1;
 	if (drawType == DrawType::Polygon) {
 		// Get number of words required per vertex
-		Polygon poly = { .raw = this->raw };
-		if (poly.shading)  size++;
+		Polygon poly = getPolygon();
+		if (poly.shaded)   size++;
 		if (poly.textured) size++;
 		// Multiply by number of vertices
 		size *= poly.quad ? 4 : 3;
+		// First colour is included in the command word
+		if (poly.shaded) size--;
 	}
 	else {
-		Helpers::panic("[GPU] Tried to get command size for unimplemented Line command\n");
+		Helpers::panic("[GPU] Tried to get command size for unimplemented command type\n");
 	}
 
 	return size;
+}
+
+GPU::DrawCommand::Polygon GPU::DrawCommand::getPolygon() {
+	if (drawType != DrawType::Polygon) Helpers::panic("[GPU] Tried to getPolygon but drawType was not polygon\n");
+	return { .raw = this->raw };
 }

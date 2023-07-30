@@ -25,8 +25,8 @@ public:
 
 // Our loggers here. Enable/disable by toggling the template param
 static auto cpuTraceLogger  = Logger<false>("[CPU TRACE] ");
-static auto dmaLogger       = Logger<true> ("[   DMA   ] ");
-static auto gpuLogger       = Logger<true> ("[   GPU   ] ");
+static auto dmaLogger       = Logger<false>("[   DMA   ] ");
+static auto gpuLogger       = Logger<false>("[   GPU   ] ");
 
 
 #define MAKE_LOG_FUNCTION(functionName, logger)          \

@@ -9,7 +9,7 @@
 
 class GPU {
 public:
-	GPU() {
+	GPU() : software(this) {
 		backend = &software;
 	}
 
@@ -28,6 +28,7 @@ public:
 		NOP							= 0x00,
 		ClearCache					= 0x01,
 		UploadTexture				= 0xA0,
+		ReadVRAM					= 0xC0,
 		DrawModeSetting				= 0xE1,
 		TextureWindowSetting		= 0xE2,
 		SetDrawingAreaTopLeft		= 0xE3,
@@ -63,13 +64,11 @@ private:
 	public:
 		DrawCommand(u32 raw);
 		u32 getCommandSize();	// In words
-
-	private:
-		u32 raw;
 		enum class DrawType {
 			Polygon,
 			Line
 		} drawType;
+
 		union Polygon {
 			u32 raw;
 			BitField<0, 24, u32> rgb;				// Colour of vertex 0
@@ -77,8 +76,13 @@ private:
 			BitField<25, 1, u32> semiTransparent;
 			BitField<26, 1, u32> textured;
 			BitField<27, 1, u32> quad;				// If it's not a quad, it's a tri
-			BitField<28, 1, u32> shading;
+			BitField<28, 1, u32> shaded;
 			BitField<29, 3, u32> polygonCommand;	// Should be 0b001
 		};
+
+		Polygon getPolygon();
+
+	private:
+		u32 raw;
 	};
 };
