@@ -229,7 +229,6 @@ void GPU::startCommand(u32 rawCommand) {
 		break;
 	}
 	default: {
-		if ((rawCommand >> 24) == 0x78) printf("I fucked up\n");
 		DrawCommand drawCommand(rawCommand);
 		hasCommand = true;
 		paramsLeft = drawCommand.getCommandSize();
