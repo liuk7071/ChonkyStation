@@ -6,23 +6,23 @@
 
 #include "playstation.hpp"
 
+#ifdef __ANDROID__
 #include <jni.h>
-
 #include "../android/app/src/main/cpp/AndroidOut.h"
-
 #include <game-activity/GameActivity.cpp>
 #include <game-text-input/gametextinput.cpp>
-
-
 #include <game-activity/native_app_glue/android_native_app_glue.c>
+#endif
 
 
 #define CLOCK_SPEED (33868800 / 60)
 
 
+#ifdef __ANDROID__
 void android_main(struct android_app *pApp) {
     aout << "ChonkyStation" << std::endl;
 }
+#endif
 
 int main(int argc, char** argv) {
     if (argc < 2) Helpers::panic("Usage: ChonkyStation [bios path]");

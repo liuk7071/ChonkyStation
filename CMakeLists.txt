@@ -22,11 +22,11 @@ add_compile_definitions(SDL_MAIN_HANDLED)
 
 if (ANDROID)
     add_library(ChonkyStation SHARED ${SOURCE_FILES} ${HEADER_FILES} ${DOLPHIN_HEADER_FILES} ${PANDA3DS_HEADER_FILES} android/app/src/main/cpp/AndroidOut.cpp)
+    find_package(game-activity REQUIRED CONFIG)
 else()
-    add_executable(ChonkyStation SHARED ${SOURCE_FILES} ${HEADER_FILES} ${DOLPHIN_HEADER_FILES} ${PANDA3DS_HEADER_FILES} android/app/src/main/cpp/AndroidOut.cpp)
+    add_executable(ChonkyStation ${SOURCE_FILES} ${HEADER_FILES} ${DOLPHIN_HEADER_FILES} ${PANDA3DS_HEADER_FILES})
 endif()
 
-find_package(game-activity REQUIRED CONFIG)
 
 target_include_directories(ChonkyStation PRIVATE ${SDL2_INCLUDE_DIR})
 
