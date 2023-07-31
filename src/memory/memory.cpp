@@ -8,7 +8,7 @@ Memory::Memory(Interrupt* interrupt, DMA* dma, GPU* gpu) : interrupt(interrupt),
 	readTable.resize(0x10000, 0);
 	writeTable.resize(0x10000, 0);
 
-	constexpr u32 PAGE_SIZE = 64_KB; // Page size = 64KB
+	constexpr u32 PAGESIZE = 64_KB; // Page size = 64KB
 #ifndef ENABLE_RAM_MIRRORING
 	constexpr auto ramPages = 32;
 #else
@@ -16,7 +16,7 @@ Memory::Memory(Interrupt* interrupt, DMA* dma, GPU* gpu) : interrupt(interrupt),
 #endif
 
 	for (auto pageIndex = 0; pageIndex < ramPages; pageIndex++) {
-		const auto pointer = (uintptr_t)&ram[(pageIndex * PAGE_SIZE) & 0x1FFFFF];
+		const auto pointer = (uintptr_t)&ram[(pageIndex * PAGESIZE) & 0x1FFFFF];
 		readTable[pageIndex + 0x0000] = pointer; // KUSEG RAM
 		readTable[pageIndex + 0x8000] = pointer; // KSEG0
 		readTable[pageIndex + 0xA000] = pointer; // KSEG1
@@ -27,7 +27,7 @@ Memory::Memory(Interrupt* interrupt, DMA* dma, GPU* gpu) : interrupt(interrupt),
 	}
 
 	for (auto pageIndex = 0; pageIndex < 8; pageIndex++) {
-		const auto pointer = (uintptr_t)&bios[(pageIndex * PAGE_SIZE)];
+		const auto pointer = (uintptr_t)&bios[(pageIndex * PAGESIZE)];
 		readTable[pageIndex + 0x1FC0] = pointer; // KUSEG
 		readTable[pageIndex + 0x9FC0] = pointer; // KSEG0
 		readTable[pageIndex + 0xBFC0] = pointer; // KSEG1

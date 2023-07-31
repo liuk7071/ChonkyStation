@@ -20,6 +20,18 @@ source_group("Header Files/External/Panda3DS" FILES ${PANDA3DS_HEADER_FILES})
 
 add_compile_definitions(SDL_MAIN_HANDLED)
 
-add_executable(ChonkyStation ${SOURCE_FILES} ${HEADER_FILES} ${DOLPHIN_HEADER_FILES} ${PANDA3DS_HEADER_FILES})
+if (ANDROID)
+    add_library(ChonkyStation SHARED ${SOURCE_FILES} ${HEADER_FILES} ${DOLPHIN_HEADER_FILES} ${PANDA3DS_HEADER_FILES} android/app/src/main/cpp/AndroidOut.cpp)
+else()
+    add_executable(ChonkyStation SHARED ${SOURCE_FILES} ${HEADER_FILES} ${DOLPHIN_HEADER_FILES} ${PANDA3DS_HEADER_FILES} android/app/src/main/cpp/AndroidOut.cpp)
+endif()
+
+find_package(game-activity REQUIRED CONFIG)
+
 target_include_directories(ChonkyStation PRIVATE ${SDL2_INCLUDE_DIR})
-target_link_libraries(ChonkyStation PRIVATE fmt SDL2-static)
+
+if (NOT ANDROID)
+    target_link_libraries(ChonkyStation PRIVATE fmt SDL2-static)
+else()
+    target_link_libraries(ChonkyStation PRIVATE fmt game-activity::game-activity EGL GLESv3 jnigraphics android log)
+endif()
