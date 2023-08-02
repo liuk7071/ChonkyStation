@@ -11,6 +11,9 @@
 #include <filesystem>
 #include <iterator>
 #include <cstring>
+#ifdef __ANDROID__
+#include "../../android/app/src/main/cpp/AndroidOut.h"
+#endif
 
 
 // Types
@@ -36,9 +39,19 @@ namespace Helpers {
 	[[noreturn]] static void panic(const char* fmt, ...) {
 		va_list args;
 		va_start(args, fmt);
+#ifndef __ANDROID__
 		vprintf(fmt, args);
 		va_end(args);
 		exit(0);
+#else
+		char* out = new char[256];
+		vsprintf(out, fmt, args);
+		aout << out << std::endl;
+		va_end(args);
+		// Lock up instead of exiting
+		while(true)
+			volatile int i = 0;
+#endif
 	}
 
 	static void debugAssert(bool cond, const char* fmt, ...) {

@@ -9,8 +9,8 @@ PARENT_SCOPE)
 
 add_subdirectory(fmt)
 
-if (NOT ANDROID)
+#if (NOT ANDROID)
     set(SDL_STATIC ON CACHE BOOL "" FORCE)
     set(SDL_SHARED OFF CACHE BOOL "" FORCE)
     add_subdirectory(SDL)
-endif()
+#endif()

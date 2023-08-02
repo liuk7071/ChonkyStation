@@ -49,7 +49,16 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 	if (core->pc == 0xB0 || core->pc == 0x800000B0 || core->pc == 0xA00000B0) {
 		if (log_kernel) printf("\nkernel call B(0x%x)", regs[9]);
 		if (regs[9] == 0x3d)
-			if (tty) { printf("%c", regs[4]); }
+			if (tty) {
+				printf("%c", regs[4]);
+#ifdef __ANDROID__
+				char string[2];
+				sprintf(string, "%c", regs[4]);
+				aout << string;
+				if(regs[4] == '\n')
+					aout << std::endl;
+#endif
+			}
 	}
 	if (core->pc == 0xC0 || core->pc == 0x800000C0 || core->pc == 0xA00000C0) {
 		if (log_kernel) printf("\nkernel call C(0x%x)", regs[9]);

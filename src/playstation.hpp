@@ -11,7 +11,9 @@
 class PlayStation {
 public:
     PlayStation(const fs::path& biosPath) : interrupt(), gpu(), dma(), mem(&interrupt, &dma, &gpu), cpu(&mem) {
+#ifndef __ANDROID__
         mem.loadBios(biosPath);
+#endif
         cpu.switchBackend(Cpu::Backend::OldInterpreter);
     }
 
@@ -21,6 +23,7 @@ public:
     }
 
     u32 getPC() { return cpu.core.pc; }
+    u8* getBIOS() { return mem.bios; }
     u8* getRAM() { return mem.ram; }
     u8* getVRAM() { return gpu.getVRAM(); }
 

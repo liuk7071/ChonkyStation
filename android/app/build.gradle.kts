@@ -18,6 +18,7 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags += "-std=c++20"
+                arguments("-DCMAKE_BUILD_TYPE=Release")
             }
         }
     }
@@ -55,4 +56,6 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
+    implementation("androidx.activity:activity-ktx:1.7.2")
+    implementation("androidx.fragment:fragment-ktx:1.6.1")
 }

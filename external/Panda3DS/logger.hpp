@@ -2,6 +2,10 @@
 #include <cstdarg>
 #include <fstream>
 #include <string>
+#ifdef __ANDROID__
+#include "../../android/app/src/main/cpp/AndroidOut.h"
+#endif
+
 
 namespace Log {
 // Our logger class
@@ -15,11 +19,21 @@ public:
     void log(const char* fmt, ...) {
         if constexpr (!enabled) return;
 
+#ifndef __ANDROID__
         std::fputs(prepend.c_str(), stdout);
         std::va_list args;
         va_start(args, fmt);
         std::vprintf(fmt, args);
         va_end(args);
+#else
+        aout << prepend.c_str();
+        va_list args;
+		va_start(args, fmt);
+		char* out = new char[256];
+		vsprintf(out, fmt, args);
+		aout << out << std::endl;
+		va_end(args);
+#endif
     }
 };
 
