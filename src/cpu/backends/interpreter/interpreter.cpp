@@ -3,8 +3,8 @@
 
 void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	// Handle interrupts
-	if (core->checkInterrupt(mem->interrupt))
-		core->pc -= 4;
+	core->checkInterrupt(mem->interrupt);
+	//	core->pc -= 4;
 
 	CpuCore::Instruction instr = { .raw = mem->read<u32>(core->pc) };
 
@@ -73,13 +73,11 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			break;
 		}
 		case CpuOpcodes::SPECIALOpcode::SYSCALL: {
-			core->pc -= 4;
-			core->exception(CpuCore::Exception::SysCall);
+			core->exception(CpuCore::Exception::SysCall, true);
 			break;
 		}
 		case CpuOpcodes::SPECIALOpcode::BREAK: {
-			core->pc -= 4;
-			core->exception(CpuCore::Exception::Break);
+			core->exception(CpuCore::Exception::Break, true);
 			break;
 		}
 		case CpuOpcodes::SPECIALOpcode::MFHI: {
@@ -428,5 +426,5 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		Helpers::panic("[FATAL] Unimplemented primary instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
 	}
 
-	if (core->isDelaySlot) core->isDelaySlot = false;
+	core->isDelaySlot = false;
 }

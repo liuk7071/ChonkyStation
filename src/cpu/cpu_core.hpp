@@ -125,7 +125,8 @@ public:
         Overflow = 0xC
     };
 
-    void exception(Exception exception) {
+    // If decrementPc is true, epc will be set to pc - 4 instead of pc
+    void exception(Exception exception, bool decrementPc = false) {
         if (isDelaySlot)
             cop0.cause.bd = true;
         else
@@ -144,6 +145,8 @@ public:
         cop0.cause.raw &= ~0xff;
         cop0.cause.raw |= (u32)exception << 2;
         cop0.epc = pc;
+        if (decrementPc)
+            cop0.epc -= 4;
         if (isDelaySlot)
             cop0.epc -= 4;
         pc = handler;
