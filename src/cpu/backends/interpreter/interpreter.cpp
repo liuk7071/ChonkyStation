@@ -4,7 +4,6 @@
 void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	// Handle interrupts
 	core->checkInterrupt(mem->interrupt);
-	//	core->pc -= 4;
 
 	CpuCore::Instruction instr = { .raw = mem->read<u32>(core->pc) };
 
