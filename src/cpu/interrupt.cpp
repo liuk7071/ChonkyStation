@@ -16,3 +16,11 @@ u16 Interrupt::readImask() {
 u16 Interrupt::readIstat() {
 	return istat;
 }
+
+void Interrupt::raiseInterrupt(InterruptType interrupt) {
+	istat |= 1 << (u32)interrupt;
+}
+
+bool Interrupt::interruptFired() {
+	return istat & imask;
+}

@@ -2,6 +2,9 @@
 
 
 void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
+	// Handle interrupts
+	core->checkInterrupt(mem->interrupt);
+
 	CpuCore::Instruction instr = { .raw = mem->read<u32>(core->pc) };
 
 	disassembler->disassemble(instr, core);
@@ -69,8 +72,11 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			break;
 		}
 		case CpuOpcodes::SPECIALOpcode::SYSCALL: {
-			core->pc -= 4;
-			core->exception(CpuCore::Exception::SysCall);
+			core->exception(CpuCore::Exception::SysCall, true);
+			break;
+		}
+		case CpuOpcodes::SPECIALOpcode::BREAK: {
+			core->exception(CpuCore::Exception::Break, true);
 			break;
 		}
 		case CpuOpcodes::SPECIALOpcode::MFHI: {
@@ -334,6 +340,15 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		gprs[instr.rt] = (u32)(s16)mem->read<u16>(addr);
 		break;
 	}
+	case CpuOpcodes::Opcode::LWL: {
+		u32 address = gprs[instr.rs] + (u32)(s16)instr.imm;
+		const int shift = ((address & 3) ^ 3) * 8;
+		u32 dataTemp = mem->read<u32>(address & ~3);
+		u32 rtTemp = gprs[instr.rt] & ~(0xffffffff >> shift);
+		dataTemp >>= shift;
+		gprs[instr.rt] = dataTemp | rtTemp;
+		break;
+	}
 	case CpuOpcodes::Opcode::LW: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 3) {
@@ -355,6 +370,15 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		gprs[instr.rt] = mem->read<u16>(addr);
 		break;
 	}
+	case CpuOpcodes::Opcode::LWR: {
+		u32 address = gprs[instr.rs] + (u32)(s16)instr.imm;
+		const int shift = (address & 3) * 8;
+		u32 dataTemp = mem->read<u32>(address & ~3);
+		u32 rtTemp = gprs[instr.rt] & ~(0xffffffff << shift);
+		dataTemp <<= shift;
+		gprs[instr.rt] = dataTemp | rtTemp;
+		break;
+	}
 	case CpuOpcodes::Opcode::SB: {
 		if (core->cop0.status.isc) return;
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
@@ -370,6 +394,15 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		mem->write<u16>(addr, gprs[instr.rt]);
 		break;
 	}
+	case CpuOpcodes::Opcode::SWL: {
+		u32 address = gprs[instr.rs] + (u32)(s16)instr.imm;
+		const int shift = ((address & 3) ^ 3) * 8;
+		u32 dataTemp = mem->read<u32>(address & ~3);
+		u32 rtTemp = gprs[instr.rt] << shift;
+		dataTemp &= ~(0xffffffff << shift);
+		mem->write<u32>(address & ~3, dataTemp | rtTemp);
+		break;
+	}
 	case CpuOpcodes::Opcode::SW: {
 		if (core->cop0.status.isc) break;
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
@@ -379,9 +412,18 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		mem->write<u32>(addr, gprs[instr.rt]);
 		break;
 	}
+	case CpuOpcodes::Opcode::SWR: {
+		u32 address = gprs[instr.rs] + (u32)(s16)instr.imm;
+		const int shift = (address & 3) * 8;
+		u32 dataTemp = mem->read<u32>(address & ~3);
+		u32 rtTemp = gprs[instr.rt] >> shift;
+		dataTemp &= ~(0xffffffff >> shift);
+		mem->write<u32>(address & ~3, dataTemp | rtTemp);
+		break;
+	}
 	default:
 		Helpers::panic("[FATAL] Unimplemented primary instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
 	}
 
-	if (core->isDelaySlot) core->isDelaySlot = false;
+	core->isDelaySlot = false;
 }

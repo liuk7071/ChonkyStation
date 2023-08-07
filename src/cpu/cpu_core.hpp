@@ -3,6 +3,7 @@
 #include <helpers.hpp>
 #include <BitField.hpp>
 #include <logger.hpp>
+#include <interrupt.hpp>
 
 
 struct COP0 {
@@ -124,7 +125,8 @@ public:
         Overflow = 0xC
     };
 
-    void exception(Exception exception) {
+    // If decrementPc is true, epc will be set to pc - 4 instead of pc
+    void exception(Exception exception, bool decrementPc = false) {
         if (isDelaySlot)
             cop0.cause.bd = true;
         else
@@ -143,10 +145,24 @@ public:
         cop0.cause.raw &= ~0xff;
         cop0.cause.raw |= (u32)exception << 2;
         cop0.epc = pc;
+        if (decrementPc)
+            cop0.epc -= 4;
         if (isDelaySlot)
             cop0.epc -= 4;
         pc = handler;
         nextPc = handler + 4;
+    }
+    
+    // Returns true if an interrupt was fired
+    bool checkInterrupt(Interrupt* interrupt) {
+        if (interrupt->interruptFired()) {
+            cop0.cause.raw |= 1 << 10;
+            if (cop0.status.iec && (cop0.status.raw & (1 << 10))) {
+                exception(Exception::INT);
+                return true;
+            }
+        }
+        return false;
     }
 };
 
