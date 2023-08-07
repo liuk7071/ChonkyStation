@@ -3,6 +3,7 @@
 #include <helpers.hpp>
 #include <BitField.hpp>
 #include <logger.hpp>
+#include <interrupt.hpp>
 
 
 struct COP0 {
@@ -147,6 +148,18 @@ public:
             cop0.epc -= 4;
         pc = handler;
         nextPc = handler + 4;
+    }
+    
+    // Returns true if an interrupt was fired
+    bool checkInterrupt(Interrupt* interrupt) {
+        if (interrupt->interruptFired()) {
+            cop0.cause.raw |= 1 << 10;
+            if (cop0.status.iec && (cop0.status.raw & (1 << 10))) {
+                exception(Exception::INT);
+                return true;
+            }
+        }
+        return false;
     }
 };
 

@@ -12,7 +12,7 @@ class PlayStation {
 public:
     PlayStation(const fs::path& biosPath) : interrupt(), gpu(), dma(), mem(&interrupt, &dma, &gpu), cpu(&mem) {
         mem.loadBios(biosPath);
-        cpu.switchBackend(Cpu::Backend::OldInterpreter);
+        cpu.switchBackend(Cpu::Backend::Interpreter);
     }
 
     // Steps the system
@@ -23,6 +23,8 @@ public:
     u32 getPC() { return cpu.core.pc; }
     u8* getRAM() { return mem.ram; }
     u8* getVRAM() { return gpu.getVRAM(); }
+    void VBLANK() { interrupt.raiseInterrupt(Interrupt::InterruptType::VBLANK); }
+    bool isInBIOS() { return Helpers::inRangeSized<u32>(cpu.core.pc, (u32)Memory::MemoryBase::BIOS, (u32)Memory::MemorySize::BIOS); }
 
 private:
     Cpu cpu;

@@ -3,10 +3,10 @@
 #include "playstation.hpp"
 
 
-#define CLOCK_SPEED (33868800 / 60)
+constexpr auto cyclesPerFrame = 33868800 / 60;
 
 int main(int argc, char** argv) {
-    if (argc < 2) Helpers::panic("Usage: ChonkyStation [bios path]");
+    if (argc < 2) Helpers::panic("Usage: ChonkyStation [bios path]\n");
 
     printf("ChonkyStation\n");
 
@@ -22,8 +22,17 @@ int main(int argc, char** argv) {
     bool running = true;
     while (running) {
         cycles = 0;
-        while (cycles++ < CLOCK_SPEED)
+ 
+        while (cycles < cyclesPerFrame) {
             playstation.step();
+            if (!playstation.isInBIOS())
+                cycles += 2;
+            else
+                cycles += 20;
+        }
+
+        // VBLANK interrupt
+        playstation.VBLANK();
 
         // Handle SDL window events
         SDL_Event event;

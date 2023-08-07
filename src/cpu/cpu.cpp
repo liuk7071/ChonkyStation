@@ -11,5 +11,4 @@ void Cpu::switchBackend(Backend backend) {
     case Backend::OldInterpreter: stepFunc = &oldInterpreter.step; break;
     default: Helpers::panic("Unsupported backend\n");   // Should never be triggered
     }
-    stepFunc = &oldInterpreter.step;
 }
