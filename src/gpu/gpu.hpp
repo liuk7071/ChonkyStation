@@ -5,13 +5,28 @@
 #include <logger.hpp>
 #include <backends/software/gpu_software.hpp>
 #include <backends/base.hpp>
+#include <scheduler.hpp>
 
+
+namespace GPUConstants {
+// TODO: PAL?
+constexpr u64 cyclesPerHdraw = 2560 / 1.57;
+constexpr u64 cyclesPerScanline = 3413 / 1.57;	// NTSC
+constexpr u64 scanlinesPerVdraw = 240;
+constexpr u64 scanlinesPerFrame = 263;
+} // End namespace GPUConstants
 
 class GPU {
 public:
-	GPU() : software(this) {
+	GPU(Scheduler* scheduler) : software(this), scheduler(scheduler) {
 		backend = &software;
 	}
+
+	Scheduler* scheduler;
+
+	u64 currentScanline = 0;
+	static void scanlineEvent(void* classptr);
+	bool vblank = false;
 
 	bool uploadingTexture = false;
 	std::vector<u32> fifo;
@@ -48,7 +63,6 @@ public:
 		VerticalDisplayRange	= 0x07,
 		DisplayMode				= 0x08
 	};
-
 
 private:
 	u32 stat = 0x14802000;

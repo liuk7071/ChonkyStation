@@ -3,8 +3,6 @@
 #include "playstation.hpp"
 
 
-int cyclesPerFrame = 521520;
-
 int main(int argc, char** argv) {
     if (argc < 2) Helpers::panic("Usage: ChonkyStation [bios path]\n");
 
@@ -22,12 +20,11 @@ int main(int argc, char** argv) {
     while (running) {
         playstation.cycles = 0;
 
-        while (playstation.cycles < cyclesPerFrame)
+        while (!playstation.getVBLANKAndClear())
             playstation.step();
 
         // VBLANK interrupt
         playstation.VBLANK();
-        cyclesPerFrame = 33868800 / 60;
 
         // Handle SDL window events
         SDL_Event event;

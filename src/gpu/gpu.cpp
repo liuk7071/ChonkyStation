@@ -3,13 +3,30 @@
 
 MAKE_LOG_FUNCTION(log, gpuLogger)
 
+void GPU::scanlineEvent(void* classptr) {
+	GPU* gpu = (GPU*)classptr;
+	
+	if (gpu->currentScanline < GPUConstants::scanlinesPerVdraw) {
+		gpu->stat ^= 1 << 31;	// Interlacing
+	}
+	else if (gpu->currentScanline == GPUConstants::scanlinesPerVdraw) {
+		gpu->vblank = true;
+	}
+	else if (gpu->currentScanline == GPUConstants::scanlinesPerFrame) {
+		gpu->currentScanline = 0;
+	}
+
+	gpu->currentScanline++;
+
+	gpu->scheduler->push(scanlineEvent, gpu->scheduler->time + GPUConstants::cyclesPerScanline, gpu);
+}
+
 u32 GPU::getStat() {
 	// Stubbed
 	stat |= 1 << 26;	// Ready to receive cmd word
 	stat |= 1 << 27;	// Ready to send VRAM to CPU
 	stat |= 1 << 28;	// Ready to receive DMA block
 	stat |= 1 << 30;	// DMA direction CPU -> GP0
-	stat ^= 1 << 31;	// Fake interlacing
 	return stat;
 }
 
