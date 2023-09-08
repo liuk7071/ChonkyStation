@@ -6,18 +6,24 @@
 #include <interrupt.hpp>
 #include <dma.hpp>
 #include <gpu.hpp>
+#include <cdrom.hpp>
+#include <scheduler.hpp>
 
 
 class PlayStation {
 public:
-    PlayStation(const fs::path& biosPath) : interrupt(), gpu(), dma(), mem(&interrupt, &dma, &gpu), cpu(&mem) {
+    PlayStation(const fs::path& biosPath) : cdrom(), interrupt(), gpu(), dma(), mem(&interrupt, &dma, &gpu, &cdrom), cpu(&mem) {
         mem.loadBios(biosPath);
         cpu.switchBackend(Cpu::Backend::Interpreter);
     }
 
+    u64 cycles = 0;
     // Steps the system
     void step() {
         cpu.step();
+        auto cyclesToAdd = isInBIOS() ? 20 : 2;
+        scheduler.tick(cyclesToAdd);
+        cycles += cyclesToAdd;
     }
 
     u32 getPC() { return cpu.core.pc; }
@@ -28,8 +34,10 @@ public:
 
 private:
     Cpu cpu;
+    Scheduler scheduler;
     DMA dma;
     Memory mem;
     Interrupt interrupt;
     GPU gpu;
+    CDROM cdrom;
 };

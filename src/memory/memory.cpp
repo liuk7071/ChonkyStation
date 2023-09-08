@@ -1,7 +1,7 @@
 #include <memory.hpp>
 
 
-Memory::Memory(Interrupt* interrupt, DMA* dma, GPU* gpu) : interrupt(interrupt), dma(dma), gpu(gpu) {
+Memory::Memory(Interrupt* interrupt, DMA* dma, GPU* gpu, CDROM* cdrom) : interrupt(interrupt), dma(dma), gpu(gpu), cdrom(cdrom) {
 	std::memset(ram, 0, 2_MB);
 	std::memset(scratchpad, 0, 1_KB);
 
@@ -64,7 +64,9 @@ u8 Memory::read(u32 vaddr) {
 	
 	u32 paddr = maskAddress(vaddr);
 
-	if (Helpers::inRangeSized<u32>(paddr, 0x1f000000, 0x400)) return 0xff;
+	// CDROM
+	if (paddr == 0x1f801800) return cdrom->readStatus();
+	else if (Helpers::inRangeSized<u32>(paddr, 0x1f000000, 0x400)) return 0xff;
 	else
 		Helpers::panic("[FATAL] Unhandled read8 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
@@ -142,7 +144,45 @@ void Memory::write(u32 vaddr, u8 data) {
 	
 	u32 paddr = maskAddress(vaddr);
 
-	if (paddr == 0x1f802041) return;	// POST - External 7-segment Display (W)
+	// CDROM
+	if (paddr == 0x1f801800) { cdrom->writeStatus(data); return; }
+	else if (paddr == 0x1f801801) {
+		switch (cdrom->getIndex()) {
+		case 0: {
+			cdrom->executeCommand(data);
+			break;
+		}
+		default:
+			Helpers::panic("[FATAL] Unhandled CDROM write8 0x1f801801.%d <- 0x%02x\n", cdrom->getIndex(), data);
+		}
+	}
+	else if (paddr == 0x1f801802) {
+		switch (cdrom->getIndex()) {
+		case 0: {
+			cdrom->pushParam(data);
+			break;
+		}
+		case 1: {
+			cdrom->writeIE(data);
+			break;
+		}
+		default:
+			Helpers::panic("[FATAL] Unhandled CDROM write8 0x1f801802.%d <- 0x%02x\n", cdrom->getIndex(), data);
+		}
+		return;
+	}
+	else if (paddr == 0x1f801803) {
+		switch (cdrom->getIndex()) {
+		case 1: {
+			cdrom->writeIF(data);
+			break;
+		}
+		default:
+			Helpers::panic("[FATAL] Unhandled CDROM write8 0x1f801803.%d <- 0x%02x\n", cdrom->getIndex(), data);
+		}
+		return;
+	}
+	else if (paddr == 0x1f802041) return;	// POST - External 7-segment Display (W)
 	else
 		Helpers::panic("[FATAL] Unhandled write8 0x%08x (virtual 0x%08x) <- 0x%02x\n", paddr, vaddr, data);
 }

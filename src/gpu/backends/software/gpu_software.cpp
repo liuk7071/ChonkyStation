@@ -136,6 +136,9 @@ void GPUSoftware::drawTriTextured(Vertex v0, Vertex v1, Vertex v2, u16 clut, u16
 					col = fetch4bpp(u, v, texpageX, texpageY, clutX, clutY);
 					break;
 				}
+				case (u32)ColDepth::Depth8: {
+					col = 0xff00;
+				}
 				default:
 					Helpers::panic("[GPU Software] Unimplemented col depth %d\n", colDepth);
 				}

@@ -11,6 +11,8 @@ include_directories(src/cpu)
 include_directories(src/memory)
 include_directories(src/dma)
 include_directories(src/gpu)
+include_directories(src/cdrom)
+include_directories(src/scheduler)
 
 include_directories(external/Dolphin)
 include_directories(external/Panda3DS)

@@ -14,6 +14,10 @@ set(SOURCE_FILES
 
 "${CMAKE_CURRENT_SOURCE_DIR}/gpu/gpu.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/gpu/backends/software/gpu_software.cpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/cdrom/cdrom.cpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/scheduler/scheduler.cpp"
 PARENT_SCOPE)
 
 set(HEADER_FILES
@@ -37,4 +41,8 @@ set(HEADER_FILES
 "${CMAKE_CURRENT_SOURCE_DIR}/gpu/backends/base.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/gpu/backends/vertex.hpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/gpu/backends/software/gpu_software.hpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/cdrom/cdrom.hpp"
+
+"${CMAKE_CURRENT_SOURCE_DIR}/scheduler/scheduler.hpp"
 PARENT_SCOPE)

@@ -3,7 +3,7 @@
 #include "playstation.hpp"
 
 
-constexpr auto cyclesPerFrame = 33868800 / 60;
+int cyclesPerFrame = 521520;
 
 int main(int argc, char** argv) {
     if (argc < 2) Helpers::panic("Usage: ChonkyStation [bios path]\n");
@@ -18,21 +18,16 @@ int main(int argc, char** argv) {
     auto renderer = SDL_CreateRenderer(window, -1, 0);
     auto texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR1555, SDL_TEXTUREACCESS_STREAMING, 1024, 512);
 
-    u64 cycles = 0;
     bool running = true;
     while (running) {
-        cycles = 0;
- 
-        while (cycles < cyclesPerFrame) {
+        playstation.cycles = 0;
+
+        while (playstation.cycles < cyclesPerFrame)
             playstation.step();
-            if (!playstation.isInBIOS())
-                cycles += 2;
-            else
-                cycles += 20;
-        }
 
         // VBLANK interrupt
         playstation.VBLANK();
+        cyclesPerFrame = 33868800 / 60;
 
         // Handle SDL window events
         SDL_Event event;

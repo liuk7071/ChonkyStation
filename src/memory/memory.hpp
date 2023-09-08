@@ -4,11 +4,12 @@
 #include <interrupt.hpp>
 #include <dma.hpp>
 #include <gpu.hpp>
+#include <cdrom.hpp>
 
 
 class Memory {
 public:
-	Memory(Interrupt* interrupt, DMA* dma, GPU* gpu);
+	Memory(Interrupt* interrupt, DMA* dma, GPU* gpu, CDROM* cdrom);
     void loadBios(const fs::path& biosPath);
 
 	u8* ram = new u8[2_MB];
@@ -18,6 +19,7 @@ public:
     Interrupt* interrupt;
     DMA* dma;
     GPU* gpu;
+    CDROM* cdrom;
 
     // Base addresses
     enum class MemoryBase {
