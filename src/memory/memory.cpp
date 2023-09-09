@@ -66,6 +66,20 @@ u8 Memory::read(u32 vaddr) {
 
 	// CDROM
 	if (paddr == 0x1f801800) return cdrom->readStatus();
+	else if (paddr == 0x1f801801) {
+		switch (cdrom->getIndex()) {
+		case 1: return cdrom->getResponseByte();
+		default:
+			Helpers::panic("[FATAL] Unhandled CDROM read8 0x1f801801.%d", cdrom->getIndex());
+		}
+	}
+	else if (paddr == 0x1f801803) {
+		switch (cdrom->getIndex()) {
+		case 1: return cdrom->readIF();
+		default:
+			Helpers::panic("[FATAL] Unhandled CDROM read8 0x1f801803.%d", cdrom->getIndex());
+		}
+	}
 	else if (Helpers::inRangeSized<u32>(paddr, 0x1f000000, 0x400)) return 0xff;
 	else
 		Helpers::panic("[FATAL] Unhandled read8 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
@@ -169,7 +183,6 @@ void Memory::write(u32 vaddr, u8 data) {
 		default:
 			Helpers::panic("[FATAL] Unhandled CDROM write8 0x1f801802.%d <- 0x%02x\n", cdrom->getIndex(), data);
 		}
-		return;
 	}
 	else if (paddr == 0x1f801803) {
 		switch (cdrom->getIndex()) {
@@ -180,7 +193,6 @@ void Memory::write(u32 vaddr, u8 data) {
 		default:
 			Helpers::panic("[FATAL] Unhandled CDROM write8 0x1f801803.%d <- 0x%02x\n", cdrom->getIndex(), data);
 		}
-		return;
 	}
 	else if (paddr == 0x1f802041) return;	// POST - External 7-segment Display (W)
 	else

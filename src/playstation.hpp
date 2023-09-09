@@ -12,7 +12,7 @@
 
 class PlayStation {
 public:
-    PlayStation(const fs::path& biosPath) : cdrom(), interrupt(), gpu(&scheduler), dma(), mem(&interrupt, &dma, &gpu, &cdrom), cpu(&mem) {
+    PlayStation(const fs::path& biosPath) : cdrom(&scheduler), interrupt(), gpu(&scheduler), dma(), mem(&interrupt, &dma, &gpu, &cdrom), cpu(&mem) {
         mem.loadBios(biosPath);
         cpu.switchBackend(Cpu::Backend::Interpreter);
 
@@ -27,6 +27,11 @@ public:
         auto cyclesToAdd = isInBIOS() ? 20 : 2;
         scheduler.tick(cyclesToAdd);
         cycles += cyclesToAdd;
+
+        // CDROM IRQ
+        if (cdrom.shouldFireIRQ()) {
+            interrupt.raiseInterrupt(Interrupt::InterruptType::CDROM);
+        }
     }
 
     u32 getPC() { return cpu.core.pc; }
