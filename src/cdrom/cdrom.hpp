@@ -53,11 +53,24 @@ private:
 		BitField<5, 1, u8> rslrrdy;
 		BitField<6, 1, u8> drqsts;
 		BitField<7, 1, u8> busysts;
-	} status;
+	} statusReg;
+
+	union {
+		u8 raw = 0;
+		BitField<0, 1, u8> error;
+		BitField<1, 1, u8> motor;
+		BitField<2, 1, u8> seekError;
+		BitField<3, 1, u8> idError;
+		BitField<4, 1, u8> shellOpen;
+		BitField<5, 1, u8> reading;
+		BitField<6, 1, u8> seeking;
+		BitField<7, 1, u8> playing;
+	} statusCode;
 };
 
 namespace CDROMCommands {
 enum {
-	Test = 0x19
+	GetStat = 0x01,
+	Test	= 0x19
 };
 }	// End namespace CDROMCommands

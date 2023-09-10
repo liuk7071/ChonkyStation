@@ -2,12 +2,20 @@
 
 
 CDROM::CDROM(Scheduler* scheduler) : scheduler(scheduler) {
-	status.prmempt = 1;	// Parameter fifo empty
-	status.prmwrdy = 1;	// Parameter fifo not full
+	statusReg.prmempt = 1;	// Parameter fifo empty
+	statusReg.prmwrdy = 1;	// Parameter fifo not full
+
+	statusCode.motor = 1;	// Motor on
 }
 
 void CDROM::executeCommand(u8 data) {
 	switch (data) {
+
+	case CDROMCommands::GetStat: {
+		response.push(statusCode.raw);
+		scheduler->push(&int3, scheduler->time + int3Delay, this);
+		break;
+	}
 	
 	case CDROMCommands::Test: {
 		u8 subFunc = getParamByte();
@@ -33,9 +41,9 @@ void CDROM::executeCommand(u8 data) {
 
 	Helpers::debugAssert(params.size() == 0, "[FATAL] CDROM command did not use all parameters");
 	
-	status.rslrrdy = 1;	// Response fifo not empty
-	status.prmempt = 1;	// Parameter fifo empty
-	status.prmwrdy = 1;	// Parameter fifo not full
+	statusReg.rslrrdy = 1;	// Response fifo not empty
+	statusReg.prmempt = 1;	// Parameter fifo empty
+	statusReg.prmwrdy = 1;	// Parameter fifo not full
 }
 
 bool CDROM::shouldFireIRQ() {
@@ -44,7 +52,7 @@ bool CDROM::shouldFireIRQ() {
 
 void CDROM::int3(void* classptr) {
 	CDROM* cdrom = (CDROM*)classptr;
-	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[FATAL] CDROM INT3 was fired before previous INT was acknowledged in interrupt flag (INT%d)\n", cdrom->intFlag & 3);
+	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[FATAL] CDROM INT3 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
 	cdrom->intFlag |= 3;
 }
 
@@ -52,16 +60,16 @@ void CDROM::pushParam(u8 data) {
 	Helpers::debugAssert(params.size() <= 16, "[FATAL] Wrote more than 16 bytes to CDROM parameter fifo");
 	params.push(data);
 	if (params.size() == 16) {
-		status.prmwrdy = 0;	// Parameter fifo full
+		statusReg.prmwrdy = 0;	// Parameter fifo full
 	}
 }
 
 u8 CDROM::readStatus() {
-	return status.raw;
+	return statusReg.raw;
 }
 
 void CDROM::writeStatus(u8 data) {
-	status.index = data & 3;
+	statusReg.index = data & 3;
 }
 
 void CDROM::writeIE(u8 data) {
@@ -73,18 +81,18 @@ u8 CDROM::readIF() {
 }
 
 void CDROM::writeIF(u8 data) {
-	intEnable &= ~(data & 0x1f);
+	intFlag &= ~(data & 0x1f);
 	if (data & (1 << 6)) {	// "CLRPRM" clear parameter fifo
 		while (params.size()) params.pop();
-		status.prmempt = 1;	// Parameter fifo empty
-		status.prmwrdy = 1;	// Parameter fifo not full
+		statusReg.prmempt = 1;	// Parameter fifo empty
+		statusReg.prmwrdy = 1;	// Parameter fifo not full
 	}
 	// Upon acknowledge, the response fifo is cleared
 	while (response.size()) response.pop();
 }
 
 u8 CDROM::getIndex() {
-	return status.index;
+	return statusReg.index;
 }
 
 u8 CDROM::getParamByte() {
@@ -102,7 +110,7 @@ u8 CDROM::getResponseByte() {
 	response.pop();
 
 	if (!response.size()) {
-		status.rslrrdy = 0;	// Response fifo empty
+		statusReg.rslrrdy = 0;	// Response fifo empty
 	}
 		
 	return byte;
