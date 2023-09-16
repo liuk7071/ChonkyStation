@@ -9,7 +9,10 @@
 constexpr u64 cpuSpeed = 33868800;
 constexpr u64 readDelay = cpuSpeed / 75;
 constexpr u64 readDelayDoubleSpeed = readDelay / 2;
-constexpr u64 int3Delay = cpuSpeed / 1000;	// I don't know if this is ok???
+
+// I don't know if these are ok?????
+constexpr u64 int3Delay = cpuSpeed / 1000;
+constexpr u64 getIDDelay = 33868;
 
 
 class CDROM {
@@ -21,7 +24,9 @@ public:
 	
 	// INTs
 	bool shouldFireIRQ();
+
 	static void int3(void* classptr);
+	static void int5(void* classptr);
 	
 	void pushParam(u8 data);
 
@@ -43,6 +48,7 @@ private:
 	u8 getParamByte();
 
 	std::queue<u8> response;
+	std::queue<u8> secondResponse;
 
 	union {
 		u8 raw = 0;
@@ -71,6 +77,7 @@ private:
 namespace CDROMCommands {
 enum {
 	GetStat = 0x01,
-	Test	= 0x19
+	Test	= 0x19,
+	GetID   = 0x1A
 };
 }	// End namespace CDROMCommands

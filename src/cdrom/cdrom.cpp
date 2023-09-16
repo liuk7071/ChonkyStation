@@ -35,6 +35,13 @@ void CDROM::executeCommand(u8 data) {
 		break;
 	}
 
+	case CDROMCommands::GetID: {
+		response.push(statusCode.raw);
+		scheduler->push(&int3, scheduler->time + int3Delay, this);
+		scheduler->push(&int5, scheduler->time + int3Delay + getIDDelay, this);
+		break;
+	}
+
 	default:
 		Helpers::panic("[FATAL] Unimplemented CDROM command 0x%02x\n", data);
 	}
@@ -54,6 +61,18 @@ void CDROM::int3(void* classptr) {
 	CDROM* cdrom = (CDROM*)classptr;
 	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[FATAL] CDROM INT3 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
 	cdrom->intFlag |= 3;
+}
+
+void CDROM::int5(void* classptr) {
+	CDROM* cdrom = (CDROM*)classptr;
+	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[FATAL] CDROM INT5 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
+	cdrom->intFlag |= 5;
+
+	// Second response
+	if (cdrom->secondResponse.size()) {
+		cdrom->response = cdrom->secondResponse;
+		while (cdrom->secondResponse.size()) cdrom->secondResponse.pop();
+	}
 }
 
 void CDROM::pushParam(u8 data) {
