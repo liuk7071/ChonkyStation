@@ -327,6 +327,10 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		}
 		break;
 	}
+	case CpuOpcodes::Opcode::COP2: {
+		// TODO: GTE
+		break;
+	}
 	case CpuOpcodes::Opcode::LB: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		gprs[instr.rt] = (u32)(s8)mem->read<u8>(addr);

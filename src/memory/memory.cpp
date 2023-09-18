@@ -80,6 +80,8 @@ u8 Memory::read(u32 vaddr) {
 			Helpers::panic("[FATAL] Unhandled CDROM read8 0x1f801803.%d", cdrom->getIndex());
 		}
 	}
+	// SIO
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SIO, (u32)MemorySize::SIO)) return 0;
 	else if (Helpers::inRangeSized<u32>(paddr, 0x1f000000, 0x400)) return 0xff;
 	else
 		Helpers::panic("[FATAL] Unhandled read8 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
@@ -100,6 +102,8 @@ u16 Memory::read(u32 vaddr) {
 	// Interrupt
 	if (paddr == 0x1f801070) return interrupt->readIstat();
 	else if (paddr == 0x1f801074) return interrupt->readImask();
+	// SIO
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SIO, (u32)MemorySize::SIO)) return 0;
 	// SPU
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return 0;
 	else
@@ -215,6 +219,8 @@ void Memory::write(u32 vaddr, u16 data) {
 	// Interrupt
 	if (paddr == 0x1f801070) interrupt->writeIstat(data);
 	else if (paddr == 0x1f801074) interrupt->writeImask(data);
+	// SIO
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SIO, (u32)MemorySize::SIO)) return;
 	// SPU
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return;
 	// Timers

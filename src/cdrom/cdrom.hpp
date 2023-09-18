@@ -25,6 +25,7 @@ public:
 	// INTs
 	bool shouldFireIRQ();
 
+	static void int2(void* classptr);
 	static void int3(void* classptr);
 	static void int5(void* classptr);
 	
@@ -46,6 +47,9 @@ private:
 
 	std::queue<u8> params;
 	u8 getParamByte();
+
+	u32 seekLoc = 0;
+	u8 bcdToDec(u8 n) { return n - 6 * (n >> 4); }
 
 	std::queue<u8> response;
 	std::queue<u8> secondResponse;
@@ -77,6 +81,7 @@ private:
 namespace CDROMCommands {
 enum {
 	GetStat = 0x01,
+	SetLoc  = 0x02,
 	Test	= 0x19,
 	GetID   = 0x1A
 };
