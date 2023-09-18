@@ -1,6 +1,8 @@
 #include <cdrom.hpp>
 
 
+MAKE_LOG_FUNCTION(log, cdromLogger)
+
 CDROM::CDROM(Scheduler* scheduler) : scheduler(scheduler) {
 	statusReg.prmempt = 1;	// Parameter fifo empty
 	statusReg.prmwrdy = 1;	// Parameter fifo not full
@@ -14,6 +16,8 @@ void CDROM::executeCommand(u8 data) {
 	case CDROMCommands::GetStat: {
 		response.push(statusCode.raw);
 		scheduler->push(&int3, scheduler->time + int3Delay, this);
+
+		log("GetStat (stat: 0x%02x)\n", statusCode.raw);
 		break;
 	}
 
@@ -26,6 +30,8 @@ void CDROM::executeCommand(u8 data) {
 
 		response.push(statusCode.raw);
 		scheduler->push(&int3, scheduler->time + int3Delay, this);
+
+		log("SetLoc (loc: %d)\n", seekLoc);
 		break;
 	}
 	
@@ -44,6 +50,8 @@ void CDROM::executeCommand(u8 data) {
 		}
 		
 		scheduler->push(&int3, scheduler->time + int3Delay, this);
+
+		log("Test\n", statusCode.raw);
 		break;
 	}
 
@@ -74,6 +82,8 @@ void CDROM::executeCommand(u8 data) {
 
 		scheduler->push(&int3, scheduler->time + int3Delay, this);
 		scheduler->push(&int2, scheduler->time + int3Delay + getIDDelay, this);
+
+		log("GetID\n", statusCode.raw);
 		break;
 	}
 

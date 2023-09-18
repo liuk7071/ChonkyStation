@@ -1,6 +1,7 @@
 #pragma once
 
 #include <helpers.hpp>
+#include <logger.hpp>
 #include <BitField.hpp>
 #include <queue>
 #include <scheduler.hpp>

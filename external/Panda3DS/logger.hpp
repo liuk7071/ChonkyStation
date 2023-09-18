@@ -27,6 +27,7 @@ public:
 static auto cpuTraceLogger  = Logger<false>("[CPU TRACE] ");
 static auto dmaLogger       = Logger<false>("[   DMA   ] ");
 static auto gpuLogger       = Logger<false>("[   GPU   ] ");
+static auto cdromLogger     = Logger<true> ("[  CDROM  ] ");
 
 
 #define MAKE_LOG_FUNCTION(functionName, logger)          \
