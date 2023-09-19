@@ -61,7 +61,8 @@ public:
 		StartOfDisplayArea		= 0x05,
 		HorizontalDisplayRange	= 0x06,
 		VerticalDisplayRange	= 0x07,
-		DisplayMode				= 0x08
+		DisplayMode				= 0x08,
+		GetGPUInfo				= 0x10
 	};
 
 private:

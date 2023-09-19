@@ -195,6 +195,11 @@ void GPU::writeGp1(u32 data) {
 		stat |= (data & (1 << 7)) << 7;
 		break;
 	}
+	case (u32)GP1Command::GetGPUInfo: {
+		// TODO: STUBBED !!
+		log("STUBBED GETGPUINFO!!!\n");
+		break;
+	}
 	default:
 		Helpers::panic("[GPU] Unimplemented gp1 command 0x%02x\n", cmd);
 	}

@@ -278,11 +278,11 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		break;
 	}
 	case CpuOpcodes::Opcode::SLTI: {
-		gprs[instr.rt] = (s32)gprs[instr.rs] < (u32)(s16)instr.imm;
+		gprs[instr.rt] = (s32)gprs[instr.rs] < (s32)(s16)instr.imm;
 		break;
 	}
 	case CpuOpcodes::Opcode::SLTIU: {
-		gprs[instr.rt] = gprs[instr.rs] < instr.imm;
+		gprs[instr.rt] = gprs[instr.rs] < (u32)(s16)instr.imm;
 		break;
 	}
 	case CpuOpcodes::Opcode::ANDI: {
