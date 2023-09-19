@@ -13,8 +13,10 @@ constexpr u64 readDelayDoubleSpeed = readDelay / 2;
 
 // I don't know if these are ok?????
 constexpr u64 int3Delay = cpuSpeed / 1000;
+constexpr u64 int2Delay = int3Delay * 2;
 constexpr u64 getIDDelay = 33868;
 
+constexpr u64 seekTime = 150000;	// Currently stubbed seeking time to this for all seeks
 
 class CDROM {
 public:
@@ -30,6 +32,8 @@ public:
 	static void int3(void* classptr);
 	static void int5(void* classptr);
 	
+	static void stopSeeking(void* classptr);
+
 	void pushParam(u8 data);
 
 	u8 readStatus();
@@ -83,6 +87,7 @@ namespace CDROMCommands {
 enum {
 	GetStat = 0x01,
 	SetLoc  = 0x02,
+	SeekL	= 0x15,
 	Test	= 0x19,
 	GetID   = 0x1A
 };

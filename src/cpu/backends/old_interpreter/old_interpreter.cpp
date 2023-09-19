@@ -34,6 +34,9 @@ bool delay = false;
 #define log_kernel_tty
 
 void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
+	// Handle interrupts
+	core->checkInterrupt(mem->interrupt);
+
 	const auto instr = mem->read<u32>(core->pc);
 
 	disassembler->disassemble({ .raw = instr }, core);

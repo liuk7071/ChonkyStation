@@ -10,6 +10,10 @@ int main(int argc, char** argv) {
 
     PlayStation playstation = PlayStation(argv[1]);
 
+    if (argc >= 3) {
+        playstation.sideloadExecutable(argv[2]);
+    }
+
     // SDL Window
     SDL_Init(SDL_INIT_VIDEO);
     SDL_Window* window = SDL_CreateWindow("ChonkyStation", 100, 100, 1024, 512, 0);

@@ -10,17 +10,17 @@ class GPU;
 class GPUBackend {
 public:
 	GPUBackend(GPU* gpu) : gpu(gpu) {}
-	virtual void reset() { Helpers::panic("[FATAL] GPU Backend did not define reset function\n"); };
-	virtual u8* getVRAM() { Helpers::panic("[FATAL] GPU Backend did not define getVRAM function\n"); };
+	virtual void reset() { Helpers::panic("[  FATAL  ] GPU Backend did not define reset function\n"); };
+	virtual u8* getVRAM() { Helpers::panic("[  FATAL  ] GPU Backend did not define getVRAM function\n"); };
 
 	// Drawing
-	virtual void drawTriUntextured(Vertex v0, Vertex v1, Vertex v2) { Helpers::panic("[FATAL] GPU Backend did not define drawTriUntextured function\n"); }
-	virtual void drawTriTextured(Vertex v0, Vertex v1, Vertex v2, u16 clut, u16 texpage) { Helpers::panic("[FATAL] GPU Backend did not define drawTriTextured function\n"); }
+	virtual void drawTriUntextured(Vertex v0, Vertex v1, Vertex v2) { Helpers::panic("[  FATAL  ] GPU Backend did not define drawTriUntextured function\n"); }
+	virtual void drawTriTextured(Vertex v0, Vertex v1, Vertex v2, u16 clut, u16 texpage) { Helpers::panic("[  FATAL  ] GPU Backend did not define drawTriTextured function\n"); }
 
 	// Textures
-	virtual void beginTextureUpload(u16 x, u16 y, u16 width) { Helpers::panic("[FATAL] GPU Backend did not define beginTextureUpload function\n"); };
-	virtual void textureUploadData(u16 data) { Helpers::panic("[FATAL] GPU Backend did not define textureUploadData function\n"); };
-	virtual void endTextureUpload() { Helpers::panic("[FATAL] GPU Backend did not define endTextureUpload function\n"); }
+	virtual void beginTextureUpload(u16 x, u16 y, u16 width) { Helpers::panic("[  FATAL  ] GPU Backend did not define beginTextureUpload function\n"); };
+	virtual void textureUploadData(u16 data) { Helpers::panic("[  FATAL  ] GPU Backend did not define textureUploadData function\n"); };
+	virtual void endTextureUpload() { Helpers::panic("[  FATAL  ] GPU Backend did not define endTextureUpload function\n"); }
 
 protected:
 	GPU* gpu;

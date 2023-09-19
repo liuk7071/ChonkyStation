@@ -188,7 +188,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			break;
 		}
 		default:
-			Helpers::panic("[FATAL] Unimplemented secondary instruction 0x%02x (raw: 0x%08x)\n", instr.secondaryOpc.Value(), instr.raw);
+			Helpers::panic("[  FATAL  ] Unimplemented secondary instruction 0x%02x (raw: 0x%08x)\n", instr.secondaryOpc.Value(), instr.raw);
 		}
 		break;
 	}
@@ -225,7 +225,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 			break;
 		}
 		default:
-			Helpers::panic("[FATAL] Invalid REGIMM instruction 0x%02x (raw: 0x%08x)\n", instr.regimmOpc.Value(), instr.raw);
+			Helpers::panic("[  FATAL  ] Invalid REGIMM instruction 0x%02x (raw: 0x%08x)\n", instr.regimmOpc.Value(), instr.raw);
 		}
 		break;
 	}
@@ -318,12 +318,12 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 				break;
 			}
 			default:
-				Helpers::panic("[FATAL] Invalid cop0 instruction 0x%02 (raw:0x%08x)\n", instr.func.Value(), instr.raw);
+				Helpers::panic("[  FATAL  ] Invalid cop0 instruction 0x%02 (raw:0x%08x)\n", instr.func.Value(), instr.raw);
 			}
 			break;
 		}
 		default:
-			Helpers::panic("[FATAL] Unimplemented cop instruction 0x%02x (raw: 0x%08x)\n", instr.cop0Opc.Value(), instr.raw);
+			Helpers::panic("[  FATAL  ] Unimplemented cop instruction 0x%02x (raw: 0x%08x)\n", instr.cop0Opc.Value(), instr.raw);
 		}
 		break;
 	}
@@ -426,7 +426,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		break;
 	}
 	default:
-		Helpers::panic("[FATAL] Unimplemented primary instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
+		Helpers::panic("[  FATAL  ] Unimplemented primary instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
 	}
 
 	core->isDelaySlot = false;

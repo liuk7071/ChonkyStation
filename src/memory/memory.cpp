@@ -70,21 +70,21 @@ u8 Memory::read(u32 vaddr) {
 		switch (cdrom->getIndex()) {
 		case 1: return cdrom->getResponseByte();
 		default:
-			Helpers::panic("[FATAL] Unhandled CDROM read8 0x1f801801.%d", cdrom->getIndex());
+			Helpers::panic("[  FATAL  ] Unhandled CDROM read8 0x1f801801.%d", cdrom->getIndex());
 		}
 	}
 	else if (paddr == 0x1f801803) {
 		switch (cdrom->getIndex()) {
 		case 1: return cdrom->readIF();
 		default:
-			Helpers::panic("[FATAL] Unhandled CDROM read8 0x1f801803.%d", cdrom->getIndex());
+			Helpers::panic("[  FATAL  ] Unhandled CDROM read8 0x1f801803.%d", cdrom->getIndex());
 		}
 	}
 	// SIO
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SIO, (u32)MemorySize::SIO)) return 0;
 	else if (Helpers::inRangeSized<u32>(paddr, 0x1f000000, 0x400)) return 0xff;
 	else
-		Helpers::panic("[FATAL] Unhandled read8 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+		Helpers::panic("[  FATAL  ] Unhandled read8 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
 
 template<>
@@ -107,7 +107,7 @@ u16 Memory::read(u32 vaddr) {
 	// SPU
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return 0;
 	else
-		Helpers::panic("[FATAL] Unhandled read16 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+		Helpers::panic("[  FATAL  ] Unhandled read16 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
 
 template<>
@@ -122,8 +122,14 @@ u32 Memory::read(u32 vaddr) {
 
 	u32 paddr = maskAddress(vaddr);
 
+	// Scratchpad
+	if (Helpers::inRangeSized<u32>(paddr, 0x1f800000, 1_KB)) {
+		u32 data = 0;
+		std::memcpy(&data, &scratchpad[paddr - 0x1f800000], sizeof(u32));
+		return data;
+	}
 	// GPU
-	if (paddr == 0x1f801810) return gpu->gpuRead();
+	else if (paddr == 0x1f801810) return gpu->gpuRead();
 	else if (paddr == 0x1f801814) return gpu->getStat();
 	// Interrupt
 	else if (paddr == 0x1f801070) return interrupt->readIstat();
@@ -137,7 +143,7 @@ u32 Memory::read(u32 vaddr) {
 		case 0x0: return dma->channels[channel].madr;
 		case 0x4: return dma->channels[channel].bcr.raw;
 		case 0x8: return dma->channels[channel].chcr.raw;
-		default: Helpers::panic("[FATAL] Unhandled DMA read32 0x%08x\n", paddr);
+		default: Helpers::panic("[  FATAL  ] Unhandled DMA read32 0x%08x\n", paddr);
 		}
 	}
 	else if (paddr == 0x1f8010f0) return dma->dpcr;
@@ -145,7 +151,7 @@ u32 Memory::read(u32 vaddr) {
 	// Timers
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return 0;
 	else
-		Helpers::panic("[FATAL] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+		Helpers::panic("[  FATAL  ] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
 
 
@@ -171,7 +177,7 @@ void Memory::write(u32 vaddr, u8 data) {
 			break;
 		}
 		default:
-			Helpers::panic("[FATAL] Unhandled CDROM write8 0x1f801801.%d <- 0x%02x\n", cdrom->getIndex(), data);
+			Helpers::panic("[  FATAL  ] Unhandled CDROM write8 0x1f801801.%d <- 0x%02x\n", cdrom->getIndex(), data);
 		}
 	}
 	else if (paddr == 0x1f801802) {
@@ -185,7 +191,7 @@ void Memory::write(u32 vaddr, u8 data) {
 			break;
 		}
 		default:
-			Helpers::panic("[FATAL] Unhandled CDROM write8 0x1f801802.%d <- 0x%02x\n", cdrom->getIndex(), data);
+			Helpers::panic("[  FATAL  ] Unhandled CDROM write8 0x1f801802.%d <- 0x%02x\n", cdrom->getIndex(), data);
 		}
 	}
 	else if (paddr == 0x1f801803) {
@@ -195,12 +201,12 @@ void Memory::write(u32 vaddr, u8 data) {
 			break;
 		}
 		default:
-			Helpers::panic("[FATAL] Unhandled CDROM write8 0x1f801803.%d <- 0x%02x\n", cdrom->getIndex(), data);
+			Helpers::panic("[  FATAL  ] Unhandled CDROM write8 0x1f801803.%d <- 0x%02x\n", cdrom->getIndex(), data);
 		}
 	}
 	else if (paddr == 0x1f802041) return;	// POST - External 7-segment Display (W)
 	else
-		Helpers::panic("[FATAL] Unhandled write8 0x%08x (virtual 0x%08x) <- 0x%02x\n", paddr, vaddr, data);
+		Helpers::panic("[  FATAL  ] Unhandled write8 0x%08x (virtual 0x%08x) <- 0x%02x\n", paddr, vaddr, data);
 }
 
 template<>
@@ -226,7 +232,7 @@ void Memory::write(u32 vaddr, u16 data) {
 	// Timers
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return;
 	else
-		Helpers::panic("[FATAL] Unhandled write16 0x%08x (virtual 0x%08x) <- 0x%04x\n", paddr, vaddr, data);
+		Helpers::panic("[  FATAL  ] Unhandled write16 0x%08x (virtual 0x%08x) <- 0x%04x\n", paddr, vaddr, data);
 }
 
 template<>
@@ -263,7 +269,7 @@ void Memory::write(u32 vaddr, u32 data) {
 			}
 			break;
 		}
-		default: Helpers::panic("[FATAL] Unhandled DMA write32 0x%08x <- 0x%08x\n", paddr, data);
+		default: Helpers::panic("[  FATAL  ] Unhandled DMA write32 0x%08x <- 0x%08x\n", paddr, data);
 		}
 	}
 	else if (paddr == 0x1f8010f0) dma->dpcr = data;
@@ -283,5 +289,5 @@ void Memory::write(u32 vaddr, u32 data) {
 	else if (paddr == 0x1f801060) return;	// RAM_SIZE (R/W) (usually 00000B88h) (or 00000888h)
 	else if (paddr == 0xfffe0130) return;	// Cache Control (R/W)
 	else
-		Helpers::panic("[FATAL] Unhandled write32 0x%08x (virtual 0x%08x) <- 0x%08x\n", paddr, vaddr, data);
+		Helpers::panic("[  FATAL  ] Unhandled write32 0x%08x (virtual 0x%08x) <- 0x%08x\n", paddr, vaddr, data);
 }

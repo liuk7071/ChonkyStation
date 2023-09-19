@@ -82,6 +82,7 @@ struct COP0 {
         case (u32)COP0Reg::Status:      return status.raw;
         case (u32)COP0Reg::Cause:       return cause.raw;
         case (u32)COP0Reg::EPC:         return epc;
+        case (u32)COP0Reg::PRId:        return 2;
         default:
             Helpers::panic("Unimplemented cop0 register read cop0r%d\n", cop0r);
         }

@@ -11,7 +11,7 @@ u8* GPUSoftware::getVRAM() {
 }
 
 void GPUSoftware::beginTextureUpload(u16 x, u16 y, u16 width) {
-	if (uploadingTexture) Helpers::panic("[FATAL] Attempted to start a GPU texture transfer before another transfer ended\n");
+	if (uploadingTexture) Helpers::panic("[  FATAL  ] Attempted to start a GPU texture transfer before another transfer ended\n");
 
 	textureUpload = { x, y, width };
 	curX = x;
@@ -20,7 +20,7 @@ void GPUSoftware::beginTextureUpload(u16 x, u16 y, u16 width) {
 }
 
 void GPUSoftware::textureUploadData(u16 data) {
-	if (!uploadingTexture) Helpers::panic("[FATAL] Attempted to upload texture data before starting a texture transfer\n");
+	if (!uploadingTexture) Helpers::panic("[  FATAL  ] Attempted to upload texture data before starting a texture transfer\n");
 
 	writePixel(curX, curY, data);
 

@@ -14,7 +14,7 @@ void Scheduler::tick(u64 cycles) {
 }
 
 void Scheduler::push(void (*functionPtr)(void*), u64 time, void* data) {
-	Helpers::debugAssert(events.size() < schedulerMaxEntries, "[FATAL] Queued more than %d scheduler events\n", schedulerMaxEntries);
+	Helpers::debugAssert(events.size() < schedulerMaxEntries, "[  FATAL  ] Queued more than %d scheduler events\n", schedulerMaxEntries);
 
 	events.push({ .functionPtr = functionPtr, .data = data, .time = time });
 }

@@ -35,6 +35,25 @@ void CDROM::executeCommand(u8 data) {
 		break;
 	}
 	
+	case CDROMCommands::SeekL: {
+		// TODO: SeekL/P should stop ongoing reads
+
+		// First response doesn't have seeking bit set
+		response.push(statusCode.raw);
+
+		statusCode.seeking = true;
+		secondResponse.push(statusCode.raw);
+
+		scheduler->push(&int3, scheduler->time + int3Delay, this);
+		scheduler->push(&int2, scheduler->time + int3Delay + int2Delay, this);
+
+		// Seek time is currently stubbed to 150k cycles
+		scheduler->push(&stopSeeking, scheduler->time + seekTime, this);
+
+		log("SeekL\n");
+		break;
+	}
+
 	case CDROMCommands::Test: {
 		u8 subFunc = getParamByte();
 		switch (subFunc) {
@@ -46,12 +65,12 @@ void CDROM::executeCommand(u8 data) {
 			break;
 		}
 		default:
-			Helpers::panic("[FATAL] Unimplemented CDROM test subfunc 0x%02x\n", subFunc);
+			Helpers::panic("[  FATAL  ] Unimplemented CDROM test subfunc 0x%02x\n", subFunc);
 		}
 		
 		scheduler->push(&int3, scheduler->time + int3Delay, this);
 
-		log("Test\n", statusCode.raw);
+		log("Test\n");
 		break;
 	}
 
@@ -83,15 +102,15 @@ void CDROM::executeCommand(u8 data) {
 		scheduler->push(&int3, scheduler->time + int3Delay, this);
 		scheduler->push(&int2, scheduler->time + int3Delay + getIDDelay, this);
 
-		log("GetID\n", statusCode.raw);
+		log("GetID\n");
 		break;
 	}
 
 	default:
-		Helpers::panic("[FATAL] Unimplemented CDROM command 0x%02x\n", data);
+		Helpers::panic("[  FATAL  ] Unimplemented CDROM command 0x%02x\n", data);
 	}
 
-	Helpers::debugAssert(params.size() == 0, "[FATAL] CDROM command did not use all parameters");
+	Helpers::debugAssert(params.size() == 0, "[  FATAL  ] CDROM command did not use all parameters");
 	
 	statusReg.rslrrdy = 1;	// Response fifo not empty
 	statusReg.prmempt = 1;	// Parameter fifo empty
@@ -104,43 +123,57 @@ bool CDROM::shouldFireIRQ() {
 
 void CDROM::int2(void* classptr) {
 	CDROM* cdrom = (CDROM*)classptr;
-	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[FATAL] CDROM INT2 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
+	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[  FATAL  ] CDROM INT2 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
 	cdrom->intFlag |= 2;
 
 	// Second response
 	if (cdrom->secondResponse.size()) {
-		Helpers::debugAssert(!cdrom->response.size(), "[FATAL] CDROM INT2 before first response was read (probably not supposed to happen...?");
+		Helpers::debugAssert(!cdrom->response.size(), "[  FATAL  ] CDROM INT2 before first response was read (probably not supposed to happen...?");
 		cdrom->response = cdrom->secondResponse;
 		cdrom->statusReg.rslrrdy = 1;	// Response fifo not empty
 
 		while (cdrom->secondResponse.size()) cdrom->secondResponse.pop();
+		log("---INT2\n");
 	}
+	else
+		log("INT2\n");
 }
 
 void CDROM::int3(void* classptr) {
 	CDROM* cdrom = (CDROM*)classptr;
-	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[FATAL] CDROM INT3 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
+	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[  FATAL  ] CDROM INT3 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
 	cdrom->intFlag |= 3;
+
+	log("-INT3\n");
 }
 
 void CDROM::int5(void* classptr) {
 	CDROM* cdrom = (CDROM*)classptr;
-	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[FATAL] CDROM INT5 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
+	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[  FATAL  ] CDROM INT5 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
 	cdrom->intFlag |= 5;
 
 	// Second response
 	if (cdrom->secondResponse.size()) {
-		Helpers::debugAssert(!cdrom->response.size(), "[FATAL] CDROM INT5 before first response was read (probably not supposed to happen...?");
+		Helpers::debugAssert(!cdrom->response.size(), "[  FATAL  ] CDROM INT5 before first response was read (probably not supposed to happen...?");
 		cdrom->response = cdrom->secondResponse;
 		cdrom->statusReg.rslrrdy = 1;	// Response fifo not empty
 
 		while (cdrom->secondResponse.size()) cdrom->secondResponse.pop();
+		log("---INT5\n");
 	}
+	else
+		log("INT5\n");
+}
+
+void CDROM::stopSeeking(void* classptr) {
+	CDROM* cdrom = (CDROM*)classptr;
+	cdrom->statusCode.seeking = false;
+	log("Seek ended\n");
 }
 
 void CDROM::pushParam(u8 data) {
 	params.push(data);
-	Helpers::debugAssert(params.size() <= 16, "[FATAL] Wrote more than 16 bytes to CDROM parameter fifo");
+	Helpers::debugAssert(params.size() <= 16, "[  FATAL  ] Wrote more than 16 bytes to CDROM parameter fifo");
 	if (params.size() == 16) {
 		statusReg.prmwrdy = 0;	// Parameter fifo full
 	}
