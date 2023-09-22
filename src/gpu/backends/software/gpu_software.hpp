@@ -16,6 +16,8 @@ public:
 	void drawTriUntextured(Vertex v0, Vertex v1, Vertex v2) override;
 	void drawTriTextured(Vertex v0, Vertex v1, Vertex v2, u16 clut, u16 texpage) override;
 
+	void drawRectUntextured(Vertex v, u16 width, u16 height) override;
+
 	void beginTextureUpload(u16 x, u16 y, u16 width) override;
 	void textureUploadData(u16 data) override;
 	void endTextureUpload() override;

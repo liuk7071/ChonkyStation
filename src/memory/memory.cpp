@@ -64,8 +64,9 @@ u8 Memory::read(u32 vaddr) {
 	
 	u32 paddr = maskAddress(vaddr);
 
+	if (Helpers::inRangeSized<u32>(paddr, 0x1f800000, 1_KB)) return scratchpad[paddr - 0x1f800000];
 	// CDROM
-	if (paddr == 0x1f801800) return cdrom->readStatus();
+	else if (paddr == 0x1f801800) return cdrom->readStatus();
 	else if (paddr == 0x1f801801) {
 		switch (cdrom->getIndex()) {
 		case 1: return cdrom->getResponseByte();
@@ -99,8 +100,14 @@ u16 Memory::read(u32 vaddr) {
 
 	u32 paddr = maskAddress(vaddr);
 
+	// Scratchpad
+	if (Helpers::inRangeSized<u32>(paddr, 0x1f800000, 1_KB)) {
+		u32 data = 0;
+		std::memcpy(&data, &scratchpad[paddr - 0x1f800000], sizeof(u16));
+		return data;
+	}
 	// Interrupt
-	if (paddr == 0x1f801070) return interrupt->readIstat();
+	else if (paddr == 0x1f801070) return interrupt->readIstat();
 	else if (paddr == 0x1f801074) return interrupt->readImask();
 	// SIO
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SIO, (u32)MemorySize::SIO)) return 0;
@@ -151,7 +158,8 @@ u32 Memory::read(u32 vaddr) {
 	// Timers
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return 0;
 	else
-		Helpers::panic("[  FATAL  ] Unhandled read32 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
+		Helpers::dump("ramdump.bin", ram, 2_MB);
+		Helpers::panic("[  FATAL  ] Unhandled read32 0x%08x (virtual 0x%08x) @ pc 0x%08x\n", paddr, vaddr, core->pc);
 }
 
 
@@ -168,8 +176,9 @@ void Memory::write(u32 vaddr, u8 data) {
 	
 	u32 paddr = maskAddress(vaddr);
 
+	if (Helpers::inRangeSized<u32>(paddr, 0x1f800000, 1_KB)) scratchpad[paddr - 0x1f800000] = data;
 	// CDROM
-	if (paddr == 0x1f801800) { cdrom->writeStatus(data); return; }
+	else if (paddr == 0x1f801800) cdrom->writeStatus(data);
 	else if (paddr == 0x1f801801) {
 		switch (cdrom->getIndex()) {
 		case 0: {
@@ -222,8 +231,11 @@ void Memory::write(u32 vaddr, u16 data) {
 
 	u32 paddr = maskAddress(vaddr);
 
+	if (Helpers::inRangeSized<u32>(paddr, 0x1f800000, 1_KB)) {
+		std::memcpy(&scratchpad[paddr - 0x1f800000], &data, sizeof(u16));
+	}
 	// Interrupt
-	if (paddr == 0x1f801070) interrupt->writeIstat(data);
+	else if (paddr == 0x1f801070) interrupt->writeIstat(data);
 	else if (paddr == 0x1f801074) interrupt->writeImask(data);
 	// SIO
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SIO, (u32)MemorySize::SIO)) return;
@@ -248,8 +260,11 @@ void Memory::write(u32 vaddr, u32 data) {
 
 	u32 paddr = maskAddress(vaddr);
 
+	if (Helpers::inRangeSized<u32>(paddr, 0x1f800000, 1_KB)) {
+		std::memcpy(&scratchpad[paddr - 0x1f800000], &data, sizeof(u32));
+	}
 	// GPU
-	if (paddr == 0x1f801810) gpu->writeGp0(data);
+	else if (paddr == 0x1f801810) gpu->writeGp0(data);
 	else if (paddr == 0x1f801814) gpu->writeGp1(data);
 	// Interrupt
 	else if (paddr == 0x1f801070) interrupt->writeIstat(data);

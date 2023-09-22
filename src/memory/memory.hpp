@@ -5,6 +5,7 @@
 #include <dma.hpp>
 #include <gpu.hpp>
 #include <cdrom.hpp>
+#include <cpu_core.hpp>
 
 
 class Memory {
@@ -20,6 +21,7 @@ public:
     DMA* dma;
     GPU* gpu;
     CDROM* cdrom;
+    CpuCore* core;  // Mainly used for debugging (i.e. get pc of bad read/writes)
 
     // Base addresses
     enum class MemoryBase {

@@ -16,6 +16,8 @@ public:
 	// Drawing
 	virtual void drawTriUntextured(Vertex v0, Vertex v1, Vertex v2) { Helpers::panic("[  FATAL  ] GPU Backend did not define drawTriUntextured function\n"); }
 	virtual void drawTriTextured(Vertex v0, Vertex v1, Vertex v2, u16 clut, u16 texpage) { Helpers::panic("[  FATAL  ] GPU Backend did not define drawTriTextured function\n"); }
+	
+	virtual void drawRectUntextured(Vertex v, u16 width, u16 height) { Helpers::panic("[  FATAL  ] GPU Backend did not define drawRectUntextured function\n"); };
 
 	// Textures
 	virtual void beginTextureUpload(u16 x, u16 y, u16 width) { Helpers::panic("[  FATAL  ] GPU Backend did not define beginTextureUpload function\n"); };

@@ -133,7 +133,7 @@ void CDROM::int2(void* classptr) {
 		cdrom->statusReg.rslrrdy = 1;	// Response fifo not empty
 
 		while (cdrom->secondResponse.size()) cdrom->secondResponse.pop();
-		log("---INT2\n");
+		log("--INT2\n");
 	}
 	else
 		log("INT2\n");
@@ -159,7 +159,7 @@ void CDROM::int5(void* classptr) {
 		cdrom->statusReg.rslrrdy = 1;	// Response fifo not empty
 
 		while (cdrom->secondResponse.size()) cdrom->secondResponse.pop();
-		log("---INT5\n");
+		log("--INT5\n");
 	}
 	else
 		log("INT5\n");

@@ -149,3 +149,11 @@ void GPUSoftware::drawTriTextured(Vertex v0, Vertex v1, Vertex v2, u16 clut, u16
 		}
 	}
 }
+
+void GPUSoftware::drawRectUntextured(Vertex v, u16 width, u16 height) {
+	for (s16 y = v.y; y < v.y + height; y++) {
+		for (s16 x = v.x; x < v.x + width; x++) {
+			writePixel(x, y, v.getBGR555());
+		}
+	}
+}

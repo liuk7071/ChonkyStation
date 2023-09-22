@@ -1,6 +1,9 @@
 #include "interpreter.hpp"
 
 
+#define DONT_CRASH_ON_BAD_READWRITE
+#define DONT_CRASH_ON_BAD_JUMP
+
 void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	// Handle interrupts
 	core->checkInterrupt(mem->interrupt);
@@ -55,7 +58,11 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		case CpuOpcodes::SPECIALOpcode::JR: {
 			const u32 addr = gprs[instr.rs];
 			if (addr & 3) {
+#ifndef DONT_CRASH_ON_BAD_JUMP
 				Helpers::panic("Bad JR addr\n");
+#else
+				break;
+#endif
 			}
 			core->nextPc = addr;
 			core->branched = true;
@@ -64,7 +71,11 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		case CpuOpcodes::SPECIALOpcode::JALR: {
 			const u32 addr = gprs[instr.rs];
 			if (addr & 3) {
+#ifndef DONT_CRASH_ON_BAD_JUMP
 				Helpers::panic("Bad JALR addr\n");
+#else
+				break;
+#endif
 			}
 			gprs[CpuOpcodes::CpuReg::RA] = core->nextPc;
 			core->nextPc = addr;
@@ -193,7 +204,7 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		break;
 	}
 	case CpuOpcodes::Opcode::REGIMM: {
-		switch (instr.regimmOpc) {
+		switch (instr.regimmOpc & 0x11) {
 		case CpuOpcodes::REGIMMOpcode::BLTZ: {
 			if ((s32)gprs[instr.rs] < 0) {
 				core->nextPc = core->pc + ((u32)(s16)instr.imm << 2);
@@ -339,7 +350,9 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	case CpuOpcodes::Opcode::LH: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 1) {
+#ifndef DONT_CRASH_ON_BAD_READWRITE
 			Helpers::panic("Bad lh addr 0x%08x\n", addr);
+#endif
 		}
 		gprs[instr.rt] = (u32)(s16)mem->read<u16>(addr);
 		break;
@@ -356,7 +369,9 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	case CpuOpcodes::Opcode::LW: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 3) {
+#ifndef DONT_CRASH_ON_BAD_READWRITE
 			Helpers::panic("Bad lw addr 0x%08x\n", addr);
+#endif
 		}
 		gprs[instr.rt] = mem->read<u32>(addr);
 		break;
@@ -369,7 +384,9 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	case CpuOpcodes::Opcode::LHU: {
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 1) {
+#ifndef DONT_CRASH_ON_BAD_READWRITE
 			Helpers::panic("Bad lhu addr 0x%08x\n", addr);
+#endif
 		}
 		gprs[instr.rt] = mem->read<u16>(addr);
 		break;
@@ -393,7 +410,9 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		if (core->cop0.status.isc) return;
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 1) {
+#ifndef DONT_CRASH_ON_BAD_READWRITE
 			Helpers::panic("Bad sh addr 0x%08x\n", addr);
+#endif
 		}
 		mem->write<u16>(addr, gprs[instr.rt]);
 		break;
@@ -411,7 +430,9 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		if (core->cop0.status.isc) break;
 		const u32 addr = gprs[instr.rs] + (u32)(s16)instr.imm;
 		if (addr & 3) {
+#ifndef DONT_CRASH_ON_BAD_READWRITE
 			Helpers::panic("Bad sw addr 0x%08x\n", addr);
+#endif
 		}
 		mem->write<u32>(addr, gprs[instr.rt]);
 		break;

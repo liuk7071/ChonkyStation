@@ -13,6 +13,8 @@
 class PlayStation {
 public:
     PlayStation(const fs::path& biosPath) : cdrom(&scheduler), interrupt(), gpu(&scheduler), dma(), mem(&interrupt, &dma, &gpu, &cdrom), cpu(&mem) {
+        mem.core = &cpu.core;
+
         mem.loadBios(biosPath);
         cpu.switchBackend(Cpu::Backend::Interpreter);
 

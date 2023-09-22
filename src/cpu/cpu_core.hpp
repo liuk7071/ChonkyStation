@@ -77,6 +77,7 @@ struct COP0 {
         case (u32)COP0Reg::BDA:         return 0;
         case (u32)COP0Reg::JumpDest:    return 0;
         case (u32)COP0Reg::DCIC:        return 0;
+        case (u32)COP0Reg::BadVAddr:    return 0;
         case (u32)COP0Reg::BDAM:        return 0;
         case (u32)COP0Reg::BPCM:        return 0;
         case (u32)COP0Reg::Status:      return status.raw;

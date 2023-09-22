@@ -118,7 +118,7 @@ void GPU::writeGp0(u32 data) {
 							verts[i].v = (uv >> 8) & 0xff;
 						}
 					}
-					
+
 					// Draw
 					if (!poly.textured) {
 						backend->drawTriUntextured(verts[0], verts[1], verts[2]);
@@ -129,9 +129,36 @@ void GPU::writeGp0(u32 data) {
 						u16 clut = fifo[2] >> 16;
 						u16 texpage = fifo[4] >> 16;
 						backend->drawTriTextured(verts[0], verts[1], verts[2], clut, texpage);
-						if(poly.quad)
+						if (poly.quad)
 							backend->drawTriTextured(verts[1], verts[2], verts[3], clut, texpage);
 					}
+				}
+				else if (drawCommand.drawType == DrawCommand::DrawType::Rectangle) {
+					auto rect = drawCommand.getRectangle();
+					Vertex vert;
+					auto idx = 0;
+					u32 col = fifo[idx++] & 0xffffff;
+					vert.writeBGR888(col);
+					vert.x = fifo[idx] & 0xffff;
+					vert.y = (fifo[idx++] >> 16) & 0xffff;
+					if (rect.textured) {
+						vert.u = fifo[idx] & 0xff;
+						vert.v = (fifo[idx++] >> 8) & 0xff;
+					}
+					// TODO: variable size
+					Helpers::debugAssert(rect.size != 0, "[FATAL] Unimplemented variable size rectangle\n");
+					// TODO: textured
+					Helpers::debugAssert(!rect.textured, "[FATAL] Unimplemented textured rectangle\n");
+
+					u16 width = 0;
+					u16 height = 0;
+					switch (rect.size) {
+					case 1: width =  1; height =  1; break;
+					case 2: width =  8; height =  8; break;
+					case 3: width = 16; height = 16; break;
+					}
+
+					backend->drawRectUntextured(vert, width, height);
 				}
 			}
 		}
@@ -277,16 +304,28 @@ void GPU::startCommand(u32 rawCommand) {
 }
 
 GPU::DrawCommand::DrawCommand(u32 raw) {
-	Polygon temp = { .raw = raw };
 	this->raw = raw;
-	if (temp.polygonCommand == 1) {
+	switch ((raw >> 29) & 7) {
+	
+	// Polygon
+	case 0b001: {
+		Polygon temp = { .raw = raw };
 		log("Polygon:\n");
 		log(temp.quad ? "  Quad\n" : "  Tri\n");
 		log(temp.shaded ? "  Shaded\n" : "  Monochrome\n");
 		log(temp.textured ? "  Textured\n" : "  Untextured\n");
 		drawType = DrawType::Polygon;
+		break;
 	}
-	else {
+
+	// Rectangle
+	case 0b011: {
+		// TODO: Logging
+		drawType = DrawType::Rectangle;
+		break;
+	}
+
+	default:
 		Helpers::panic("[GPU] Unimplemented gp0 command 0x%02x (0x%08x)\n", raw >> 24, raw);
 	}
 }
@@ -304,6 +343,11 @@ u32 GPU::DrawCommand::getCommandSize() {
 		// First colour is included in the command word
 		if (poly.shaded) size--;
 	}
+	else if (drawType == DrawType::Rectangle) {
+		Rectangle rect = getRectangle();
+		if (rect.textured)  size++;
+		if (rect.size == 0) size++;
+	}
 	else {
 		Helpers::panic("[GPU] Tried to get command size for unimplemented command type\n");
 	}
@@ -313,5 +357,10 @@ u32 GPU::DrawCommand::getCommandSize() {
 
 GPU::DrawCommand::Polygon GPU::DrawCommand::getPolygon() {
 	if (drawType != DrawType::Polygon) Helpers::panic("[GPU] Tried to getPolygon but drawType was not polygon\n");
+	return { .raw = this->raw };
+}
+
+GPU::DrawCommand::Rectangle GPU::DrawCommand::getRectangle() {
+	if (drawType != DrawType::Rectangle) Helpers::panic("[GPU] Tried to getRectangle but drawType was not rectangle\n");
 	return { .raw = this->raw };
 }

@@ -81,7 +81,8 @@ private:
 		u32 getCommandSize();	// In words
 		enum class DrawType {
 			Polygon,
-			Line
+			Line,
+			Rectangle
 		} drawType;
 
 		union Polygon {
@@ -95,7 +96,18 @@ private:
 			BitField<29, 3, u32> polygonCommand;	// Should be 0b001
 		};
 
+		union Rectangle {
+			u32 raw;
+			BitField<0, 24, u32> rgb;				// Colour
+			BitField<24, 1, u32> rawTexture;
+			BitField<25, 1, u32> semiTransparent;
+			BitField<26, 1, u32> textured;
+			BitField<27, 2, u32> size;
+			BitField<29, 3, u32> rectangleCommand;	// Should be 0b011
+		};
+
 		Polygon getPolygon();
+		Rectangle getRectangle();
 
 	private:
 		u32 raw;
