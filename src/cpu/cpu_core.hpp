@@ -77,7 +77,7 @@ struct COP0 {
         case (u32)COP0Reg::BDA:         return 0;
         case (u32)COP0Reg::JumpDest:    return 0;
         case (u32)COP0Reg::DCIC:        return 0;
-        case (u32)COP0Reg::BadVAddr:    return 0;
+        case (u32)COP0Reg::BadVAddr:    return badVaddr;
         case (u32)COP0Reg::BDAM:        return 0;
         case (u32)COP0Reg::BPCM:        return 0;
         case (u32)COP0Reg::Status:      return status.raw;
@@ -168,8 +168,8 @@ public:
     }
 };
 
-namespace CpuOpcodes {
-enum CpuReg {
+namespace CpuReg {
+enum {
     R0 = 0, AT = 1, V0 = 2, V1 = 3,
     A0 = 4, A1 = 5, A2 = 6, A3 = 7,
     T0 = 8, T1 = 9, T2 = 10, T3 = 11,
@@ -180,7 +180,9 @@ enum CpuReg {
     GP = 28, SP = 29, S8 = 30, RA = 31,
     LO = 32, HI = 33
 };
+}
 
+namespace CpuOpcodes {
 enum Opcode {
     SPECIAL = 0x00,
     REGIMM = 0x01,
