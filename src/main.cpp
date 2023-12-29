@@ -2,6 +2,8 @@
 #include <SDL.h>
 #include "playstation.hpp"
 
+#include <diff/diff.hpp>
+
 
 int main(int argc, char** argv) {
     if (argc < 2) Helpers::panic("Usage: ChonkyStation [bios path]\n");
@@ -13,6 +15,10 @@ int main(int argc, char** argv) {
     if (argc >= 3) {
         playstation.sideloadExecutable(argv[2]);
     }
+
+    // Testing
+    //Test::Diff diffTest = Test::Diff(argv[1]);
+    //diffTest.doTest();
 
     // SDL Window
     SDL_Init(SDL_INIT_VIDEO);

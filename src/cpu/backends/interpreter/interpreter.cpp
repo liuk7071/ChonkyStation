@@ -1,8 +1,8 @@
 #include "interpreter.hpp"
 
 
-//#define DONT_CRASH_ON_BAD_READWRITE
-//#define DONT_CRASH_ON_BAD_JUMP
+#define DONT_CRASH_ON_BAD_READWRITE
+#define DONT_CRASH_ON_BAD_JUMP
 
 void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 	// Handle interrupts

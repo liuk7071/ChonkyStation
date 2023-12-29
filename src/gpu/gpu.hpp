@@ -42,6 +42,7 @@ public:
 	enum class GP0Command {
 		NOP							= 0x00,
 		ClearCache					= 0x01,
+		FillVRAM					= 0x02,
 		UploadTexture				= 0xA0,
 		ReadVRAM					= 0xC0,
 		DrawModeSetting				= 0xE1,

@@ -157,6 +157,9 @@ u32 Memory::read(u32 vaddr) {
 	else if (paddr == 0x1f8010f4) return dma->dicr;
 	// Timers
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return 0;
+
+	else if (paddr == 0x1f80101C) return 0x00070777;	// Expansion 2 Delay/Size (usually 00070777h) (128 bytes, 8bit bus)
+
 	else
 		Helpers::dump("ramdump.bin", ram, 2_MB);
 		Helpers::panic("[  FATAL  ] Unhandled read32 0x%08x (virtual 0x%08x) @ pc 0x%08x\n", paddr, vaddr, core->pc);

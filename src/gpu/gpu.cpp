@@ -54,6 +54,11 @@ void GPU::writeGp0(u32 data) {
 	if (paramsLeft == 0) {
 		if (!uploadingTexture) {
 			switch (fifo[0] >> 24) {
+			case (u32)GP0Command::FillVRAM: {
+				// TODO
+				hasCommand = false;
+				break;
+			}
 			case (u32)GP0Command::UploadTexture: {
 				uploadingTexture = true;
 				// Calculate size
@@ -145,17 +150,23 @@ void GPU::writeGp0(u32 data) {
 						vert.u = fifo[idx] & 0xff;
 						vert.v = (fifo[idx++] >> 8) & 0xff;
 					}
-					// TODO: variable size
-					Helpers::debugAssert(rect.size != 0, "[FATAL] Unimplemented variable size rectangle\n");
+
 					// TODO: textured
 					Helpers::debugAssert(!rect.textured, "[FATAL] Unimplemented textured rectangle\n");
 
 					u16 width = 0;
 					u16 height = 0;
-					switch (rect.size) {
-					case 1: width =  1; height =  1; break;
-					case 2: width =  8; height =  8; break;
-					case 3: width = 16; height = 16; break;
+
+					if (rect.size == 0) {
+						width = fifo[idx] & 0xffff;
+						height = (fifo[idx++] >> 8) & 0xffff;
+					}
+					else {
+						switch (rect.size) {
+						case 1: width = 1; height = 1; break;
+						case 2: width = 8; height = 8; break;
+						case 3: width = 16; height = 16; break;
+						}
 					}
 
 					backend->drawRectUntextured(vert, width, height);
@@ -246,6 +257,12 @@ void GPU::startCommand(u32 rawCommand) {
 	case (u32)GP0Command::ClearCache: {
 		log("ClearCache\n");
 		// Stubbed
+		break;
+	}
+	case (u32)GP0Command::FillVRAM: {
+		log("FillVRAM\n");
+		paramsLeft = 2;
+		hasCommand = true;
 		break;
 	}
 	case (u32)GP0Command::UploadTexture: {

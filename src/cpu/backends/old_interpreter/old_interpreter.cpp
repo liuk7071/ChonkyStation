@@ -68,6 +68,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 	if (delay) {	// branch delay slot
 		core->pc = jump - 4;
 		delay = false;
+		core->isDelaySlot = false;
 	}
 
 	// Quick and dirty hack. TODO: Replace this with a bitfield
@@ -125,6 +126,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 			jump = addr;
 			debug_log("jr %s\n", reg[rs].c_str());
 			delay = true;
+			core->isDelaySlot = true;
 			break;
 		}
 		case 0x09: {
@@ -137,6 +139,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 			jump = addr;
 			debug_log("jalr %s\n", reg[rs].c_str());
 			delay = true;
+			core->isDelaySlot = true;
 			break;
 		}
 		case 0x0C: {
@@ -304,6 +307,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 			if (signed_rs < 0) {
 				jump = (core->pc + 4) + (sign_extended_imm << 2);
 				delay = true;
+				core->isDelaySlot = true;
 				debug_log(" branched\n");
 			}
 			else { debug_log("\n"); }
@@ -315,6 +319,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 			if (signed_rs >= 0) {
 				jump = (core->pc + 4) + (sign_extended_imm << 2);
 				delay = true;
+				core->isDelaySlot = true;
 				debug_log(" branched\n");
 			}
 			else { debug_log("\n"); }
@@ -326,6 +331,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 		jump = (core->pc & 0xf0000000) | (jump_imm << 2);
 		debug_log("j 0x%.8x\n", jump_imm);
 		delay = true;
+		core->isDelaySlot = true;
 		break;
 	}
 	case 0x03: {
@@ -333,6 +339,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 		debug_log("jal 0x%.8x\n", jump_imm);
 		regs[0x1f] = core->pc + 8;
 		delay = true;
+		core->isDelaySlot = true;
 		break;
 	}
 	case 0x04: {
@@ -340,6 +347,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 		if (regs[rs] == regs[rt]) {
 			jump = (core->pc + 4) + (sign_extended_imm << 2);
 			delay = true;
+			core->isDelaySlot = true;
 			debug_log(" branched\n");
 		}
 		else { debug_log("\n"); }
@@ -350,6 +358,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 		if (regs[rs] != regs[rt]) {
 			jump = (core->pc + 4) + (sign_extended_imm << 2);
 			delay = true;
+			core->isDelaySlot = true;
 			debug_log(" branched\n");
 		}
 		else { debug_log("\n"); }
@@ -360,6 +369,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 		if (signed_rs <= 0) {
 			jump = (core->pc + 4) + (sign_extended_imm << 2);
 			delay = true;
+			core->isDelaySlot = true;
 			debug_log(" branched\n");
 		}
 		else { debug_log("\n"); }
@@ -370,6 +380,7 @@ void OldInterpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler
 		if (signed_rs > 0) {
 			jump = (core->pc + 4) + (sign_extended_imm << 2);
 			delay = true;
+			core->isDelaySlot = true;
 			debug_log(" branched\n");
 		}
 		else { debug_log("\n"); }

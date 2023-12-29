@@ -16,7 +16,7 @@ public:
         mem.core = &cpu.core;
 
         mem.loadBios(biosPath);
-        cpu.switchBackend(Cpu::Backend::Interpreter);
+        cpu.switchBackend(Cpu::Backend::OldInterpreter);
 
         // Setup GPU scheduler events
         scheduler.push(&gpu.scanlineEvent, scheduler.time + GPUConstants::cyclesPerScanline, &gpu);
@@ -47,6 +47,7 @@ public:
     u32 getPC() { return cpu.core.pc; }
     u8* getRAM() { return mem.ram; }
     u8* getVRAM() { return gpu.getVRAM(); }
+    u32* getGPRS() { return cpu.core.gprs; }
     bool getVBLANKAndClear() {
         bool temp = gpu.vblank;
         gpu.vblank = false;
@@ -55,6 +56,8 @@ public:
     void VBLANK() { interrupt.raiseInterrupt(Interrupt::InterruptType::VBLANK); }
     bool isInBIOS() { return Helpers::inRangeSized<u32>(cpu.core.pc, (u32)Memory::MemoryBase::BIOS, (u32)Memory::MemorySize::BIOS); }
     
+    void switchCpuBackend(Cpu::Backend backend) { cpu.switchBackend(backend); }
+
     void loadExecutable(const fs::path path) {
         auto binary = Helpers::readBinary(path);
 
