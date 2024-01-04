@@ -12,11 +12,11 @@
 
 class PlayStation {
 public:
-    PlayStation(const fs::path& biosPath) : cdrom(&scheduler), interrupt(), gpu(&scheduler), dma(), mem(&interrupt, &dma, &gpu, &cdrom), cpu(&mem) {
+    PlayStation(const fs::path& biosPath, const fs::path& cdPath) : cdrom(cdPath, &scheduler), interrupt(), gpu(&scheduler), dma(), mem(&interrupt, &dma, &gpu, &cdrom), cpu(&mem) {
         mem.core = &cpu.core;
 
         mem.loadBios(biosPath);
-        cpu.switchBackend(Cpu::Backend::OldInterpreter);
+        cpu.switchBackend(Cpu::Backend::Interpreter);
 
         // Setup GPU scheduler events
         scheduler.push(&gpu.scanlineEvent, scheduler.time + GPUConstants::cyclesPerScanline, &gpu);

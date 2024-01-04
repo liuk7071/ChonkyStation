@@ -6,6 +6,7 @@ MAKE_LOG_FUNCTION(log, dmaLogger)
 
 DMA::DMA() {
 	channels[2].doDMA = &gpuDMA;
+	channels[3].doDMA = &cdromDMA;
 	channels[6].doDMA = &otcDMA;
 }
 
@@ -96,6 +97,35 @@ void DMA::gpuDMA(Memory* memory) {
 	ch.chcr.trigger = 0;
 	// TODO: Update DICR
 	log("GPU DMA done\n");
+}
+
+void DMA::cdromDMA(Memory* memory) {
+	const auto& dma = memory->dma;
+	auto& ch = dma->channels[3];
+	log("Start CDROM DMA\n");
+
+	switch (ch.chcr.syncMode) {
+	case (u32)SyncMode::Block: {
+		u32 addr = ch.madr & 0x1ffffc;
+		u32 bc = ch.bcr.bc;
+		if (!bc) bc = 0x10000;
+		while (bc-- > 1) {
+			memory->write<u32>(addr, memory->cdrom->readSectorWord());
+			if (ch.chcr.step == (u32)Step::Forward)
+				addr += 4;
+			else
+				addr -= 4;
+		}
+		break;
+	}
+	default:
+		Helpers::panic("[DMA] Unimplemented CDROM DMA sync mode %d\n", ch.chcr.syncMode.Value());
+	}
+
+	ch.chcr.enable = 0;
+	ch.chcr.trigger = 0;
+	// TODO: Update DICR
+	log("CDROM DMA done\n");
 }
 
 void DMA::otcDMA(Memory* memory) {

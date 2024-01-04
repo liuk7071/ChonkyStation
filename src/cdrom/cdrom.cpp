@@ -3,7 +3,10 @@
 
 MAKE_LOG_FUNCTION(log, cdromLogger)
 
-CDROM::CDROM(Scheduler* scheduler) : scheduler(scheduler) {
+CDROM::CDROM(const fs::path& cdPath, Scheduler* scheduler) : scheduler(scheduler) {
+	std::string pathStr = cdPath.string();
+	cd = std::fopen(pathStr.c_str(), "rb");
+
 	statusReg.prmempt = 1;	// Parameter fifo empty
 	statusReg.prmwrdy = 1;	// Parameter fifo not full
 
@@ -32,6 +35,68 @@ void CDROM::executeCommand(u8 data) {
 		scheduler->push(&int3, scheduler->time + int3Delay, this);
 
 		log("SetLoc (loc: %d)\n", seekLoc);
+		break;
+	}
+
+	case CDROMCommands::ReadN: {
+		response.push(statusCode.raw);
+		scheduler->push(&int3, scheduler->time + int3Delay, this);
+
+		log("ReadN\n");
+
+		beginReading();
+		scheduler->push(&cdRead, scheduler->time + (!mode.doubleSpeed ? readTime : readTimeDoubleSpeed), this, "cdRead");
+
+		break;
+	}
+
+	case CDROMCommands::Pause: {
+		response.push(statusCode.raw);
+		scheduler->push(&int3, scheduler->time + int3Delay, this);
+		
+		scheduler->push(&int2, scheduler->time + int3Delay + int2Delay, this);
+		stopReading();
+		secondResponse.push(statusCode.raw);
+
+		log("Pause\n");
+		break;
+	}
+
+	case CDROMCommands::Init: {
+		response.push(statusCode.raw);
+		secondResponse.push(statusCode.raw);
+
+		scheduler->push(&int3, scheduler->time + int3Delay, this);
+		scheduler->push(&int2, scheduler->time + int3Delay + int2Delay, this);
+
+		log("Init\n");
+		break;
+	}
+
+	case CDROMCommands::Setmode: {
+		mode.raw = getParamByte();
+		
+		Helpers::debugAssert(!mode.autoPause, "Enabled CDROM auto pause\n");
+		Helpers::debugAssert(!mode.report, "Enabled CDROM report\n");
+		Helpers::debugAssert(!mode.xaFilter, "Enabled CDROM xa-filter\n");
+		Helpers::debugAssert(!mode.ignoreBit, "Enabled CDROM ignore bit\n");
+		Helpers::debugAssert(!mode.sectorSize, "Enabled CDROM 0x924 byte sectors\n");
+		Helpers::debugAssert(!mode.xaAdpcm, "Enabled CDROM xa-adpcm\n");
+
+		response.push(statusCode.raw);
+		scheduler->push(&int3, scheduler->time + int3Delay, this);
+
+		log("Setmode\n");
+		break;
+	}
+
+	case CDROMCommands::Demute: {
+		response.push(statusCode.raw);
+		secondResponse.push(statusCode.raw);
+
+		scheduler->push(&int3, scheduler->time + int3Delay, this);
+
+		log("Demute\n");
 		break;
 	}
 	
@@ -171,6 +236,51 @@ void CDROM::stopSeeking(void* classptr) {
 	log("Seek ended\n");
 }
 
+void CDROM::beginReading() {
+	statusCode.reading = true;
+	log("Begin reading\n");
+}
+
+void CDROM::stopReading() {
+	statusCode.reading = false;
+	log("Stop reading\n");
+	scheduler->deleteAllEventsOfName("cdRead");
+}
+
+void CDROM::cdRead(void* classptr) {
+	CDROM* cdrom = (CDROM*)classptr;
+	Helpers::debugAssert((cdrom->intFlag & 7) == 0, "[  FATAL  ] CDROM INT1 was fired before previous INT%d was acknowledged in interrupt flag\n", cdrom->intFlag & 3);
+	cdrom->intFlag |= 1;
+
+	cdrom->sector.clear();
+	cdrom->sector.resize(sectorSize);
+	std::fseek(cdrom->cd, (cdrom->seekLoc - 150) * sectorSize, SEEK_SET);
+	std::fread(cdrom->sector.data(), 1, sectorSize, cdrom->cd);
+	cdrom->statusReg.drqsts = 1;
+
+	log("Read sector %d\n", cdrom->seekLoc);
+	cdrom->seekLoc++;
+
+	if (cdrom->mode.sectorSize)
+		cdrom->sectorCur = 0x0C;
+	else
+		cdrom->sectorCur = 0x18;
+
+	cdrom->scheduler->push(&cdrom->cdRead, cdrom->scheduler->time + (!cdrom->mode.doubleSpeed ? readTime : readTimeDoubleSpeed), classptr, "cdRead");
+}
+
+u32 CDROM::readSectorWord() {
+	if ((sectorCur + 3) >= sector.size()) Helpers::panic("[  FATAL  ] CDROM sector read out of bounds\n");
+	
+	u32 word;
+	std::memcpy(&word, &sector[sectorCur], sizeof(u32));
+	sectorCur += sizeof(u32);
+
+	if (sectorCur == sectorSize) statusReg.drqsts = 0;
+
+	return word;
+}
+
 void CDROM::pushParam(u8 data) {
 	params.push(data);
 	Helpers::debugAssert(params.size() <= 16, "[  FATAL  ] Wrote more than 16 bytes to CDROM parameter fifo");
@@ -185,6 +295,10 @@ u8 CDROM::readStatus() {
 
 void CDROM::writeStatus(u8 data) {
 	statusReg.index = data & 3;
+}
+
+u8 CDROM::readIE() {
+	return intEnable;
 }
 
 void CDROM::writeIE(u8 data) {

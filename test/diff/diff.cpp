@@ -3,7 +3,7 @@
 
 using namespace Test;
 
-Diff::Diff(const fs::path& biosPath) : p1(biosPath), p2(biosPath) {
+Diff::Diff(const fs::path& biosPath, const fs::path& cdPath) : p1(biosPath, cdPath), p2(biosPath, cdPath) {
 	p1.switchCpuBackend(Cpu::Backend::Interpreter);
 	p2.switchCpuBackend(Cpu::Backend::OldInterpreter);
 }

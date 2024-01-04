@@ -76,6 +76,7 @@ u8 Memory::read(u32 vaddr) {
 	}
 	else if (paddr == 0x1f801803) {
 		switch (cdrom->getIndex()) {
+		case 0: return cdrom->readIE();
 		case 1: return cdrom->readIF();
 		default:
 			Helpers::panic("[  FATAL  ] Unhandled CDROM read8 0x1f801803.%d", cdrom->getIndex());
@@ -113,6 +114,8 @@ u16 Memory::read(u32 vaddr) {
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SIO, (u32)MemorySize::SIO)) return 0;
 	// SPU
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::SPU, (u32)MemorySize::SPU)) return 0;
+	// Timers
+	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return 0;
 	else
 		Helpers::panic("[  FATAL  ] Unhandled read16 0x%08x (virtual 0x%08x)\n", paddr, vaddr);
 }
@@ -158,7 +161,10 @@ u32 Memory::read(u32 vaddr) {
 	// Timers
 	else if (Helpers::inRangeSized<u32>(paddr, (u32)MemoryBase::Timer, (u32)MemorySize::Timer)) return 0;
 
+	else if (paddr == 0x1f802080) return 0;	// 1F802080h 4 Redux-Expansion ID "PCSX" (R)
+
 	else if (paddr == 0x1f80101C) return 0x00070777;	// Expansion 2 Delay/Size (usually 00070777h) (128 bytes, 8bit bus)
+	else if (paddr == 0x1f801060) return 0x00000b88;	// RAM_SIZE (R/W) (usually 00000B88h) (or 00000888h)
 
 	else
 		Helpers::dump("ramdump.bin", ram, 2_MB);
@@ -188,6 +194,9 @@ void Memory::write(u32 vaddr, u8 data) {
 			cdrom->executeCommand(data);
 			break;
 		}
+		case 1: break;
+		case 2: break;
+		case 3: break;
 		default:
 			Helpers::panic("[  FATAL  ] Unhandled CDROM write8 0x1f801801.%d <- 0x%02x\n", cdrom->getIndex(), data);
 		}
@@ -202,20 +211,35 @@ void Memory::write(u32 vaddr, u8 data) {
 			cdrom->writeIE(data);
 			break;
 		}
+		case 2: break;
+		case 3: break;
 		default:
 			Helpers::panic("[  FATAL  ] Unhandled CDROM write8 0x1f801802.%d <- 0x%02x\n", cdrom->getIndex(), data);
 		}
 	}
 	else if (paddr == 0x1f801803) {
 		switch (cdrom->getIndex()) {
+		case 0: {
+			Helpers::debugAssert(((data >> 5) & 1) == 0, "[  FATAL  ] Unhandled CDROM Request Register SMEN bit\n");
+			break;
+		}
 		case 1: {
 			cdrom->writeIF(data);
 			break;
 		}
+		case 2: break;
+		case 3: break;
 		default:
 			Helpers::panic("[  FATAL  ] Unhandled CDROM write8 0x1f801803.%d <- 0x%02x\n", cdrom->getIndex(), data);
 		}
 	}
+
+	// 1F802080h 1 Redux-Expansion Console putchar (W)
+	else if (paddr == 0x1f802080) {
+		std::putc(data, stdout);
+		return;
+	}
+
 	else if (paddr == 0x1f802041) return;	// POST - External 7-segment Display (W)
 	else
 		Helpers::panic("[  FATAL  ] Unhandled write8 0x%08x (virtual 0x%08x) <- 0x%02x\n", paddr, vaddr, data);

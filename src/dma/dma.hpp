@@ -35,7 +35,7 @@ public:
 		} chcr;
 
 		bool shouldStartDMA();
-		void (*doDMA)(Memory*);
+		void (*doDMA)(Memory*) = nullptr;
 	};
 
 	DMAChannel channels[7];
@@ -59,5 +59,6 @@ public:
 
 	void doDMA(int channel, Memory* memory);
 	static void gpuDMA(Memory* memory);
+	static void cdromDMA(Memory* memory);
 	static void otcDMA(Memory* memory);
 };

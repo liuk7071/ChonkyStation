@@ -7,7 +7,7 @@
 namespace Test {
 	class Diff {
 	public:
-		Diff(const fs::path& biosPath);
+		Diff(const fs::path& biosPath, const fs::path& cdPath);
 		void doTest();
 	private:
 		PlayStation p1;
