@@ -67,7 +67,7 @@ void CDROM::executeCommand(u8 data) {
 		secondResponse.push(statusCode.raw);
 
 		scheduler->push(&int3, scheduler->time + int3Delay, this);
-		scheduler->push(&int2, scheduler->time + int3Delay + int2Delay, this);
+		scheduler->push(&int2, scheduler->time + int3Delay + 50000, this);
 
 		log("Init\n");
 		break;
@@ -133,7 +133,7 @@ void CDROM::executeCommand(u8 data) {
 			Helpers::panic("[  FATAL  ] Unimplemented CDROM test subfunc 0x%02x\n", subFunc);
 		}
 		
-		scheduler->push(&int3, scheduler->time + int3Delay, this);
+		scheduler->push(&int3, scheduler->time + int3Delay / 15, this);
 
 		log("Test\n");
 		break;
@@ -193,7 +193,7 @@ void CDROM::int2(void* classptr) {
 
 	// Second response
 	if (cdrom->secondResponse.size()) {
-		Helpers::debugAssert(!cdrom->response.size(), "[  FATAL  ] CDROM INT2 before first response was read (probably not supposed to happen...?");
+		//Helpers::debugAssert(!cdrom->response.size(), "[  FATAL  ] CDROM INT2 before first response was read (probably not supposed to happen...?)");
 		cdrom->response = cdrom->secondResponse;
 		cdrom->statusReg.rslrrdy = 1;	// Response fifo not empty
 
@@ -276,7 +276,11 @@ u32 CDROM::readSectorWord() {
 	std::memcpy(&word, &sector[sectorCur], sizeof(u32));
 	sectorCur += sizeof(u32);
 
-	if (sectorCur == sectorSize) statusReg.drqsts = 0;
+	if (sectorCur == (mode.sectorSize ? sectorSize - 0xC : sectorSizeDataOnly)) {
+		statusReg.drqsts = 0;
+		sectorCur = 0;
+		log("--- Read all data ---\n");
+	}
 
 	return word;
 }
@@ -310,6 +314,8 @@ u8 CDROM::readIF() {
 }
 
 void CDROM::writeIF(u8 data) {
+	log("ACK\n");
+
 	intFlag &= ~(data & 0x1f);
 	if (data & (1 << 6)) {	// "CLRPRM" clear parameter fifo
 		while (params.size()) params.pop();

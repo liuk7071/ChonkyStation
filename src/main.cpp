@@ -11,6 +11,7 @@ int main(int argc, char** argv) {
     printf("ChonkyStation\n");
 
     PlayStation playstation = PlayStation(argv[1], argv[2]);
+    playstation.switchCpuBackend(Cpu::Backend::Interpreter);
 
     if (argc >= 4) {
         playstation.sideloadExecutable(argv[3]);

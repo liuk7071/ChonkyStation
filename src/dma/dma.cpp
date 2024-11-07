@@ -57,6 +57,10 @@ void DMA::gpuDMA(Memory* memory) {
 			}
 			break;
 		}
+		case (u32)Direction::ToRam: {
+			// TODO
+			break;
+		}
 		default:
 			Helpers::panic("[DMA] Unimplemented GPU Sync DMA direction %d\n", ch.chcr.dir.Value());
 		}
@@ -109,7 +113,7 @@ void DMA::cdromDMA(Memory* memory) {
 		u32 addr = ch.madr & 0x1ffffc;
 		u32 bc = ch.bcr.bc;
 		if (!bc) bc = 0x10000;
-		while (bc-- > 1) {
+		while (bc-- > 0) {
 			memory->write<u32>(addr, memory->cdrom->readSectorWord());
 			if (ch.chcr.step == (u32)Step::Forward)
 				addr += 4;

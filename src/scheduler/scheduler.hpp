@@ -57,6 +57,6 @@ public:
 	};
 
 	pqueue<Event> events;
-	void push(void (*functionPtr)(void*), u64 time, void* data, std::string name = "Default");
+	void push(void (*functionPtr)(void*), u64 time, void* data, std::string name = "Unnamed event");
 	void deleteAllEventsOfName(std::string name);
 };

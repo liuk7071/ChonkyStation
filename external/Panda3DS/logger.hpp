@@ -25,7 +25,7 @@ public:
 
 // Our loggers here. Enable/disable by toggling the template param
 static auto cpuTraceLogger  = Logger<false>("[CPU TRACE] ");
-static auto dmaLogger       = Logger<false>("[   DMA   ] ");
+static auto dmaLogger       = Logger<true> ("[   DMA   ] ");
 static auto gpuLogger       = Logger<false>("[   GPU   ] ");
 static auto cdromLogger     = Logger<true> ("[  CDROM  ] ");
 

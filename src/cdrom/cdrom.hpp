@@ -11,14 +11,17 @@ constexpr u64 cpuSpeed = 33868800;
 constexpr u64 readTime = cpuSpeed / 75;
 constexpr u64 readTimeDoubleSpeed = readTime / 2;
 
+constexpr size_t operator""_MS(unsigned long long int x) { return (cpuSpeed / 1000) * x; }
+
 // I don't know if these are ok?????
-constexpr u64 int3Delay = cpuSpeed / 15000;
-constexpr u64 int2Delay = int3Delay * 2;
-constexpr u64 getIDDelay = 33868;
+constexpr u64 int3Delay = 8_MS;
+constexpr u64 int2Delay = int3Delay + 8_MS;
+constexpr u64 getIDDelay = 32000;
 
 constexpr u64 seekTime = 75000;	// Currently stubbed seeking time to this for all seeks
 
 constexpr u64 sectorSize = 0x930;
+constexpr u64 sectorSizeDataOnly = 0x800;
 
 class CDROM {
 public:

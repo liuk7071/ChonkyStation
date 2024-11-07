@@ -470,6 +470,14 @@ void Interpreter::step(CpuCore* core, Memory* mem, Disassembler* disassembler) {
 		mem->write<u32>(address & ~3, dataTemp | rtTemp);
 		break;
 	}
+	case CpuOpcodes::Opcode::LWC2: {
+		// TODO
+		break;
+	}
+	case CpuOpcodes::Opcode::SWC2: {
+		// TODO
+		break;
+	}
 	default:
 		Helpers::panic("[  FATAL  ] Unimplemented primary instruction 0x%02x (raw: 0x%08x)\n", instr.primaryOpc.Value(), instr.raw);
 	}
